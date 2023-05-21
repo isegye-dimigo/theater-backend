@@ -1,7 +1,7 @@
 {
 	"name": "theater-backend",
 	"version": "1.0.0",
-	"description": "Backend for Isegye Theater",
+	"description": "Backend of Isegye Theater",
 	"main": "distribution/application.js",
 	"scripts": {
 		"build": "tsc --project tsconfig.json",
