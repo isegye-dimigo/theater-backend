@@ -1,7 +1,7 @@
 import { FastifyBaseLogger, FastifySchema, FastifyTypeProvider, HTTPMethods, RouteHandlerMethod, RouteOptions as _RouteOptions } from 'fastify';
 import { IncomingMessage, Server, ServerResponse } from 'http';
 import Module from '@library/module';
-import { ArraySchema, BooleanSchema, IntegerSchema, JSONSchema, NumberSchema, ObjectSchema, StringSchema } from 'fluent-json-schema';
+import { JSONSchema } from 'fluent-json-schema';
 
 type RecursiveRecord<T extends string | number | symbol, S> = {
 	[key in T]: S | RecursiveRecord<T, S>
@@ -21,8 +21,6 @@ export interface ModuleOptions {
 	modules?: Module[];
 	prefix?: string;
 }
-
-export type Schema<T extends string> = Record<T, ObjectSchema | StringSchema | NumberSchema | ArraySchema | IntegerSchema | BooleanSchema>;
 
 export type JsendResponse = {
 	status: 'success'
