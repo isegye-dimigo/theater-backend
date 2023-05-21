@@ -131,9 +131,9 @@ model User {
   id              Int            @id @default(autoincrement()) @db.UnsignedInt
   email           String         @unique(map: "email") @db.VarChar(64)
   password        String         @db.VarChar(128)
-  handle          String         @unique(map: "handle") @db.VarChar(16)
+  handle          String         @unique(map: "handle") @db.VarChar(32)
   phone           String?        @unique(map: "phone") @db.VarChar(16)
-  name            String         @db.VarChar(32)
+  name            String         @db.VarChar(64)
   description     String         @db.VarChar(1024)
   profileImageId  Int?           @unique(map: "profile_image_id") @map("profile_image_id") @db.UnsignedInt
   bannerImageId   Int?           @unique(map: "banner_image_id") @map("banner_image_id") @db.UnsignedInt
