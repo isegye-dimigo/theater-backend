@@ -13,51 +13,70 @@ model Board {
   userId        Int            @map("user_id") @db.UnsignedInt
   title         String         @db.VarChar(64)
   content       String         @db.Text
-  isDeleted     Boolean        @default(dbgenerated("b'0'")) @map("is_deleted") @db.Bit(1)
+  isDeleted     Boolean        @default(dbgenerated("(b'0')")) @map("is_deleted") @db.Bit(1)
   createdAt     DateTime       @default(now()) @map("created_at") @db.DateTime(0)
-  user          User           @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "board.user_id,user.id")
+  user          User           @relation(fields: [userId], references: [id], onUpdate: Restrict, map: "board.user_id,user.id")
   boardComments BoardComment[]
-  boardImages   BoardImage[]
+  boardLikes    BoardLike[]
+  boardMedias   BoardMedia[]
+  reports       Report[]
+  userActions   UserAction[]
 
   @@index([userId], map: "board.user_id,user.id")
   @@map("board")
 }
 
 model BoardComment {
-  id         Int      @id @default(autoincrement()) @db.UnsignedInt
-  boardId    Int      @map("board_id") @db.UnsignedInt
-  userId     Int      @map("user_id") @db.UnsignedInt
-  content    String   @db.VarChar(512)
-  isEmoticon Boolean  @default(dbgenerated("b'0'")) @map("is_emoticon") @db.Bit(1)
-  isDeleted  Boolean  @default(dbgenerated("b'0'")) @map("is_deleted") @db.Bit(1)
-  createdAt  DateTime @default(now()) @map("created_at") @db.DateTime(0)
-  board      Board    @relation(fields: [boardId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "board_comment.board_id,board.id")
-  user       User     @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "board_comment.user_id,user.id")
+  id          Int          @id @default(autoincrement()) @db.UnsignedInt
+  boardId     Int          @map("board_id") @db.UnsignedInt
+  userId      Int          @map("user_id") @db.UnsignedInt
+  content     String       @db.VarChar(512)
+  isEmoticon  Boolean      @default(dbgenerated("(b'0')")) @map("is_emoticon") @db.Bit(1)
+  isDeleted   Boolean      @default(dbgenerated("(b'0')")) @map("is_deleted") @db.Bit(1)
+  createdAt   DateTime     @default(now()) @map("created_at") @db.DateTime(0)
+  board       Board        @relation(fields: [boardId], references: [id], onUpdate: Restrict, map: "board_comment.board_id,board.id")
+  user        User         @relation(fields: [userId], references: [id], onUpdate: Restrict, map: "board_comment.user_id,user.id")
+  reports     Report[]
+  userActions UserAction[]
 
   @@index([boardId], map: "board_comment.board_id,board.id")
   @@index([userId], map: "board_comment.user_id,user.id")
   @@map("board_comment")
 }
 
-model BoardImage {
+model BoardLike {
+  id      Int   @id @db.UnsignedInt
+  boardId Int   @map("board_id") @db.UnsignedInt
+  userId  Int   @map("user_id") @db.UnsignedInt
+  board   Board @relation(fields: [boardId], references: [id], onUpdate: Restrict, map: "board_like.board_id,board.id")
+  user    User  @relation(fields: [userId], references: [id], onUpdate: Restrict, map: "board_like.user_id,user.id")
+
+  @@unique([boardId, userId], map: "board_id,user_id")
+  @@index([userId], map: "board_like.user_id,user.id")
+  @@map("board_like")
+}
+
+model BoardMedia {
   id      Int   @id @default(autoincrement()) @db.UnsignedInt
   boardId Int   @map("board_id") @db.UnsignedInt
-  imageId Int   @unique(map: "image_id") @map("image_id") @db.UnsignedInt
-  board   Board @relation(fields: [boardId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "board_image.board_id,board.id")
-  image   Image @relation(fields: [imageId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "board_image.image_id,image.id")
+  mediaId Int   @unique(map: "image_id") @map("media_id") @db.UnsignedInt
+  board   Board @relation(fields: [boardId], references: [id], onUpdate: Restrict, map: "board_media.board_id,board.id")
+  media   Media @relation(fields: [mediaId], references: [id], onUpdate: Restrict, map: "board_media.media_id,media.id")
 
   @@index([boardId], map: "board_image.board_id,board.id")
-  @@map("board_image")
+  @@map("board_media")
 }
 
 model Emoticon {
   id           Int           @id @default(autoincrement()) @db.UnsignedInt
   userId       Int           @map("user_id") @db.UnsignedInt
   name         String        @db.VarChar(64)
-  isDeleted    Boolean       @default(dbgenerated("b'0'")) @map("is_deleted") @db.Bit(1)
+  isDeleted    Boolean       @default(dbgenerated("(b'0')")) @map("is_deleted") @db.Bit(1)
   createdAt    DateTime      @default(now()) @map("created_at") @db.DateTime(0)
-  user         User          @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "emoticon.user_id,user.id")
+  user         User          @relation(fields: [userId], references: [id], onUpdate: Restrict, map: "emoticon.user_id,user.id")
   emotionIcons EmotionIcon[]
+  reports      Report[]
+  userActions  UserAction[]
 
   @@index([userId], map: "emoticon.user_id,user.id")
   @@map("emoticon")
@@ -67,27 +86,50 @@ model EmotionIcon {
   id         Int      @id @default(autoincrement()) @db.UnsignedInt
   emoticonId Int      @map("emoticon_id") @db.UnsignedInt
   index      Int      @db.UnsignedInt
-  imageId    Int      @unique(map: "image_id") @map("image_id") @db.UnsignedInt
-  emoticon   Emoticon @relation(fields: [emoticonId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "emoticon_icon.emoticon_id,emoticon.id")
-  image      Image    @relation(fields: [imageId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "emoticon_icon.image_id,image.id")
+  mediaId    Int      @unique(map: "image_id") @map("media_id") @db.UnsignedInt
+  emoticon   Emoticon @relation(fields: [emoticonId], references: [id], onUpdate: Restrict, map: "emoticon_icon.emoticon_id,emoticon.id")
+  media      Media    @relation(fields: [mediaId], references: [id], onUpdate: Restrict, map: "emoticon_icon.media_id,media.id")
 
   @@index([emoticonId], map: "emoticon_icon.emoticon_id,emoticon.id")
   @@map("emotion_icon")
 }
 
-model Image {
-  id          Int          @id @default(autoincrement()) @db.UnsignedInt
-  hash        String       @unique(map: "hash") @db.VarChar(256)
-  width       Int          @db.UnsignedInt
-  height      Int          @db.UnsignedInt
-  createdAt   DateTime     @default(now()) @map("created_at") @db.DateTime(0)
-  boardImage  BoardImage?
-  emotionIcon EmotionIcon?
-  movie       Movie?
-  bannerUser  User?        @relation("user.banner_image_id,image.id")
-  profileUser User?        @relation("user.profile_image_id,image.id")
+model Media {
+  id            Int            @id @db.UnsignedInt
+  hash          String         @unique(map: "hash") @db.VarChar(128)
+  type          Boolean
+  size          Boolean
+  parentMediaId Int?           @map("parent_media_id") @db.UnsignedInt
+  width         Int            @db.UnsignedInt
+  height        Int            @db.UnsignedInt
+  isVideo       Boolean        @map("is_video") @db.Bit(1)
+  createdAt     DateTime       @map("created_at") @db.DateTime(0)
+  boardMedia    BoardMedia?
+  emotionIcon   EmotionIcon?
+  parentMedia   Media?         @relation("mediaTomedia", fields: [parentMediaId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "media.parent_media_id,media.id")
+  childMedias   Media[]        @relation("mediaTomedia")
+  mediaMetadata MediaMetadata?
+  imageMovie    Movie?         @relation("movie.image_media_id,media.id")
+  videoMovie    Movie?         @relation("movie.video_media_id,media.id")
+  movieLikes    MovieLike[]
+  bannerUser    User?          @relation("user.banner_media_id,media.id")
+  profileUser   User?          @relation("user.profile_media_id,media.id")
 
-  @@map("image")
+  @@index([parentMediaId], map: "media.parent_media_id,media.id")
+  @@map("media")
+}
+
+model MediaMetadata {
+  id              Int   @id @db.UnsignedInt
+  mediaId         Int   @unique(map: "media_id") @map("media_id") @db.UnsignedInt
+  length          Int   @db.UnsignedInt
+  videoBitRate    Int   @map("video_bit_rate") @db.UnsignedInt
+  videoFrameRate  Int   @map("video_frame_rate") @db.UnsignedInt
+  audioBitRate    Int   @map("audio_bit_rate") @db.UnsignedInt
+  audioSampleRate Int   @map("audio_sample_rate") @db.UnsignedInt
+  media           Media @relation(fields: [mediaId], references: [id], onUpdate: Restrict, map: "media_metadata.media_id,media.id")
+
+  @@map("media_metadata")
 }
 
 model Movie {
@@ -95,36 +137,71 @@ model Movie {
   userId        Int            @map("user_id") @db.UnsignedInt
   title         String         @db.VarChar(128)
   description   String         @db.VarChar(4096)
-  videoId       Int            @unique(map: "video_id") @map("video_id") @db.UnsignedInt
-  imageId       Int            @unique(map: "image_id") @map("image_id") @db.UnsignedInt
+  videoMediaId  Int            @unique(map: "video_id") @map("video_media_id") @db.UnsignedInt
+  imageMediaId  Int            @unique(map: "image_id") @map("image_media_id") @db.UnsignedInt
+  isDeleted     Boolean        @default(dbgenerated("(b'0')")) @map("is_deleted") @db.Bit(1)
   createdAt     DateTime       @default(now()) @map("created_at") @db.DateTime(0)
-  isDeleted     Boolean        @default(dbgenerated("b'0'")) @map("is_deleted") @db.Bit(1)
-  image         Image          @relation(fields: [imageId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "movie.image_id,image.id")
-  user          User           @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "movie.user_id,user.id")
-  video         Video          @relation(fields: [videoId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "movie.video_id,video.id")
+  imageMedia    Media          @relation("movie.image_media_id,media.id", fields: [imageMediaId], references: [id], onUpdate: Restrict, map: "movie.image_media_id,media.id")
+  user          User           @relation(fields: [userId], references: [id], onUpdate: Restrict, map: "movie.user_id,user.id")
+  videoMedia    Media          @relation("movie.video_media_id,media.id", fields: [videoMediaId], references: [id], onUpdate: Restrict, map: "movie.video_media_id,media.id")
   movieComments MovieComment[]
+  reports       Report[]
+  userActions   UserAction[]
 
   @@index([userId], map: "movie.user_id,user.id")
   @@map("movie")
 }
 
 model MovieComment {
-  id         Int      @id @default(autoincrement()) @db.UnsignedInt
-  movieId    Int      @map("movie_id") @db.UnsignedInt
-  userId     Int      @map("user_id") @db.UnsignedInt
-  time       Int      @db.UnsignedInt
-  content    String   @db.VarChar(128)
-  x          Int?     @db.UnsignedInt
-  y          Int?     @db.UnsignedInt
-  isEmoticon Boolean  @default(dbgenerated("b'0'")) @map("is_emoticon") @db.Bit(1)
-  isDeleted  Boolean  @default(dbgenerated("b'0'")) @map("is_deleted") @db.Bit(1)
-  createdAt  DateTime @default(now()) @map("created_at") @db.DateTime(0)
-  movie      Movie    @relation(fields: [movieId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "movie_comment.movie_id,movie.id")
-  user       User     @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "movie_comment.user_id,user.id")
+  id          Int          @id @default(autoincrement()) @db.UnsignedInt
+  movieId     Int          @map("movie_id") @db.UnsignedInt
+  userId      Int          @map("user_id") @db.UnsignedInt
+  time        Int          @db.UnsignedInt
+  content     String       @db.VarChar(128)
+  x           Int?         @db.UnsignedInt
+  y           Int?         @db.UnsignedInt
+  isEmoticon  Boolean      @default(dbgenerated("(b'0')")) @map("is_emoticon") @db.Bit(1)
+  isDeleted   Boolean      @default(dbgenerated("(b'0')")) @map("is_deleted") @db.Bit(1)
+  createdAt   DateTime     @default(now()) @map("created_at") @db.DateTime(0)
+  movie       Movie        @relation(fields: [movieId], references: [id], onUpdate: Restrict, map: "movie_comment.movie_id,movie.id")
+  user        User         @relation(fields: [userId], references: [id], onUpdate: Restrict, map: "movie_comment.user_id,user.id")
+  reports     Report[]
+  userActions UserAction[]
 
   @@index([movieId], map: "movie_comment.movie_id,movie.id")
   @@index([userId], map: "movie_comment.user_id,user.id")
   @@map("movie_comment")
+}
+
+model MovieLike {
+  id      Int   @id @db.UnsignedInt
+  movieId Int   @map("movie_id") @db.UnsignedInt
+  userId  Int   @map("user_id") @db.UnsignedInt
+  media   Media @relation(fields: [movieId], references: [id], onUpdate: Restrict, map: "movie_like.movie_id,movie.id")
+  user    User  @relation(fields: [userId], references: [id], onUpdate: Restrict, map: "movie_like.user_id,user.id")
+
+  @@unique([movieId, userId], map: "movie_id,user_id")
+  @@index([userId], map: "movie_like.user_id,user.id")
+  @@map("movie_like")
+}
+
+model Report {
+  id           Int          @id @db.UnsignedInt
+  userId       Int          @map("user_id") @db.UnsignedInt
+  type         Int          @db.UnsignedTinyInt
+  targetId     Int          @map("target_id") @db.UnsignedInt
+  cretedAt     DateTime     @default(now()) @map("creted_at") @db.DateTime(0)
+  board        Board        @relation(fields: [targetId], references: [id], onUpdate: Restrict, map: "report.target_id,board.id")
+  boardComment BoardComment @relation(fields: [targetId], references: [id], onUpdate: Restrict, map: "report.target_id,board_comment.id")
+  emoticon     Emoticon     @relation(fields: [targetId], references: [id], onUpdate: Restrict, map: "report.target_id,emoticon.id")
+  movie        Movie        @relation(fields: [targetId], references: [id], onUpdate: Restrict, map: "report.target_id,movie.id")
+  movieComment MovieComment @relation(fields: [targetId], references: [id], onUpdate: Restrict, map: "report.target_id,movie_comment.id")
+  targetUser   User         @relation("report.target_id,user.id", fields: [targetId], references: [id], onUpdate: Restrict, map: "report.target_id,user.id")
+  user         User         @relation("report.user_id,user.id", fields: [userId], references: [id], onUpdate: Restrict, map: "report.user_id,user.id")
+
+  @@index([targetId], map: "report.target_id,user.id")
+  @@index([userId], map: "report.user_id,user.id")
+  @@map("report")
 }
 
 model User {
@@ -135,19 +212,23 @@ model User {
   phone           String?        @unique(map: "phone") @db.VarChar(16)
   name            String         @db.VarChar(64)
   description     String         @db.VarChar(1024)
-  profileImageId  Int?           @unique(map: "profile_image_id") @map("profile_image_id") @db.UnsignedInt
-  bannerImageId   Int?           @unique(map: "banner_image_id") @map("banner_image_id") @db.UnsignedInt
+  profileMediaId  Int?           @unique(map: "profile_image_id") @map("profile_media_id") @db.UnsignedInt
+  bannerMediaId   Int?           @unique(map: "banner_image_id") @map("banner_media_id") @db.UnsignedInt
   verificationKey String?        @unique(map: "verification_key") @map("verification_key") @db.VarChar(128)
-  isVerified      Boolean        @default(dbgenerated("b'0'")) @map("is_verified") @db.Bit(1)
-  isDeleted       Boolean        @default(dbgenerated("b'0'")) @map("is_deleted") @db.Bit(1)
+  isVerified      Boolean        @default(dbgenerated("(b'0')")) @map("is_verified") @db.Bit(1)
+  isDeleted       Boolean        @default(dbgenerated("(b'0')")) @map("is_deleted") @db.Bit(1)
   createdAt       DateTime       @default(now()) @map("created_at") @db.DateTime(0)
   boards          Board[]
   boardComments   BoardComment[]
+  boardLikes      BoardLike[]
   emoticons       Emoticon[]
   movies          Movie[]
   movieComments   MovieComment[]
-  bannerImage     Image?         @relation("user.banner_image_id,image.id", fields: [bannerImageId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "user.banner_image_id,image.id")
-  profileImage    Image?         @relation("user.profile_image_id,image.id", fields: [profileImageId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "user.profile_image_id,image.id")
+  movieLikes      MovieLike[]
+  targetReports   Report[]       @relation("report.target_id,user.id")
+  reports         Report[]       @relation("report.user_id,user.id")
+  bannerMedia     Media?         @relation("user.banner_media_id,media.id", fields: [bannerMediaId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "user.banner_media_id,media.id")
+  profileMedia    Media?         @relation("user.profile_media_id,media.id", fields: [profileMediaId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "user.profile_media_id,media.id")
   userActions     UserAction[]
   userBadges      UserBadge[]
 
@@ -155,43 +236,33 @@ model User {
 }
 
 model UserAction {
-  id              Int      @id @default(autoincrement()) @db.UnsignedInt
-  userId          Int      @map("user_id") @db.UnsignedInt
-  type            Int      @db.UnsignedTinyInt
-  experiencePoint Int      @map("experience_point")
-  targetId        Int      @map("target_id") @db.UnsignedInt
-  cretedAt        DateTime @default(now()) @map("creted_at") @db.DateTime(0)
-  user            User     @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "user_action.user_id,user.id")
+  id              Int          @id @default(autoincrement()) @db.UnsignedInt
+  userId          Int          @map("user_id") @db.UnsignedInt
+  type            Int          @db.UnsignedTinyInt
+  experiencePoint Int          @map("experience_point")
+  targetId        Int          @map("target_id") @db.UnsignedInt
+  cretedAt        DateTime     @default(now()) @map("creted_at") @db.DateTime(0)
+  board           Board        @relation(fields: [targetId], references: [id], onUpdate: Restrict, map: "user_action.target_id,board.id")
+  boardComment    BoardComment @relation(fields: [targetId], references: [id], onUpdate: Restrict, map: "user_action.target_id,board_comment.id")
+  emoticon        Emoticon     @relation(fields: [targetId], references: [id], onUpdate: Restrict, map: "user_action.target_id,emoticon.id")
+  movie           Movie        @relation(fields: [targetId], references: [id], onUpdate: Restrict, map: "user_action.target_id,movie.id")
+  movieComment    MovieComment @relation(fields: [targetId], references: [id], onUpdate: Restrict, map: "user_action.target_id,movie_comment.id")
+  user            User         @relation(fields: [userId], references: [id], onUpdate: Restrict, map: "user_action.user_id,user.id")
+  userBadge       UserBadge    @relation(fields: [targetId], references: [id], onUpdate: Restrict, map: "user_action.user_id,user_badge.id")
 
   @@index([userId], map: "user_action.user_id,user.id")
+  @@index([targetId], map: "user_action.user_id,user_badge.id")
   @@map("user_action")
 }
 
 model UserBadge {
-  id        Int      @id @default(autoincrement()) @db.UnsignedInt
-  userId    Int      @map("user_id") @db.UnsignedInt
-  type      Int      @db.UnsignedTinyInt
-  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(0)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "user_badge.user_id,user.id")
+  id          Int          @id @default(autoincrement()) @db.UnsignedInt
+  userId      Int          @map("user_id") @db.UnsignedInt
+  type        Int          @db.UnsignedTinyInt
+  createdAt   DateTime     @default(now()) @map("created_at") @db.DateTime(0)
+  userActions UserAction[]
+  user        User         @relation(fields: [userId], references: [id], onUpdate: Restrict, map: "user_badge.user_id,user.id")
 
   @@index([userId], map: "user_badge.user_id,user.id")
   @@map("user_badge")
-}
-
-model Video {
-  id            Int      @id @default(autoincrement()) @db.UnsignedInt
-  hash          String   @unique(map: "hash") @db.VarChar(128)
-  size          Int      @db.UnsignedTinyInt
-  parentVideoId Int?     @map("parent_video_id") @db.UnsignedInt
-  width         Int      @db.UnsignedInt
-  height        Int      @db.UnsignedInt
-  length        Int      @db.UnsignedInt
-  bitrate       Int      @db.UnsignedInt
-  createdAt     DateTime @default(now()) @map("created_at") @db.DateTime(0)
-  movie         Movie?
-  parentVideo   Video?   @relation("video.parent_video_id,video.id", fields: [parentVideoId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "video.parent_video_id,video.id")
-  childVideos   Video[]  @relation("video.parent_video_id,video.id")
-
-  @@index([parentVideoId], map: "video.original_video_id,video.id")
-  @@map("video")
 }
