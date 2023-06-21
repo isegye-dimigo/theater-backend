@@ -14,7 +14,7 @@ export default function errorHandler(error: FastifyError, request: FastifyReques
 	if(!isClientError) {
 		const splitLogs: string[] = (error['stack'] as string).split('\n');
 
-		for(let i = 0; i < splitLogs['length']; i++) {
+		for(let i: number = 0; i < splitLogs['length']; i++) {
 			request['server']['log'].warn(splitLogs[i]);
 		}
 	}
