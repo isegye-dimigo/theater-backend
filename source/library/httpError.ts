@@ -8,7 +8,7 @@ export const HttpErrorInformation = {
 	//406: 'NotAcceptable',
 	//407: 'ProxyAuthenticationRequired',
 	//408: 'RequestTimeout',
-	//409: 'Conflict',
+	409: 'Conflict',
 	//410: 'Gone',
 	//411: 'LengthRequired',
 	//412: 'PreconditionFailed',
@@ -127,13 +127,13 @@ export class MethodNotAllowed extends HttpError<405> {
 //	}
 //}
 
-//export class Conflict extends HttpError<409> {
-//	constructor(message?: string) {
-//		super(409, message);
+export class Conflict extends HttpError<409> {
+	constructor(message?: string) {
+		super(409, message);
 
-//		return;
-//	}
-//}
+		return;
+	}
+}
 
 //export class Gone extends HttpError<410> {
 //	constructor(message?: string) {

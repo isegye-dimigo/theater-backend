@@ -18,8 +18,8 @@ export interface RouteOptions extends Omit<_RouteOptions, 'handler' | 'schema'> 
 
 export interface ModuleOptions {
 	routers: RouteOptions[];
-	modules?: Module[];
-	prefix?: string;
+	modules: Module[];
+	prefix: string;
 }
 
 export type JsendResponse = {

@@ -1,8 +1,18 @@
 import Module from '@library/module';
+import getRootController from './getRoot.controller';
+import getRobotsTxtController from './getRobotsTxt.controller';
+import wellKnownModule from './.well-known/wellKnown.module';
 
-const rootModule: Module = new Module({
-	routers: [],
-	prefix: '/'
+export default new Module({
+	routers: [{
+		method: 'GET',
+		url: '',
+		handler: getRootController
+	}, {
+		method: 'GET',
+		url: 'robots.txt',
+		handler: getRobotsTxtController
+	}],
+	modules: [wellKnownModule],
+	prefix: ''
 });
-
-export default rootModule;

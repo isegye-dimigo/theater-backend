@@ -2,17 +2,18 @@ import { ModuleOptions, RouteOptions, SchemaKey } from '@library/type';
 import { FastifyInstance } from 'fastify';
 import { NullSchema, ObjectSchema } from 'fluent-json-schema';
 import { join } from 'path/posix';
-import { getObjectSchema } from '@library/utility';
 import schemaErrorFormatHandler from 'source/handlers/schemaErrorFormat';
+import { Schema } from './schema';
 
 export default class Module {
-	private options: Required<ModuleOptions>;
+	private options: ModuleOptions;
 
 	constructor(options: ModuleOptions) {
-		options['modules'] ||= [];
-		options['prefix'] ||= '';
+		if(options['prefix']['length'] === 0) {
+			options['prefix'] = '/';
+		}
 
-		this['options'] = options as Module['options'];
+		this['options'] = options;
 
 		return;
 	}
@@ -33,7 +34,7 @@ export default class Module {
 				const keys: SchemaKey[] = Object.getOwnPropertyNames(this['options']['routers'][i]['schema']) as SchemaKey[];
 
 				for(let j: number = 0; j < keys['length']; j++) {
-					_schema[keys[j]] = getObjectSchema((this.options.routers[i].schema as Required<Required<RouteOptions>['schema']>)[keys[j]]);
+					_schema[keys[j]] = Schema.getObjectSchema((this.options.routers[i].schema as Required<Required<RouteOptions>['schema']>)[keys[j]]);
 				}
 			}
 

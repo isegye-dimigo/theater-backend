@@ -20,7 +20,7 @@ export default class JsonWebToken {
 
 			this.deepFreeze(this['_payload']);
 		} catch {
-			throw new Error('Payload should be valid');
+			throw new Error('Payload must be valid');
 		}
 
 		this['_secretKey'] = secretKey;
