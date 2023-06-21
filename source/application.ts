@@ -5,8 +5,6 @@ import errorHandler from './handlers/error';
 import headerHandler from './handlers/header';
 import notFoundHandler from './handlers/notFound';
 import serializeHandler from './handlers/serialize';
-import { prisma, redis } from '@library/database';
-import { createPrismaRedisCache } from 'prisma-redis-middleware';
 import rootModule from './routes/root.module';
 
 const fastifyInstance: FastifyInstance = fastify({
@@ -15,22 +13,13 @@ const fastifyInstance: FastifyInstance = fastify({
 	logger: new Logger()
 });
 
+fastifyInstance['server']['requestTimeout'] = 0;
+fastifyInstance['server']['headersTimeout'] = 0;
+
 fastifyInstance.setNotFoundHandler(notFoundHandler);
 fastifyInstance.setErrorHandler(errorHandler);
 fastifyInstance.setReplySerializer(serializeHandler);
 fastifyInstance.addHook('preHandler', headerHandler);
-
-prisma.$use(createPrismaRedisCache({
-	models: [],
-	storage: {
-		type: 'redis',
-		options: {
-			client: redis,
-			log: fastifyInstance['log']
-		},
-	},
-	cacheTime: 1200
-}));
 
 rootModule.register(fastifyInstance);
 

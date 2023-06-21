@@ -12,7 +12,7 @@
 	"author": "H2Owater425 <h2o@h2owr.xyz>",
 	"license": "MIT",
 	"dependencies": {
-		"@prisma/client": "^4.14.1",
+		"@prisma/client": "^4.15.0",
 		"dotenv": "^16.0.3",
 		"fastify": "^4.17.0",
 		"fluent-json-schema": "^4.1.0",
@@ -25,8 +25,11 @@
 	"devDependencies": {
 		"@types/ioredis": "^5.0.0",
 		"@types/node": "^18.16.12",
-		"prisma": "^4.14.1",
+		"prisma": "^4.15.0",
 		"ts-node-dev": "^2.0.0",
 		"typescript": "^4.9.5"
+	},
+	"engines": {
+		"node": ">= 18.0.0"
 	}
 }
