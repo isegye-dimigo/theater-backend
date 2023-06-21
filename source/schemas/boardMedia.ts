@@ -5,7 +5,7 @@ import boardSchema from '@schemas/board';
 import mediaSchema from '@schemas/media';
 
 const boardMediaSchema: Schema<keyof BoardMedia> = new Schema<keyof BoardMedia>({
-	id: commonSchema.get('id'),
+	id: commonSchema.get('positiveInteger'),
 	boardId: boardSchema.get('id'),
 	mediaId: mediaSchema.get('id')
 });

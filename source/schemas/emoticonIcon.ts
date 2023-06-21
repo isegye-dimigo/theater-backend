@@ -6,7 +6,7 @@ import emoticonSchema from '@schemas/emoticon';
 import mediaSchema from '@schemas/media';
 
 const emoticonIconSchema: Schema<keyof EmoticonIcon> = new Schema<keyof EmoticonIcon>({
-	id: commonSchema.get('id'),
+	id: commonSchema.get('positiveInteger'),
 	emoticonId: emoticonSchema.get('id'),
 	index: schema.integer().minimum(0),
 	mediaId: mediaSchema.get('id')

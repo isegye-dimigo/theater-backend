@@ -6,7 +6,7 @@ import userSchema from '@schemas/user';
 import boardSchema from '@schemas/board';
 
 const boardCommentSchema: Schema<keyof BoardComment> = new Schema<keyof BoardComment>({
-	id: commonSchema.get('id'),
+	id: commonSchema.get('positiveInteger'),
 	boardId: boardSchema.get('id'),
 	userId: userSchema.get('id'),
 	content: schema.string().minLength(1).maxLength(512),

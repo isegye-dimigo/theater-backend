@@ -5,7 +5,7 @@ import userSchema from '@schemas/user';
 import boardSchema from '@schemas/board';
 
 const boardLikeSchema: Schema<keyof BoardLike> = new Schema<keyof BoardLike>({
-	id: commonSchema.get('id'),
+	id: commonSchema.get('positiveInteger'),
 	boardId: boardSchema.get('id'),
 	userId: userSchema.get('id')
 });

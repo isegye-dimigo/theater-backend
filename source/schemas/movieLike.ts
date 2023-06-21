@@ -5,7 +5,7 @@ import userSchema from '@schemas/user';
 import movieSchema from '@schemas/movie';
 
 const movieLikeSchema: Schema<keyof MovieLike> = new Schema<keyof MovieLike>({
-	id: commonSchema.get('id'),
+	id: commonSchema.get('positiveInteger'),
 	movieId: movieSchema.get('id'),
 	userId: userSchema.get('id')
 });

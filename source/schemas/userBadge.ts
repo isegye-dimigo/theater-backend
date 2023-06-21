@@ -5,7 +5,7 @@ import commonSchema from '@schemas/common';
 import userSchema from '@schemas/user';
 
 const userBadgeSchema: Schema<keyof UserBadge> = new Schema<keyof UserBadge>({
-	id: commonSchema.get('id'),
+	id: commonSchema.get('positiveInteger'),
 	userId: userSchema.get('id'),
 	type: schema.integer().minimum(0),
 	createdAt: commonSchema.get('datetime')

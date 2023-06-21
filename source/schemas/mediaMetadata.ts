@@ -5,7 +5,7 @@ import commonSchema from '@schemas/common';
 import mediaSchema from '@schemas/media';
 
 const mediaMetadataSchema: Schema<keyof MediaMetadata> = new Schema<keyof MediaMetadata>({
-	id: commonSchema.get('id'),
+	id: commonSchema.get('positiveInteger'),
 	mediaId: mediaSchema.get('id'),
 	length: schema.integer().minimum(1),
 	videoBitRate: schema.integer().minimum(1),

@@ -6,7 +6,7 @@ import userSchema from './user';
 import movieSchema from './movie';
 
 const movieCommentSchema: Schema<keyof MovieComment> = new Schema<keyof MovieComment>({
-	id: commonSchema.get('id'),
+	id: commonSchema.get('positiveInteger'),
 	movieId: movieSchema.get('id'),
 	userId: userSchema.get('id'),
 	time: schema.integer().minimum(0),
