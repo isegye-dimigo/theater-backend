@@ -211,10 +211,10 @@ model User {
   handle          String         @unique(map: "handle") @db.VarChar(32)
   phone           String?        @unique(map: "phone") @db.VarChar(16)
   name            String         @db.VarChar(64)
-  description     String         @db.VarChar(1024)
+  description     String?         @db.VarChar(1024)
   profileMediaId  Int?           @unique(map: "profile_image_id") @map("profile_media_id") @db.UnsignedInt
   bannerMediaId   Int?           @unique(map: "banner_image_id") @map("banner_media_id") @db.UnsignedInt
-  verificationKey String?        @unique(map: "verification_key") @map("verification_key") @db.VarChar(128)
+  verificationKey String?        @unique(map: "verification_key") @map("verification_key") @db.VarChar(40)
   isVerified      Boolean        @default(dbgenerated("(b'0')")) @map("is_verified") @db.Bit(1)
   isDeleted       Boolean        @default(dbgenerated("(b'0')")) @map("is_deleted") @db.Bit(1)
   createdAt       DateTime       @default(now()) @map("created_at") @db.DateTime(0)
