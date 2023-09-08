@@ -4,7 +4,16 @@ import { Socket } from 'net';
 import { inspect } from 'util';
 
 export default class Logger implements FastifyBaseLogger {
-	public level: LogLevel | 'silent' = 'silent';
+	public level: LogLevel = 'silent';
+	public static levelRank: Record<LogLevel, number> = {
+		fatal: 0,
+		error: 1,
+		warn: 2,
+		info: 3,
+		debug: 4,
+		trace: 5,
+		silent: -1
+	};
 
 	static log(level: LogLevel, _arguments: Record<string, any>): void {
 		if(typeof(_arguments[0]['req']) === 'undefined') {
@@ -14,7 +23,7 @@ export default class Logger implements FastifyBaseLogger {
 			switch(level) {
 				case 'error':
 				case 'fatal': {
-					print = process.stderr.write.bind(process.stderr);
+					print = process['stderr'].write.bind(process['stderr']);
 					levelColor--;
 
 					break;
@@ -25,7 +34,7 @@ export default class Logger implements FastifyBaseLogger {
 				}
 
 				default: {
-					print = process.stdout.write.bind(process.stdout);
+					print = process['stdout'].write.bind(process['stdout']);
 				}
 			}
 
@@ -55,38 +64,50 @@ export default class Logger implements FastifyBaseLogger {
 		return;
 	}
 
-	public info(..._arguments: unknown[]): void {
-		Logger.log('info', _arguments);
-
-		return;
-	}
-
-	public warn(..._arguments: unknown[]): void {
-		Logger.log('warn', _arguments);
+	public fatal(..._arguments: unknown[]): void {
+		if(Logger['levelRank']['fatal'] <= Logger['levelRank'][process['env']['LOG_LEVEL']]) {
+			Logger.log('fatal', _arguments);
+		}
 
 		return;
 	}
 
 	public error(..._arguments: unknown[]): void {
-		Logger.log('error', _arguments);
+		if(Logger['levelRank']['error'] <= Logger['levelRank'][process['env']['LOG_LEVEL']]) {
+			Logger.log('error', _arguments);
+		}
 
 		return;
 	}
 
-	public fatal(..._arguments: unknown[]): void {
-		Logger.log('fatal', _arguments);
+	public warn(..._arguments: unknown[]): void {
+		if(Logger['levelRank']['warn'] <= Logger['levelRank'][process['env']['LOG_LEVEL']]) {
+			Logger.log('warn', _arguments);
+		}
 
 		return;
 	}
 
-	public trace(..._arguments: unknown[]): void {
-		Logger.log('trace', _arguments);
+	public info(..._arguments: unknown[]): void {
+		if(Logger['levelRank']['info'] <= Logger['levelRank'][process['env']['LOG_LEVEL']]) {
+			Logger.log('info', _arguments);
+		}
 
 		return;
 	}
 
 	public debug(..._arguments: unknown[]): void {
-		Logger.log('debug', _arguments);
+		if(Logger['levelRank']['debug'] <= Logger['levelRank'][process['env']['LOG_LEVEL']]) {
+			Logger.log('debug', _arguments);
+		}
+
+		return;
+	}
+
+	public trace(..._arguments: unknown[]): void {
+		if(Logger['levelRank']['trace'] <= Logger['levelRank'][process['env']['LOG_LEVEL']]) {
+			Logger.log('trace', _arguments);
+		}
 
 		return;
 	}
