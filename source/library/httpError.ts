@@ -14,7 +14,7 @@ export const HttpErrorInformation = {
 	//412: 'PreconditionFailed',
 	//413: 'PayloadTooLarge',
 	//414: 'URITooLong',
-	//415: 'UnsupportedMediaType',
+	415: 'UnsupportedMediaType',
 	//416: 'RangeNotSatisfiable',
 	//417: 'ExpectationFailed',
 	418: 'ImATeapot',
@@ -175,13 +175,13 @@ export class Conflict extends HttpError<409> {
 //	}
 //}
 
-//export class UnsupportedMediaType extends HttpError<415> {
-//	constructor(message?: string) {
-//		super(415, message);
+export class UnsupportedMediaType extends HttpError<415> {
+	constructor(message?: string) {
+		super(415, message);
 
-//		return;
-//	}
-//}
+		return;
+	}
+}
 
 //export class RangeNotSatisfiable extends HttpError<416> {
 //	constructor(message?: string) {
