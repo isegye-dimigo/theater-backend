@@ -4,7 +4,7 @@ import { getEpoch } from '@library/utility';
 export default class JsonWebToken {
 	private token: string;
 	private _secretKey: string;
-	private _payload: Record<string, any> | null;
+	private _payload: Record<string, any>;
 
 	public static create(payload: Record<string, any>, secretKey: string): string {
 		const headerAndPayload: string = 'eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.' + Buffer.from(JSON.stringify(payload)).toString('base64url');
