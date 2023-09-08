@@ -15,6 +15,12 @@ export default function (request: FastifyRequest<{
 			select: {
 				id: true,
 				type: true,
+				user: {
+					select: {
+						handle: true,
+						email: true
+					}
+				},
 				targetUser: {
 					select: {
 						handle: true
