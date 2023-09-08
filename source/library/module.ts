@@ -1,11 +1,14 @@
 import { ModuleOptions, RouteOptions, SchemaKey } from '@library/type';
-import { FastifyInstance } from 'fastify';
+import { FastifyInstance, preHandlerHookHandler as PreHandlerHookHandler } from 'fastify';
 import { NullSchema, ObjectSchema } from 'fluent-json-schema';
 import { join } from 'path/posix';
-import schemaErrorFormatHandler from 'source/handlers/schemaErrorFormat';
+import schemaErrorFormatHandler from '../handlers/schemaErrorFormat';
 import { Schema } from './schema';
+import authHandler from 'source/handlers/auth';
+import optionsHandler from 'source/handlers/options';
 
 export default class Module {
+	public static registeredUrl: Set<string> = new Set<string>();
 	private options: ModuleOptions;
 
 	constructor(options: ModuleOptions) {
@@ -38,8 +41,31 @@ export default class Module {
 				}
 			}
 
+			if(Array.isArray(this['options']['routers'][i]['preHandler']) && this['options']['routers'][i]['isAuthNeeded'] === true) {
+				(this['options']['routers'][i]['preHandler'] as PreHandlerHookHandler[]).unshift(authHandler);
+			}
+
+			const url: string = join(fastifyInstance['prefix'], this['options']['prefix'], this['options']['routers'][i]['url']);
+			switch(this['options']['routers'][i]['method']) {
+				case 'POST':
+				case 'PATCH':
+				case 'DELETE': {
+					if(!Module['registeredUrl'].has(url)) {
+						Module['registeredUrl'].add(url);
+
+						fastifyInstance.route({
+							method: 'OPTIONS',
+							url: url,
+							handler: optionsHandler
+						});
+					}
+
+					break;
+				}
+			}
+
 			fastifyInstance.route(Object.assign(this['options']['routers'][i], {
-				url: join(fastifyInstance['prefix'], this['options']['prefix'], this['options']['routers'][i]['url']),
+				url: url,
 				schema: _schema,
 				schemaErrorFormatter: schemaErrorFormatHandler
 			}));
