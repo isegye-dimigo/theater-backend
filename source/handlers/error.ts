@@ -21,7 +21,11 @@ export default function errorHandler(error: FastifyError, request: FastifyReques
 
 	reply.status(error['statusCode'] as number).header('Access-Control-Allow-Origin', '*').send(isClientError ? {
 		status: 'fail',
-		data: [Object.assign({ title: error['message'] }, isStackAvailable ? { body: error['stack'] } : undefined)]
+		data: Object.assign({
+			title: error['message']
+		}, isStackAvailable ? {
+			body: error['stack']
+		} : undefined)
 	} : {
 		status: 'error',
 		code: error['statusCode'],

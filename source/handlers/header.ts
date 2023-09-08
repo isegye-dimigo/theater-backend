@@ -16,7 +16,8 @@ export default function headerHandler(request: FastifyRequest, reply: FastifyRep
 		'X-XSS-Protection': '0',
 		'Access-Control-Allow-Methods': '*',
 		'Access-Control-Allow-Headers': '*',
-		"Access-Control-Request-Method": '*'
+		'Access-Control-Request-Method': '*',
+		'Access-Control-Allow-Origin': '*'
 	});
 
 	done();
