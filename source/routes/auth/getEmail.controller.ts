@@ -3,8 +3,16 @@ import { BadRequest } from '@library/httpError';
 import { User } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
-export default function (request: FastifyRequest<{ Querystring: { verificationKey: string } }>, reply: FastifyReply): void {
-	prisma['user'].count({ where: { verificationKey: request['query']['verificationKey'] } })
+export default function (request: FastifyRequest<{
+	Querystring: {
+		verificationKey: string;
+	};
+}>, reply: FastifyReply): void {
+	prisma['user'].count({
+		where: {
+			verificationKey: request['query']['verificationKey']
+		}
+	})
 	.then(function (userCount: number): void {
 		if(userCount === 1) {
 			return;
@@ -14,9 +22,15 @@ export default function (request: FastifyRequest<{ Querystring: { verificationKe
 	})
 	.then(function (): Promise<Pick<User, 'id'>> {
 		return prisma['user'].update({
-			select: { id: true },
-			where: { verificationKey: request['query']['verificationKey'] },
-			data: { verificationKey: null }
+			select: {
+				id: true
+			},
+			where: {
+				verificationKey: request['query']['verificationKey']
+			},
+			data: {
+				verificationKey: null
+			}
 		});
 	})
 	.then(function (): void {
@@ -25,7 +39,7 @@ export default function (request: FastifyRequest<{ Querystring: { verificationKe
 
 		return;
 	})
-	.catch(reply.send);
+	.catch(reply.send.bind(reply));
 
 	return;
 }
