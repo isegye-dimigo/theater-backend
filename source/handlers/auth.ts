@@ -7,8 +7,12 @@ export default function authHandler(request: FastifyRequest, reply: FastifyReply
 		const jsonWebToken: JsonWebToken = new JsonWebToken(request['headers']['authorization'].slice(7), process['env']['JSON_WEB_TOKEN_SECRET']);
 
 		if(jsonWebToken.isValid()) {
-			request['userId'] = (jsonWebToken['payload'] as Record<string, any>)['id'];
-
+			request['user'] = {
+				id: Number.parseInt(jsonWebToken['payload']['uid'], 10),
+				handle: jsonWebToken['payload']['hdl'],
+				isVerified: jsonWebToken['payload']['vrf']
+			};
+			
 			done();
 		} else {
 			reply.send(new BadRequest('Invalid authorization value'));
