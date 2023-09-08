@@ -5,26 +5,29 @@
 	"main": "distribution/application.js",
 	"scripts": {
 		"build": "tsc --project tsconfig.json",
-		"start": "node --require=tsconfig-paths/register distribution/application.js",
+		"start": "node --require=tsconfig-paths/register distribution/application.js --max_old_space_size=8192",
 		"dev": "ts-node-dev --rs --require=tsconfig-paths/register --files source/application.ts",
+		"test": "ts-node-dev --rs --require=tsconfig-paths/register --files source/test.ts",
 		"prisma": "prisma"
 	},
 	"author": "H2Owater425 <h2o@h2owr.xyz>",
 	"license": "MIT",
 	"dependencies": {
-		"@prisma/client": "^4.15.0",
+		"@aws-sdk/client-s3": "^3.391.0",
+		"@fastify/multipart": "^7.7.3",
+		"@prisma/client": "^5.2.0",
 		"dotenv": "^16.0.3",
 		"fastify": "^4.17.0",
 		"fluent-json-schema": "^4.1.0",
-		"ioredis": "^5.3.1",
+		"ioredis": "^5.3.2",
 		"mariadb": "^3.1.2",
-		"prisma-redis-middleware": "^4.7.0",
 		"smtp-channel": "^0.2.4",
 		"tsconfig-paths": "^4.2.0"
 	},
 	"devDependencies": {
+		"@types/ioredis": "^5.0.0",
 		"@types/node": "^18.16.12",
-		"prisma": "^4.15.0",
+		"prisma": "^5.2.0",
 		"ts-node-dev": "^2.0.0",
 		"typescript": "^4.9.5"
 	},
