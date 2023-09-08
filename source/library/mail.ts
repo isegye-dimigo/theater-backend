@@ -4,13 +4,19 @@ import { SMTPChannel } from 'smtp-channel';
 const smtp: SMTPChannel = new SMTPChannel({
 	host: process['env']['EMAIL_HOST'],
 	port: Number.parseInt(process['env']['EMAIL_PORT']),
-	secure: true
+	//secure: true
 });
 
 export default function sendMail(email: string, title: string, content: string): Promise<void> {
 	return smtp.connect()
 	.then(function (): Promise<void> {
 		return smtp.write('EHLO server\r\n');
+	})
+	.then(function (): Promise<void> {
+		return smtp.write('STARTTLS\r\n');
+	})
+	.then(function (): Promise<void> {
+		return smtp.negotiateTLS();
 	})
 	.then(function (): Promise<void> {
 		return smtp.write('AUTH LOGIN\r\n');
