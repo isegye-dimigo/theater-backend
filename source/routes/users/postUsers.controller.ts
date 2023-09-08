@@ -6,17 +6,20 @@ import { User } from '@prisma/client';
 import { createHash } from 'crypto';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
-export default function (request: FastifyRequest<{ Body: Pick<User, 'email' | 'password' | 'name'> }>, reply: FastifyReply): void {
-	prisma['user'].count({ where: { email: request['body']['email'] } })
-	.then(function (userCount: number): void {
+export default function (request: FastifyRequest<{
+	Body: Pick<User, 'email' | 'password' | 'name'>;
+}>, reply: FastifyReply): void {
+	prisma['user'].count({
+		where: {
+			email: request['body']['email']
+		}
+	})
+	.then(function (userCount: number): Promise<string> {
 		if(userCount === 0) {
-			return;
+			return getEncryptedPassword(request['body']['password'], request['body']['email']);
 		} else {
 			throw new Conflict('Body[\'email\'] must be unique');
 		}
-	})
-	.then(function (): Promise<string> {
-		return getEncryptedPassword(request['body']['password'], request['body']['email']);
 	})
 	.then(function (encryptedPassword: string): Promise<Pick<User, 'id' | 'email' | 'verificationKey'>> {
 		return prisma['user'].create({
@@ -34,14 +37,17 @@ export default function (request: FastifyRequest<{ Body: Pick<User, 'email' | 'p
 			}
 		});
 	})
-	.then(function (user: Pick<User, 'id' | 'email' | 'verificationKey'>): Promise<Pick<User, 'id'>> {
+	.then(function (user: Pick<User, 'id' | 'email' | 'verificationKey'>): Promise<Pick<User, 'id' | 'email'>> {
 		return sendMail(user['email'], '이세계 이메일 인증', user['verificationKey'] as string)
-		.then(function (): Pick<User, 'id'> {
-			return { id: user['id'] };
+		.then(function (): Pick<User, 'id' | 'email'> {
+			return {
+				id: user['id'],
+				email: user['email']
+			};
 		});
 	})
-	.then(reply.send)
-	.catch(reply.send);
+	.then(reply.send.bind(reply))
+	.catch(reply.send.bind(reply));
 	
 	return;
 }
