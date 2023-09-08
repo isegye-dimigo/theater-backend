@@ -8,12 +8,11 @@ const userSchema: Schema<keyof User> = new Schema<keyof User>({
 	email: schema.string().format('email'),
 	password: schema.string().minLength(1),
 	handle: schema.string().pattern(/^[A-Za-z0-9-_.]{3,30}$/),
-	phone: schema.string().pattern(/^0[0-9]{8}$/),
 	name: schema.string().maxLength(64),
 	description: schema.string().maxLength(1024),
 	profileMediaId: commonSchema.get('positiveInteger'),
 	bannerMediaId: commonSchema.get('positiveInteger'),
-	verificationKey: commonSchema.get('sha512Hex'),
+	verificationKey: commonSchema['defaultSchema'].string().pattern(/^[0-9a-f]{40}$/),
 	isVerified: schema.boolean(),
 	isDeleted: schema.boolean(),
 	createdAt: commonSchema.get('datetime')

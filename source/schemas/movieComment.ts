@@ -11,9 +11,6 @@ const movieCommentSchema: Schema<keyof MovieComment> = new Schema<keyof MovieCom
 	userId: userSchema.get('id'),
 	time: schema.integer().minimum(0),
 	content: schema.string().minLength(1).maxLength(128),
-	x: schema.integer(),
-	y: schema.integer(),
-	isEmoticon: schema.boolean(),
 	isDeleted: schema.boolean(),
 	createdAt: commonSchema.get('datetime')
 });

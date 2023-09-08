@@ -3,12 +3,14 @@ import { Report } from '@prisma/client';
 import schema from 'fluent-json-schema';
 import commonSchema from '@schemas/common';
 import userSchema from '@schemas/user';
+import { reportTypes } from '@library/utility';
 
 const reportSchema: Schema<keyof Report> = new Schema<keyof Report>({
 	id: commonSchema.get('positiveInteger'),
 	userId: userSchema.get('id'),
-	type: schema.integer().minimum(0),
+	type: schema.integer().enum(Object.keys(reportTypes)),
 	targetId: commonSchema.get('positiveInteger'),
+	isDeleted: schema.boolean(),
 	createdAt: commonSchema.get('datetime')
 });
 
