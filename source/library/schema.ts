@@ -13,7 +13,9 @@ export class Schema<T extends string> {
 		return this['schemas'][key];
 	}
 
-	public static getArraySchema(jsonSchemas: JSONSchema[], options: Partial<{ isUniqueItems: boolean; } & Record<`${'max' | 'min'}imumLength`, number>> = {}): ArraySchema {
+	public static getArraySchema(jsonSchemas: JSONSchema[], options: Partial<{
+		isUniqueItems: boolean;
+	} & Record<`${'max' | 'min'}imumLength`, number>> = {}): ArraySchema {
 		let _schema: ArraySchema = schema.array();
 	
 		for(let i: number = 0; i < jsonSchemas.length; i++) {
