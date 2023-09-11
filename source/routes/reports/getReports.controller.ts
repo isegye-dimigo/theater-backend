@@ -20,7 +20,6 @@ export default function (request: FastifyRequest<{
 		}
 	}
 
-	console.log(request['user'])
 	if(typeof(request['user']) === 'object' && request['user']['id'] === 0) {
 
 		const reportTargets: Prisma.PrismaPromise<unknown>[] = [];
