@@ -74,16 +74,16 @@ setInterval(function (): void {
 	})
 	.then(function (results: (string | null)[]): Promise<[number, number]> | [number, number] {
 		if(results['length'] !== 0) {
-			let transaction = 'BEGIN NOT ATOMIC DECLARE EXIT HANDLER FOR SQLEXCEPTION, SQLWARNING BEGIN ROLLBACK;END;START TRANSACTION;';
+			let query = '';
 	
 			for(let i: number = 0; i < results['length']; i++) {
 				if(results[i] !== null) {
-					transaction += 'UPDATE movie_statistic, current_movie_statistic SET movie_statistic.view_count = movie_statistic.view_count + ' + results[i] + ' WHERE movie_statistic.id = current_movie_statistic.id AND movie_statistic.movie_id = ' + movieIds[i] + ';';
+					query += 'UPDATE movie_statistic, current_movie_statistic SET movie_statistic.view_count = movie_statistic.view_count + ' + results[i] + ' WHERE movie_statistic.id = current_movie_statistic.id AND movie_statistic.movie_id = ' + movieIds[i] + ';';
 				}
 			}
 	
-			if(transaction['length'] !== 104) {
-				return Promise.all([redis.unlink(keys), prisma.$executeRawUnsafe(transaction + 'COMMIT;END')]);
+			if(query['length'] !== 0) {
+				return Promise.all([redis.unlink(keys), prisma.$executeRawUnsafe(query)]);
 			}
 		}
 
