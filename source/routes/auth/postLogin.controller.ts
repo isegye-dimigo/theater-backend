@@ -37,6 +37,11 @@ export default function (request: FastifyRequest<{
 	})
 	.then(function (user: Pick<User, 'id' | 'password' | 'handle' | 'isVerified'>): void {
 		reply.send({
+			user: {
+				id: user['id'],
+				handle: user['handle'],
+				isVerified: user['isVerified']
+			},
 			refreshToken: JsonWebToken.create({
 				uid: user['id']
 			}, user['password']),

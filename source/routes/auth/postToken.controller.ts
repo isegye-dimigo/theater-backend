@@ -10,6 +10,8 @@ export default function (request: FastifyRequest<{
 		refreshToken: string;
 	};
 }>, reply: FastifyReply): void {
+	const jsonWebToken: JsonWebToken = new JsonWebToken(request['body']['refreshToken'], '');
+
 	prisma['user'].findFirst({
 		select: {
 			id: true,
@@ -18,23 +20,28 @@ export default function (request: FastifyRequest<{
 			isVerified: true
 		},
 		where: {
-			id: request['user']['id'],
+			id: jsonWebToken['payload']['id'],
 			verificationKey: null,
 			isDeleted: false
 		}
 	})
 	.then(function (user: Pick<User, 'id' | 'password' | 'handle' | 'isVerified'> | null): void {
 		if(user !== null) {
-			const jsonWebToken: JsonWebToken = new JsonWebToken(request['body']['refreshToken'], user['password']);
-			
+			jsonWebToken['secretKey'] = user['password'];
+
 			if(jsonWebToken.isValid()) {
 				reply.send({
+					user: {
+						id: user['id'],
+						handle: user['handle'],
+						isVerified: user['isVerified']
+					},
 					accessToken: JsonWebToken.create({
 						uid: user['id'],
 						hdl: user['handle'],
 						vrf: user['isVerified'],
 						exp: getEpoch() + 7200 /* 2 hours */
-					}, user['password'])
+					}, process['env']['JSON_WEB_TOKEN_SECRET'])
 				});
 
 				return;
