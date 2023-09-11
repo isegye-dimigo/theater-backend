@@ -120,3 +120,5 @@ export default class Logger implements FastifyBaseLogger {
 		return this;
 	}
 }
+
+export const logger: Logger = new Logger();
