@@ -54,7 +54,8 @@ export default class JsonWebToken {
 
 	public isValid(): boolean {
 		const splitTokens: string[] = this['token'].split('.');
+		const expireAt: number = this['_payload']['exp'] || Infinity;
 
-		return this['_payload'] !== null && createHmac('sha512', this._secretKey).update(splitTokens.slice(0, 2).join('.')).digest('base64url') === splitTokens[2] && (this._payload.exp as number) > getEpoch();
+		return this['_payload'] !== null && createHmac('sha512', this['_secretKey']).update(splitTokens.slice(0, 2).join('.')).digest('base64url') === splitTokens[2] && expireAt > getEpoch();
 	}
 }
