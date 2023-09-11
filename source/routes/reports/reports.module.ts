@@ -3,6 +3,7 @@ import postReportsController from './postReports.controller';
 import reportSchema from '@schemas/report';
 import getReportsController from './getReports.controller';
 import pageSchema from '@schemas/page';
+import deleteReportController from './deleteReport.controller';
 
 export default new Module({
 	routers: [{
@@ -25,6 +26,15 @@ export default new Module({
 				'page[index]': pageSchema.get('page[index]'),
 				'page[size]': pageSchema.get('page[size]'),
 				'page[order]': pageSchema.get('page[order]')
+			}
+		}
+	}, {
+		method: 'DELETE',
+		url: ':reportId',
+		handler: deleteReportController,
+		schema: {
+			params: {
+				reportId: reportSchema.get('id').required()
 			}
 		}
 	}],
