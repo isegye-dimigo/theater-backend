@@ -64,6 +64,30 @@ export default class Module {
 				}
 			}
 
+			if(this['options']['routers'][i]['isAuthNeeded'] === true) {
+				switch(typeof(this['options']['routers'][i]['preHandler'])) {
+					case 'function': {
+						this['options']['routers'][i]['preHandler'] = [authHandler, this['options']['routers'][i]['preHandler'] as PreHandlerHookHandler];
+
+						break;
+					}
+
+					case 'object': {
+						if(Array.isArray(this['options']['routers'][i]['preHandler'])) {
+							(this['options']['routers'][i]['preHandler'] as PreHandlerHookHandler[]).unshift(authHandler);
+							
+							break;
+						}
+					}
+
+					default: {
+						this['options']['routers'][i]['preHandler'] = authHandler;
+
+						break;
+					}
+				}
+			}
+
 			fastifyInstance.route(Object.assign(this['options']['routers'][i], {
 				url: url,
 				schema: _schema,
