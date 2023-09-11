@@ -57,11 +57,19 @@ export default function (request: FastifyRequest<{
 						videoMediaId: request['body']['videoMediaId'],
 						imageMediaId: request['body']['imageMediaId'],
 						movieStatistics: {
-							create: {
-								viewCount: 0,
-								commentCount: 0,
-								likeCount: 0,
-								starAverage: 0
+							createMany: {
+								data: [{
+									viewCount: 0,
+									commentCount: 0,
+									likeCount: 0,
+									starAverage: 0
+								}, {
+									viewCount: 0,
+									commentCount: 0,
+									likeCount: 0,
+									starAverage: 0,
+									createdAt: new Date(Date.now() + 600000)
+								}]
 							}
 						}
 					}
