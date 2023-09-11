@@ -17,10 +17,11 @@ export default function (request: FastifyRequest<{
 			isDeleted: false
 		}
 	})
-	.then(function (movie: Pick<Movie, 'userId'> | null): Promise<Prisma.BatchPayload> {
+	.then(function (movie: Pick<Movie, 'userId'> | null): Promise<[Prisma.BatchPayload, Prisma.BatchPayload]> {
 		if(movie !== null) {
 			if(request['user']['id'] === movie['userId']) {
-				return prisma['movie'].updateMany({
+				
+				return prisma.$transaction([prisma['movie'].updateMany({
 					data: {
 						isDeleted: true
 					},
@@ -28,7 +29,11 @@ export default function (request: FastifyRequest<{
 						id: request['params']['movieId'],
 						isDeleted: false
 					}
-				})
+				}), prisma['movieStatistic'].deleteMany({
+					where: {
+						movieId: request['params']['movieId']
+					}
+				})]);
 			} else {
 				throw new Unauthorized('User must be same');
 			}
@@ -36,8 +41,8 @@ export default function (request: FastifyRequest<{
 			throw new NotFound('Parameter[\'movieId\'] must be valid');
 		}
 	})
-	.then(function (result: Prisma.BatchPayload): void {
-		if(result['count'] === 1) {
+	.then(function (results: [Prisma.BatchPayload, Prisma.BatchPayload]): void {
+		if(results[0]['count'] === 1) {
 			reply.status(204).send();
 
 			return;
