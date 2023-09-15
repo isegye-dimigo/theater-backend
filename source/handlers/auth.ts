@@ -15,10 +15,10 @@ export default function authHandler(request: FastifyRequest, reply: FastifyReply
 			
 			done();
 		} else {
-			reply.send(new BadRequest('Invalid authorization value'));
+			reply.send(new BadRequest('Header[\'authorization\'] must be valid in value'));
 		}
 	} else {
-		reply.send(new BadRequest('Invalid authorization type'));
+		reply.send(new BadRequest('Header[\'authorization\'] must be valid in type'));
 	}
 
 	return;
