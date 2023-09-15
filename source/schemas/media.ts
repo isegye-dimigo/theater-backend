@@ -2,7 +2,7 @@ import { Schema } from '@library/schema';
 import { Media } from '@prisma/client';
 import schema from 'fluent-json-schema';
 import commonSchema from '@schemas/common';
-import userSchema from './user';
+import userSchema from '@schemas/user';
 
 const mediaSchema: Schema<keyof Media> = new Schema<keyof Media>({
 	id: commonSchema.get('positiveInteger'),

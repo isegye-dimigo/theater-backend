@@ -2,8 +2,8 @@ import { Schema } from '@library/schema';
 import { MovieComment } from '@prisma/client';
 import schema from 'fluent-json-schema';
 import commonSchema from '@schemas/common';
-import userSchema from './user';
-import movieSchema from './movie';
+import userSchema from '@schemas/user';
+import movieSchema from '@schemas/movie';
 
 const movieCommentSchema: Schema<keyof MovieComment> = new Schema<keyof MovieComment>({
 	id: commonSchema.get('positiveInteger'),
