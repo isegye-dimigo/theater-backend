@@ -1,7 +1,7 @@
 import '@library/environment';
 import '@library/schedule';
-import Logger from '@library/logger';
 import fastify, { FastifyInstance } from 'fastify';
+import { logger } from '@library/logger';
 import errorHandler from './handlers/error';
 import headerHandler from './handlers/header';
 import notFoundHandler from './handlers/notFound';
@@ -13,7 +13,7 @@ import JsonWebToken from '@library/jsonWebToken';
 const fastifyInstance: FastifyInstance = fastify({
 	trustProxy: true,
 	exposeHeadRoutes: false,
-	logger: new Logger()
+	logger: logger
 });
 
 fastifyInstance['server']['requestTimeout'] = 0;
