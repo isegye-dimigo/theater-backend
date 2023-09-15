@@ -21,7 +21,6 @@ export default function (request: FastifyRequest<{
 	}
 
 	if(typeof(request['user']) === 'object' && request['user']['id'] === 0) {
-
 		const reportTargets: Prisma.PrismaPromise<unknown>[] = [];
 		let reports: (Pick<Report, 'id' | 'type' | 'targetId'> & {
 			user: Pick<User, 'email' | 'handle' | 'name'>;
@@ -146,9 +145,7 @@ export default function (request: FastifyRequest<{
 		})
 		.catch(reply.send.bind(reply));
 	} else {
-		reply.send({
-			reportTypes: reportTypes
-		});
+		reply.send(reportTypes);
 	}
 	
 	return;
