@@ -45,12 +45,10 @@ export default function (request: FastifyRequest<{
 				});
 
 				return;
-			} else {
-				throw new BadRequest('RefreshToken must be valid');
 			}
-		} else {
-			throw new BadRequest('UserId must be valid');
 		}
+		
+		throw new BadRequest('Body[\'refreshToken\'] must be valid');
 	})
 	.catch(reply.send.bind(reply));
 
