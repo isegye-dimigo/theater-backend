@@ -1,11 +1,7 @@
 
-import { AudioStream, FileSignature, FileType, Metadata, RejectFunction, ResolveFunction, VideoStream } from '@library/type';
-import { SpawnOptionsWithoutStdio, execSync, spawn } from 'child_process';
-import { BinaryLike, Hash, createHash, pbkdf2 } from 'crypto';
-import { createWriteStream, read } from 'fs';
-import { PathLike } from 'fs';
-import { FileHandle, open } from 'fs/promises';
-import { Readable } from 'stream';
+import { FileSignature, FileType, Metadata, RejectFunction, ResolveFunction } from '@library/type';
+import { execSync } from 'child_process';
+import { pbkdf2 } from 'crypto';
 
 export function getEpoch(): number {
 	return Math.trunc(Date.now() / 1000);
@@ -54,12 +50,9 @@ const fileSignatures: Record<FileType, FileSignature[]> = {
 }
 
 export function isValidType(buffer: Buffer, fileType: FileType): boolean {
-	console.log(buffer)
 	let isValidFile: boolean = false;
 
 	for(let i: number = 0; i < fileSignatures[fileType]['length']; i++) {
-		console.log(buffer.includes(fileSignatures[fileType][i]['buffer']), fileSignatures[fileType][i]['buffer'].toString())
-
 		if(buffer.includes(fileSignatures[fileType][i]['buffer'])) {
 			isValidFile = true;
 
@@ -72,63 +65,84 @@ export function isValidType(buffer: Buffer, fileType: FileType): boolean {
 
 export function getMetadata(fileName: string, basePath: string): Metadata {
 	const result: {
-		frames: {
-			pkt_duration_time: string;
-			pkt_size: string;
-		}[];
-		streams: (VideoStream | AudioStream)[];
+		streams: [{
+			index: number;
+			codec_type: 'video';
+			width: number;
+			height: number;
+			avg_frame_rate: string;
+			bit_rate: string;
+		}, {
+			index: number;
+			codec_type: 'audio';
+			sample_rate: string;
+			channels: number;
+			bit_rate: string;
+		}];
 		format: Record<'duration' | 'size' | 'bit_rate', string>;
-	} = JSON.parse(execSync('ffprobe -v quiet -print_format json -show_format -show_streams -show_entries format=bit_rate,duration,size:stream=index,codec_type,bit_rate,avg_frame_rate,width,height,sample_rate,channels:frame=pkt_size,pkt_duration_time ' + fileName, {
+	} = JSON.parse(execSync('ffprobe -v quiet -print_format json -show_format -show_streams -show_entries format=bit_rate,duration,size:stream=index,codec_type,bit_rate,avg_frame_rate,width,height,sample_rate,channels ' + fileName, {
 		cwd: basePath,
 		env: process['env']
 	}).toString());
 
-	if(result['streams']['length'] > 0) {
-		// @ts-expect-error
-		const metadata: Metadata = {
-			duration: Number.parseFloat(result['format']['duration']),
-			size: Number.parseInt(result['format']['size'], 10),
-			bitRate: Number.parseInt(result['format']['bit_rate'], 10)
-		};
-	
-		for(let i: number = 0; i < result['streams']['length']; i++) {
-			if(typeof(metadata[result['streams'][i]['codec_type']]) === 'undefined') {
-				if(result['streams'][i]['codec_type'] === 'video') {
-					const splitFramerate: string[] = (result['streams'][i] as VideoStream)['avg_frame_rate'].split('/');
-					
-					const greatestCommonDivisor: number = getGreatestCommonDivisor((result['streams'][i] as VideoStream)['width'], (result['streams'][i] as VideoStream)['height']);
-	
-					metadata['video'] = {
-						width: (result['streams'][i] as VideoStream)['width'],
-						height: (result['streams'][i] as VideoStream)['height'],
-						frameRate: Number.parseInt(splitFramerate[0], 10) / Number.parseInt(splitFramerate[1], 10),
-						aspectRatio: (result['streams'][i] as VideoStream)['width'] / greatestCommonDivisor + ':' + (result['streams'][i] as VideoStream)['height'] / greatestCommonDivisor,
-						bitRate: Number.parseInt((result['streams'][i] as VideoStream)['bit_rate'], 10)
-					};
-				} else {
-					metadata['audio'] = {
-						sampleRate: Number.parseInt((result['streams'][i] as AudioStream)['sample_rate'], 10),
-						channelCount: (result['streams'][i] as AudioStream)['channels'],
-						bitRate: Number.parseInt((result['streams'][i] as AudioStream)['bit_rate'], 10)
-					};
+	switch(result['streams']['length']) {
+		case 2: {
+			// @ts-expect-error
+			if(result['streams'][0]['codec_type'] !== result['streams'][1]['codec_type']) {
+				if(result['streams'][0]['codec_type'] !== 'video') {
+					// @ts-expect-error
+					result['streams'].push(result['streams'].pop());
 				}
+				
+				break;
+			} else {
+				throw new Error('Media must contain valid number of stream');
 			}
 		}
 
-		
-		if(typeof(metadata['video']) === 'object') {
-			if(Number.isNaN(metadata['video']['bitRate']) && typeof(metadata['audio']) === 'object') {
-				metadata['video']['bitRate'] = metadata['bitRate'] - metadata['audio']['bitRate'];
+		// @ts-expect-error
+		case 1: {
+			if(result['streams'][0]['codec_type'] === 'video') {
+				result['streams'].push({
+					index: NaN,
+					codec_type: 'audio',
+					sample_rate: 'NaN',
+					channels: NaN,
+					bit_rate: 'NaN'
+				});
+
+				break;
 			}
-
-			return metadata;
-
-		} else {
-			throw new Error('Media must contain both video and audio stream');
 		}
-	} else {
-		throw new Error('Media must contain more than one stream');
+
+		default: {
+			throw new Error('Media must contain valid number of stream');
+		}
 	}
+	
+	const splitFramerate: string[] = result['streams'][0]['avg_frame_rate'].split('/');
+	const greatestCommonDivisor: number = getGreatestCommonDivisor(result['streams'][0]['width'], result['streams'][0]['height']);
+	const videoBitRate: number = Number.parseInt(result['streams'][0]['bit_rate'], 10);
+	const audioBitRate: number = Number.parseInt(result['streams'][1]['bit_rate'], 10);
+	const totalBitRate: number = Number.parseInt(result['format']['bit_rate'], 10);
+
+	return {
+		video: {
+			width: result['streams'][0]['width'],
+			height: result['streams'][0]['height'],
+			frameRate: Number.parseInt(splitFramerate[0], 10) / Number.parseInt(splitFramerate[1], 10),
+			aspectRatio: result['streams'][0]['width'] / greatestCommonDivisor + ':' + result['streams'][0]['height'] / greatestCommonDivisor,
+			bitRate: Number.isNaN(videoBitRate) ? totalBitRate - audioBitRate : videoBitRate
+		},
+		audio: {
+			sampleRate: Number.parseInt(result['streams'][1]['sample_rate'], 10),
+			channelCount: result['streams'][1]['channels'],
+			bitRate: audioBitRate
+		},
+		duration: Number.parseFloat(result['format']['duration']),
+		size: Number.parseInt(result['format']['size'], 10),
+		bitRate: totalBitRate
+	};
 }
 
 
@@ -146,82 +160,6 @@ export function getGreatestCommonDivisor(a: number, b: number): number {
 	} else {
 		throw new Error('A and B must be natural number');
 	}
-}
-
-export function writeFileFromStream(path: PathLike, readable: Readable): Promise<void> {
-	return new Promise<void>(function (resolve: ResolveFunction, reject: RejectFunction): void {
-		readable.pipe(createWriteStream(path), {
-			end: true
-		})
-		.on('finish', function () {
-			resolve();
-			
-			return;
-		})
-		.once('error', reject);
-
-		return;
-	});
-}
-
-export function getHashFromStream(readable: Readable): Promise<string> {
-	return new Promise<string>(function (resolve: ResolveFunction<string>, reject: RejectFunction): void {
-		const hash: Hash = createHash('sha512').setEncoding('hex');
-
-		readable.pipe(hash)
-		.once('error', reject);
-	
-		hash.once('finish', function (): void {
-			resolve(hash.read());
-		})
-		.once('error', reject);
-	});
-}
-
-export function readPartialFile(path: string, size: number): Promise<Buffer> {
-	return new Promise<Buffer>(function (resolve: ResolveFunction<Buffer>, reject: RejectFunction): void {
-		open(path)
-		.then(function (fileHandle: FileHandle): void {
-			const buffer: Buffer = Buffer.alloc(size);
-
-			read(fileHandle['fd'], buffer, 0, size, 0, function (error: Error | null): void {
-				if(error === null) {
-					fileHandle.close()
-					.then(function (): void {
-						resolve(buffer);
-					})
-					.catch(reject);
-				} else {
-					reject(error);
-				}
-
-				return;
-			});
-		})
-	});
-}
-
-export function execute(command: string, options: SpawnOptionsWithoutStdio = {}): Promise<void> {
-	return new Promise<void>(function (resolve: ResolveFunction, reject: RejectFunction): void {
-		spawn(command, Object.assign(options, {
-			shell: true
-		}))
-		.once('exit', function (code: number, error: Error | null): void {
-			if(error === null) {
-				if(code === 0) {
-					resolve();
-				} else {
-					reject(new Error('Process exited unexpectedly'));
-				}
-			} else {
-				reject(error);
-			}
-		
-			return;
-		});
-	
-		return;
-	});
 }
 
 /**

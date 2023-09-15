@@ -73,23 +73,6 @@ export interface Metadata {
 	bitRate: number;
 }
 
-export interface VideoStream {
-	index: number;
-	codec_type: 'video';
-	width: number;
-	height: number;
-	avg_frame_rate: string;
-	bit_rate: string;
-}
-
-export interface AudioStream {
-	index: number;
-	codec_type: 'audio';
-	sample_rate: string;
-	channels: number;
-	bit_rate: string;
-}
-
 export type NonNullableRequired<T> = {
   [P in keyof T]-?: NonNullable<T[P]>;
 };

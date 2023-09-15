@@ -1,24 +1,16 @@
-import { DeleteObjectCommand, DeleteObjectsCommand, ListObjectsCommand, ListObjectsV2Command, ListObjectsV2CommandOutput, ObjectIdentifier, PutObjectCommand, S3Client, ServiceOutputTypes } from '@aws-sdk/client-s3';
+import { DeleteObjectsCommand, ListObjectsV2Command, ListObjectsV2CommandOutput, ObjectIdentifier, PutObjectCommand, S3Client, ServiceOutputTypes } from '@aws-sdk/client-s3';
 import { Readable } from 'stream';
 
 const s3Client: S3Client = new S3Client({
 	region: 'ap-northeast-2'
 });
 
-new DeleteObjectsCommand({
-	Bucket: process['env']['AWS_BUCKET_NAME'],
-	Delete: {
-		Objects: [{
-			Key: ''
-		}]
-	}
-})
-
-export function putObject(path: string, body: Buffer | Readable): Promise<ServiceOutputTypes> {
+export function putObject(path: string, body: Buffer | Readable, mime: string): Promise<ServiceOutputTypes> {
 	return s3Client.send(new PutObjectCommand({
 		Bucket: process['env']['AWS_BUCKET_NAME'],
 		Key: path,
-		Body: body
+		Body: body,
+		ContentType: mime
 	}));
 }
 
@@ -40,7 +32,7 @@ export function deleteObjects(paths: string[]): Promise<ServiceOutputTypes> {
 		}));
 	} else {
 		return Promise.resolve({
-			TagSet: '',
+			TagSet: [],
 			$metadata: {}
 		});
 	}
