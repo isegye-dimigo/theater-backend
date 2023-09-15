@@ -8,7 +8,7 @@ const userSchema: Schema<keyof User> = new Schema<keyof User>({
 	email: schema.string().format('email'),
 	password: schema.string().minLength(1),
 	handle: schema.string().pattern(/^[A-Za-z0-9-_.]{3,30}$/),
-	name: schema.string().maxLength(64),
+	name: schema.string().minLength(1).maxLength(64),
 	description: schema.string().maxLength(1024),
 	profileMediaId: commonSchema.get('positiveInteger'),
 	bannerMediaId: commonSchema.get('positiveInteger'),
