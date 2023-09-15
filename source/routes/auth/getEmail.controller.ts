@@ -35,7 +35,7 @@ export default function (request: FastifyRequest<{
 	})
 	.then(function (): void {
 		// TODO: Chnage below url to real one
-		reply.redirect('https://theater.isegye.kr/login');
+		reply.redirect(307, 'https://theater.isegye.kr/login');
 
 		return;
 	})
