@@ -1,6 +1,6 @@
 import { prisma, redis } from '@library/database';
 import { BadRequest } from '@library/httpError';
-import { Media, Movie, User } from '@prisma/client';
+import { Media, Movie, MovieStatistic, User } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 export default function (request: FastifyRequest<{
@@ -66,6 +66,7 @@ export default function (request: FastifyRequest<{
 			profileMedia: Pick<Media, 'id' | 'hash' | 'type' | 'width' | 'height'> | null;
 		};
 		videoMedia: Pick<Media, 'id' | 'hash' | 'type' | 'width' | 'height' | 'duration' | 'frameRate'>;
+		movieStatistics: Pick<MovieStatistic, 'viewCount' | 'commentCount' | 'likeCount' | 'starAverage'>[];
 	} | null): void {
 		if(movie !== null) {
 			reply.send(movie);
