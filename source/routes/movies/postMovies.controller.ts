@@ -63,12 +63,6 @@ export default function (request: FastifyRequest<{
 									commentCount: 0,
 									likeCount: 0,
 									starAverage: 0
-								}, {
-									viewCount: 0,
-									commentCount: 0,
-									likeCount: 0,
-									starAverage: 0,
-									createdAt: new Date(Date.now() + 600000)
 								}]
 							}
 						}
