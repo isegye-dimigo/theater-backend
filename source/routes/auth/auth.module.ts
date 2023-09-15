@@ -1,10 +1,10 @@
 import Module from '@library/module';
 import getEmailController from './getEmail.controller';
-import userSchema from '@schemas/user';
 import postLoginController from './postLogin.controller';
 import postTokenController from './postToken.controller';
-import commonSchema from '@schemas/common';
 import getAuthController from './getAuth.controller';
+import userSchema from '@schemas/user';
+import commonSchema from '@schemas/common';
 
 export default new Module({
 	routers: [{
@@ -26,8 +26,8 @@ export default new Module({
 		handler: postLoginController,
 		schema: {
 			body: {
-				email: userSchema.get('email'),
-				password: userSchema.get('password')
+				email: userSchema.get('email').required(),
+				password: userSchema.get('password').required()
 			}
 		}
 	}, {
@@ -36,7 +36,7 @@ export default new Module({
 		handler: postTokenController,
 		schema: {
 			body: {
-				refreshToken: commonSchema.get('jsonWebToken')
+				refreshToken: commonSchema.get('jsonWebToken').required()
 			}
 		}
 	}],
