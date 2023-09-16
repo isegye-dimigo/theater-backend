@@ -1,6 +1,6 @@
 
-import { FileSignature, FileType, Metadata, RejectFunction, ResolveFunction } from '@library/type';
-import { execSync } from 'child_process';
+import { FileSignature, FileType, VideoMetadata, RejectFunction, ResolveFunction, ImageMetadata } from '@library/type';
+import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
 import { pbkdf2 } from 'crypto';
 
 export function getEpoch(): number {
@@ -49,6 +49,67 @@ const fileSignatures: Record<FileType, FileSignature[]> = {
 	}]
 }
 
+export function 	execute(command: string, isOutputNeeded?: {
+	basePath?: string;
+	isOutputNeeded?: false;
+}): Promise<void>;
+export function execute(command: string, isOutputNeeded?: {
+	basePath?: string;
+	isOutputNeeded: true;
+}): Promise<string>;
+export function execute(command: string, options: {
+	basePath?: string;
+	isOutputNeeded?: boolean;
+} = {}): Promise<string | void> {
+	return new Promise<string | void>(function (resolve: ResolveFunction<string | void>, reject: RejectFunction): void {
+		if(typeof(options['isOutputNeeded']) !== 'boolean') {
+			options['isOutputNeeded'] = false;
+		}
+
+		let output: string | undefined;
+
+		console.log(command)
+		console.log(options)
+
+		const childProcess: ChildProcessWithoutNullStreams = spawn(command, {
+			cwd: options['basePath'],
+			shell: true,
+			//env: process['env'],
+		}).on('close', function (code: number, error): void {
+			if(code === 0) {
+				resolve(output);
+			} else {
+				//console.log(error)
+
+				reject(new Error('Process exited with code ' + code));
+			}
+
+			return;
+		});
+		
+	//	childProcess.stdout.on('data', function(data) {
+	//		console.log(data.toString()); 
+	//});
+	
+	childProcess.stderr.on('data', function(data) {
+			console.error(data.toString());
+	});
+
+		if(options['isOutputNeeded']) {
+			output = '';
+
+			childProcess['stdout']
+			.on('data', function (data: Buffer): void {
+				output += data.toString();
+	
+				return;
+			});
+		}
+
+		return;
+	});
+}
+
 export function isValidType(buffer: Buffer, fileType: FileType): boolean {
 	let isValidFile: boolean = false;
 
@@ -63,88 +124,87 @@ export function isValidType(buffer: Buffer, fileType: FileType): boolean {
 	return isValidFile;
 }
 
-export function getMetadata(fileName: string, basePath: string): Metadata {
-	const result: {
-		streams: [{
-			index: number;
-			codec_type: 'video';
-			width: number;
-			height: number;
-			avg_frame_rate: string;
-			bit_rate: string;
-		}, {
-			index: number;
-			codec_type: 'audio';
-			sample_rate: string;
-			channels: number;
-			bit_rate: string;
-		}];
-		format: Record<'duration' | 'size' | 'bit_rate', string>;
-	} = JSON.parse(execSync('ffprobe -v quiet -print_format json -show_format -show_streams -show_entries format=bit_rate,duration,size:stream=index,codec_type,bit_rate,avg_frame_rate,width,height,sample_rate,channels ' + fileName, {
-		cwd: basePath,
-		env: process['env']
-	}).toString());
-
-	switch(result['streams']['length']) {
-		case 2: {
-			// @ts-expect-error
-			if(result['streams'][0]['codec_type'] !== result['streams'][1]['codec_type']) {
-				if(result['streams'][0]['codec_type'] !== 'video') {
-					// @ts-expect-error
-					result['streams'].push(result['streams'].pop());
-				}
-				
-				break;
-			} else {
-				throw new Error('Media must contain valid number of stream');
-			}
-		}
+export function getVideoMetadata(fileName: string): Promise<VideoMetadata> {
+	return execute('ffprobe -v quiet -print_format json -show_format -show_streams -show_entries format=bit_rate,duration,size:stream=index,codec_type,bit_rate,avg_frame_rate,width,height,sample_rate,channels,display_aspect_ratio ' + fileName, {
+		isOutputNeeded: true
+	})
+	.then(function (output: string): VideoMetadata {
+		const result: {
+			streams: [{
+				index: number;
+				codec_type: 'video';
+				width: number;
+				height: number;
+				display_aspect_ratio: string;
+				avg_frame_rate: string;
+				bit_rate: string;
+			}, {
+				index: number;
+				codec_type: 'audio';
+				sample_rate: string;
+				channels: number;
+				bit_rate: string;
+			}];
+			format: Record<'duration' | 'size' | 'bit_rate', string>;
+		} = JSON.parse(output);
 
 		// @ts-expect-error
-		case 1: {
-			if(result['streams'][0]['codec_type'] === 'video') {
-				result['streams'].push({
-					index: NaN,
-					codec_type: 'audio',
-					sample_rate: 'NaN',
-					channels: NaN,
-					bit_rate: 'NaN'
-				});
-
-				break;
+		if(result['streams']['length'] === 2 && result['streams'][0]['codec_type'] !== result['streams'][1]['codec_type']) {
+			if(result['streams'][0]['codec_type'] !== 'video') {
+				// @ts-expect-error
+				result['streams'].push(result['streams'].pop());
 			}
+			
+			const splitFramerate: string[] = result['streams'][0]['avg_frame_rate'].split('/');
+			const videoBitRate: number = Number.parseInt(result['streams'][0]['bit_rate'], 10);
+			const audioBitRate: number = Number.parseInt(result['streams'][1]['bit_rate'], 10);
+			const totalBitRate: number = Number.parseInt(result['format']['bit_rate'], 10);
+		
+			return {
+				video: {
+					width: result['streams'][0]['width'],
+					height: result['streams'][0]['height'],
+					frameRate: Number.parseInt(splitFramerate[0], 10) / Number.parseInt(splitFramerate[1], 10),
+					aspectRatio: result['streams'][0]['display_aspect_ratio'],
+					bitRate: Number.isNaN(videoBitRate) ? totalBitRate - audioBitRate : videoBitRate
+				},
+				audio: {
+					sampleRate: Number.parseInt(result['streams'][1]['sample_rate'], 10),
+					channelCount: result['streams'][1]['channels'],
+					bitRate: audioBitRate
+				},
+				index: Number.parseInt(fileName.split('.')[0], 10),
+				duration: Number.parseFloat(result['format']['duration']),
+				size: Number.parseInt(result['format']['size'], 10),
+				bitRate: totalBitRate
+			};
+		} else {
+			throw new Error('Media must contain valid streams');
 		}
-
-		default: {
-			throw new Error('Media must contain valid number of stream');
-		}
-	}
-	
-	const splitFramerate: string[] = result['streams'][0]['avg_frame_rate'].split('/');
-	const greatestCommonDivisor: number = getGreatestCommonDivisor(result['streams'][0]['width'], result['streams'][0]['height']);
-	const videoBitRate: number = Number.parseInt(result['streams'][0]['bit_rate'], 10);
-	const audioBitRate: number = Number.parseInt(result['streams'][1]['bit_rate'], 10);
-	const totalBitRate: number = Number.parseInt(result['format']['bit_rate'], 10);
-
-	return {
-		video: {
-			width: result['streams'][0]['width'],
-			height: result['streams'][0]['height'],
-			frameRate: Number.parseInt(splitFramerate[0], 10) / Number.parseInt(splitFramerate[1], 10),
-			aspectRatio: result['streams'][0]['width'] / greatestCommonDivisor + ':' + result['streams'][0]['height'] / greatestCommonDivisor,
-			bitRate: Number.isNaN(videoBitRate) ? totalBitRate - audioBitRate : videoBitRate
-		},
-		audio: {
-			sampleRate: Number.parseInt(result['streams'][1]['sample_rate'], 10),
-			channelCount: result['streams'][1]['channels'],
-			bitRate: audioBitRate
-		},
-		duration: Number.parseFloat(result['format']['duration']),
-		size: Number.parseInt(result['format']['size'], 10),
-		bitRate: totalBitRate
-	};
+	});
 }
 
+export function getImageMetadata(fileName: string): Promise<ImageMetadata> {
+	return execute('exiftool -j -ImageWidth -ImageHeight -Orientation# -FileSize#  ' + fileName, {
+		isOutputNeeded: true
+	})
+	.then(function (output: string): ImageMetadata {
+		const result: Record<'ImageWidth' | 'ImageHeight' | 'Orientation' | 'FileSize', number> = JSON.parse(output)[0];
+		
+		if(typeof(result['Orientation']) === 'number' && result['Orientation'] >= 5) {
+			[result['ImageHeight'], result['ImageWidth']] = [result['ImageWidth'], result['ImageHeight']];
+		}
+
+		const greatestCommonDivisor: number = getGreatestCommonDivisor(result['ImageWidth'], result['ImageHeight']);
+			
+		return {
+			width: result['ImageWidth'],
+			height: result['ImageHeight'],
+			aspectRatio: result['ImageWidth'] / greatestCommonDivisor + ':' + result['ImageHeight'] / greatestCommonDivisor,
+			size: result['FileSize']
+		};
+	});
+}
 
 export function getGreatestCommonDivisor(a: number, b: number): number {
 	if(Number.isInteger(a) && Number.isInteger(b) && a > 0 && b > 0) {

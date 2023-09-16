@@ -53,7 +53,7 @@ export interface FileSignature {
 
 export type FileType = 'mp4' | 'jpg' | 'png';
 
-export interface Metadata {
+export interface VideoMetadata {
 	video: {
 		width: number;
 		height: number;
@@ -68,10 +68,13 @@ export interface Metadata {
 		bitRate: number;
 	};
 
+	index: number;
 	duration: number;
 	size: number;
 	bitRate: number;
 }
+
+export type ImageMetadata = Pick<VideoMetadata, 'size'> & Pick<VideoMetadata['video'], 'width' | 'height' | 'aspectRatio'>;
 
 export type NonNullableRequired<T> = {
   [P in keyof T]-?: NonNullable<T[P]>;

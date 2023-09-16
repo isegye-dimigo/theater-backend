@@ -13,12 +13,7 @@ const mediaSchema: Schema<keyof Media> = new Schema<keyof Media>({
 	width: schema.integer().minimum(1),
 	height: schema.integer().minimum(1),
 	aspectRatio: schema.string().pattern(/^[1-9][0-9]*:[1-9][0-9]*$/),
-	duration: commonSchema.get('positiveInteger'),
-	frameRate: commonSchema.get('positiveInteger'),
-	bitRate: commonSchema.get('positiveInteger'),
-	channelCount: commonSchema.get('positiveInteger'),
 	isDeleted: schema.boolean(),
-	isVideo: schema.boolean(),
 	createdAt: commonSchema.get('datetime')
 });
 

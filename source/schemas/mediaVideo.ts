@@ -7,9 +7,7 @@ const mediaVideoSchema: Schema<keyof MediaVideo> = new Schema<keyof MediaVideo>(
 	mediaId: commonSchema.get('positiveInteger'),
 	index: commonSchema.get('positiveInteger'),
 	size: commonSchema.get('positiveInteger'),
-	duration: commonSchema.get('positiveInteger'),
-	frameRate: commonSchema.get('positiveInteger'),
-	sampleRate: commonSchema.get('positiveInteger'),
+	duration: commonSchema.get('positiveFloat'),
 	audioBitRate: commonSchema.get('positiveInteger'),
 	videoBitRate: commonSchema.get('positiveInteger')
 });

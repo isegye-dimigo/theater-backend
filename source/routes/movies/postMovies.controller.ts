@@ -1,6 +1,6 @@
 import { prisma } from '@library/database';
 import { BadRequest, Unauthorized } from '@library/httpError';
-import { Media, Movie } from '@prisma/client';
+import { Media, MediaVideoMetadata, Movie } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 export default function (request: FastifyRequest<{
@@ -21,7 +21,9 @@ export default function (request: FastifyRequest<{
 		})
 		.then(function (mediaCount: number): Promise<Pick<Movie, 'id' | 'title'> & {
 			imageMedia: Pick<Media, 'id' | 'hash' | 'type' | 'width' | 'height'>;
-			videoMedia: Pick<Media, 'id' | 'hash' | 'type' | 'width' | 'height' | 'duration' | 'frameRate'>;
+			videoMedia: Pick<Media, 'id' | 'hash' | 'type' | 'width' | 'height'> & {
+				mediaVideoMetadata: Pick<MediaVideoMetadata, 'duration' | 'frameRate'> | null;
+			};
 		}> {
 			if(mediaCount === 2) {
 				return prisma['movie'].create({
@@ -44,9 +46,12 @@ export default function (request: FastifyRequest<{
 								type: true,
 								width: true,
 								height: true,
-								duration: true,
-								frameRate: true,
-								//mediaVideos: true
+								mediaVideoMetadata: {
+									select: {
+										duration: true,
+										frameRate: true
+									}
+								}
 							}
 						}
 					},

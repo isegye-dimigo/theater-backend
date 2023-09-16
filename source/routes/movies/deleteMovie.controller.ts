@@ -1,5 +1,5 @@
 import { prisma } from '@library/database';
-import { InternalServerHttpError, NotFound, Unauthorized } from '@library/httpError';
+import { NotFound, Unauthorized } from '@library/httpError';
 import { Movie, Prisma } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 

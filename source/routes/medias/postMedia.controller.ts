@@ -1,19 +1,16 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { MultipartFile } from '@fastify/multipart';
-import { BadRequest, InternalServerHttpError, Unauthorized, UnsupportedMediaType } from '@library/httpError';
-import { getMetadata, isValidType } from '@library/utility';
+import { BadRequest, PayloadTooLarge, Unauthorized, UnsupportedMediaType } from '@library/httpError';
+import { execute, getImageMetadata, getVideoMetadata, isValidType } from '@library/utility';
 import { join } from 'path/posix';
-import { createReadStream, createWriteStream } from 'fs';
+import { createReadStream, createWriteStream, read } from 'fs';
 import { prisma } from '@library/database';
-import { Media, MediaVideo, Prisma } from '@prisma/client';
-import { FileType, Metadata, RejectFunction, ResolveFunction } from '@library/type';
+import { Media, MediaVideo, MediaVideoMetadata, Prisma } from '@prisma/client';
+import { FileType, ImageMetadata, RejectFunction, ResolveFunction, VideoMetadata } from '@library/type';
 import { deleteObjects, getObjectKeys, putObject } from '@library/bucket';
 import { ServiceOutputTypes } from '@aws-sdk/client-s3';
-import { FileHandle, open, readdir, rm } from 'fs/promises';
-import { mkdtemp } from 'fs/promises';
+import { FileHandle, mkdtemp, open, readdir, rm } from 'fs/promises';
 import { tmpdir } from 'os';
-import { spawn } from 'child_process';
-import { read } from 'fs';
 import { Hash, createHash } from 'crypto';
 
 export default function (request: FastifyRequest, reply: FastifyReply): void {
@@ -68,13 +65,16 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 			}
 
 			file['path'] = join(file['basePath'], 'input.' + file['type']);
-
 			return new Promise<void>(function (resolve: ResolveFunction, reject: RejectFunction): void {
 				multipartFile['file'].pipe(createWriteStream(file['path']), {
 					end: true
 				})
-				.on('finish', function () {
-					resolve();
+				.once('finish', function () {
+					if(!multipartFile['file']['truncated'] && (file['isVideo'] || multipartFile['file']['bytesRead'] < 5243000)) {
+						resolve();
+					} else {
+						reject(new PayloadTooLarge('File must not exceed size limit'));
+					}
 					
 					return;
 				})
@@ -139,13 +139,9 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 				width: true,
 				height: true,
 				aspectRatio: true,
-				isVideo: true,
-				duration: file['isVideo'],
-				frameRate: file['isVideo'],
-				bitRate: file['isVideo'],
-				channelCount: file['isVideo'],
 				createdAt: true,
-				mediaVideos: file['isVideo']
+				mediaVideos: true,
+				mediaVideoMetadata: true
 			},
 			where: {
 				hash: fileHash
@@ -154,26 +150,19 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 	})
 	.then(function (media: Omit<Media, 'userId' | 'isDeleted'> & {
 		mediaVideos: MediaVideo[];
-	} | null): Promise<void> | void {
+	} | null): Promise<string[]> | undefined {
 		if(media === null) {
 			if(file['isVideo']) {
-				return new Promise<void>(function (resolve: ResolveFunction, reject: RejectFunction): void {
-					spawn(`ffmpeg -v quiet -i input.mp4 -filter:v "scale='min(1280,iw)':min'(720,ih)':force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2" -map 0:v:0 -map 0:a:0 -c:v h264_qsv -c:a aac -q 23 -preset veryslow -f ssegment -segment_list "index.m3u8" "%d.ts"`, {
-						cwd: file['basePath'],
-						env: process['env'],
-						shell: true
-					})
-					.once('exit', function (code: number, error: Error | null): void {
-						if(error === null && code === 0) {
-							resolve();
-						} else {
-							reject(new Error('Process exited unexpectedly'));
-						}
-					
-						return;
+				return execute('ffmpeg -v quiet -i input.mp4 -filter:v "scale=\'min(1280,iw)\':min\'(720,ih)\':force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2" -map 0:v:0 -map 0:a:0 -c:v h264_qsv -c:a aac -q 23 -preset veryslow -f ssegment -segment_list "index.m3u8" "%d.ts"', {
+					basePath: file['basePath']
+				})
+				.then(function (): Promise<void> {
+					return rm(file['path'], {
+						force: true
 					});
-				
-					return;
+				})
+				.then(function (): Promise<string[]> {
+					return readdir(file['basePath']);
 				});
 			} else {
 				return;
@@ -182,103 +171,86 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 			throw media;
 		}
 	})
-	.then(function (): Promise<void> | void {
-		if(file['isVideo']) {
-			return rm(file['path'], {
-				force: true
-			});
-		} else {
-			return;
-		}
-	})
-	.then(function (): Promise<string[]> | undefined {
-		if(file['isVideo']) {
-			return readdir(file['basePath']);
-		} else {
-			return;
-		}
-	})
 	.then(function (paths: string[] | undefined): Promise<ServiceOutputTypes[]> {
-		const putObjectPromises: Promise<ServiceOutputTypes>[] = [];
-
 		if(Array.isArray(paths)) {
-			const meviaVideos: Prisma.MediaVideoCreateManyMediaInput[] = [];
-			const standardMetadata: Metadata = getMetadata(paths[paths[0].endsWith('ts') ? 0 : 1], file['basePath']);
-
-			media = {
-				hash: file['hash'],
-				userId: request['user']['id'],
-				type: file['type'],
-				size: 0,
-				width: standardMetadata['video']['width'],
-				height: standardMetadata['video']['height'],
-				aspectRatio: standardMetadata['video']['aspectRatio'],
-				isVideo: true,
-				duration: 0,
-				frameRate: 0,
-				bitRate: 0,
-				channelCount: standardMetadata['audio']['channelCount']
-			};
+			const putObjectPromises: Promise<ServiceOutputTypes>[] = [];
+			const metadataPromises: Promise<VideoMetadata>[] = [];
 
 			for(let i: number = 0; i < paths['length']; i++) {
 				const filePath: string = join(file['basePath'], paths[i]);
-				const isVideo: boolean = paths[i].endsWith('ts');
+				let mime: string = 'video/MP2T';
 
-				if(isVideo) {
-					const metadata: Metadata = getMetadata(filePath, file['basePath']);
-
-					if(metadata['video']['bitRate'] < 0) {
-						throw new InternalServerHttpError('Ffmpeg unknown error');
-					}
-					
-					meviaVideos.push({
-						index: meviaVideos['length'],
-						size: metadata['size'],
-						duration: metadata['duration'],
-						frameRate: metadata['video']['frameRate'],
-						videoBitRate: metadata['video']['bitRate'],
-						sampleRate: metadata['audio']['sampleRate'],
-						audioBitRate: metadata['audio']['bitRate']
-					});
-
-
-					media['size'] += metadata['size'];
-					(media['duration'] as NonNullable<typeof media['duration']>) += metadata['duration'];
-					(media['frameRate'] as NonNullable<typeof media['frameRate']>) += metadata['video']['frameRate'];
-					(media['bitRate'] as NonNullable<typeof media['bitRate']>) += metadata['bitRate'];
+				if(paths[i].endsWith('ts')) {
+					metadataPromises.push(getVideoMetadata(filePath));
+				} else {
+					mime = 'application/x-mpegURL';
 				}
 
-				putObjectPromises.push(putObject(join('videos', file['hash'], paths[i]), createReadStream(filePath), isVideo ? 'video/MP2T' : 'application/x-mpegURL'));
+				putObjectPromises.push(putObject(join('videos', file['hash'], paths[i]), createReadStream(filePath), mime));
 			}
 
-			(media['frameRate'] as NonNullable<typeof media['frameRate']>) /= meviaVideos['length'];
-			(media['bitRate'] as NonNullable<typeof media['bitRate']>) /= meviaVideos['length'];
-			
-			Object.assign(media, {
-				mediaVideos: {
-					createMany: {
-						data: meviaVideos
+			return Promise.all(metadataPromises)
+			.then(function (metadatas: VideoMetadata[]): Promise<ServiceOutputTypes[]> {
+				media = {
+					hash: file['hash'],
+					userId: request['user']['id'],
+					type: file['type'],
+					size: 0,
+					width: metadatas[0]['video']['width'],
+					height: metadatas[0]['video']['height'],
+					aspectRatio: metadatas[0]['video']['aspectRatio'],
+					mediaVideos: {
+						createMany: {
+							data: []
+						}
+					},
+					mediaVideoMetadata: {
+						create: {
+							duration: 0,
+							frameRate: 0,
+							bitRate: 0,
+							sampleRate: metadatas[0]['audio']['sampleRate'],
+							channelCount: metadatas[0]['audio']['channelCount']
+						}
 					}
+				};
+
+				for(let i: number = 0; i < metadatas['length']; i++) {
+					((media['mediaVideos'] as Required<Prisma.MediaVideoUncheckedCreateNestedManyWithoutMediaInput>)['createMany']['data'] as Prisma.MediaVideoCreateManyMediaInput[]).push({
+						index: metadatas[i]['index'],
+						size: metadatas[i]['size'],
+						duration: metadatas[i]['duration'],
+						videoBitRate: metadatas[i]['video']['bitRate'],
+						audioBitRate: metadatas[i]['audio']['bitRate']
+					});
+
+					media['size'] += metadatas[i]['size'];
+					(media['mediaVideoMetadata'] as Required<Prisma.MediaVideoMetadataUncheckedCreateNestedOneWithoutMediaInput>)['create']['duration'] += metadatas[i]['duration'];
+					(media['mediaVideoMetadata'] as Required<Prisma.MediaVideoMetadataUncheckedCreateNestedOneWithoutMediaInput>)['create']['frameRate'] += metadatas[i]['video']['frameRate'];
+					(media['mediaVideoMetadata'] as Required<Prisma.MediaVideoMetadataUncheckedCreateNestedOneWithoutMediaInput>)['create']['bitRate'] += metadatas[i]['bitRate'];
 				}
+
+				(media['mediaVideoMetadata'] as Required<Prisma.MediaVideoMetadataUncheckedCreateNestedOneWithoutMediaInput>)['create']['frameRate'] /= metadatas['length'];
+				(media['mediaVideoMetadata'] as Required<Prisma.MediaVideoMetadataUncheckedCreateNestedOneWithoutMediaInput>)['create']['bitRate'] /= metadatas['length'];
+
+				return Promise.all(putObjectPromises);
 			});
 		} else {
-			const metadata: Metadata = getMetadata(file['path'], file['basePath']);
+			return getImageMetadata(file['path'])
+			.then(function (metadata: ImageMetadata): Promise<ServiceOutputTypes[]> {
+				media = {
+					hash: file['hash'],
+					userId: request['user']['id'],
+					type: file['type'],
+					size: metadata['size'],
+					width: metadata['width'],
+					height: metadata['height'],
+					aspectRatio: metadata['aspectRatio']
+				};
 
-			media = {
-				hash: file['hash'],
-				userId: request['user']['id'],
-				type: file['type'],
-				size: metadata['size'],
-				width: metadata['video']['width'],
-				height: metadata['video']['height'],
-				aspectRatio: metadata['video']['aspectRatio'],
-				isVideo: false
-			};
-
-			putObjectPromises.push(putObject(join('images', file['hash'] + '.' + file['type']), createReadStream(file['path']), file['mime']));
+				return Promise.all([putObject(join('images', file['hash'] + '.' + file['type']), createReadStream(file['path']), file['mime'])]);
+			});
 		}
-		
-		return Promise.all(putObjectPromises);
 	})
 	.then(function (): Promise<void> {
 		return rm(file['basePath'], {
@@ -288,6 +260,7 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 	})
 	.then(function (): Promise<Omit<Media, 'userId' | 'isDeleted'> & {
 		mediaVideos: MediaVideo[];
+		mediaVideoMetadata: MediaVideoMetadata | null;
 	} | null> {
 		return prisma['media'].create({
 			select: {
@@ -298,13 +271,9 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 				width: true,
 				height: true,
 				aspectRatio: true,
-				isVideo: true,
-				duration: file['isVideo'],
-				frameRate: file['isVideo'],
-				bitRate: file['isVideo'],
-				channelCount: file['isVideo'],
 				createdAt: true,
-				mediaVideos: file['isVideo']
+				mediaVideos: true,
+				mediaVideoMetadata: true
 			},
 			data: media
 		});
@@ -342,7 +311,7 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 		})
 		.then(function (): void {
 			reply.send(error);
-
+			
 			return;
 		})
 		.catch(reply.send.bind(reply));

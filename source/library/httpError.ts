@@ -12,7 +12,7 @@ export const HttpErrorInformation = {
 	//410: 'Gone',
 	//411: 'LengthRequired',
 	//412: 'PreconditionFailed',
-	//413: 'PayloadTooLarge',
+	413: 'PayloadTooLarge',
 	//414: 'URITooLong',
 	415: 'UnsupportedMediaType',
 	//416: 'RangeNotSatisfiable',
@@ -159,13 +159,13 @@ export class Conflict extends HttpError<409> {
 //	}
 //}
 
-//export class PayloadTooLarge extends HttpError<413> {
-//	constructor(message?: string) {
-//		super(413, message);
+export class PayloadTooLarge extends HttpError<413> {
+	constructor(message?: string) {
+		super(413, message);
 
-//		return;
-//	}
-//}
+		return;
+	}
+}
 
 //export class URITooLong extends HttpError<414> {
 //	constructor(message?: string) {

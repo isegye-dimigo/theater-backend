@@ -9,26 +9,22 @@ datasource db {
 }
 
 model Media {
-  id           Int          @id @default(autoincrement()) @db.UnsignedInt
-  hash         String       @unique(map: "hash") @db.VarChar(128)
-  userId       Int          @map("user_id") @db.UnsignedInt
-  type         String       @db.VarChar(3)
-  size         Int          @db.UnsignedInt
-  width        Int          @db.UnsignedInt
-  height       Int          @db.UnsignedInt
-  aspectRatio  String       @map("aspect_ratio") @db.VarChar(16)
-  isVideo      Boolean      @map("is_video") @db.Bit(1)
-  duration     Float?
-  frameRate    Float?       @map("frame_rate")
-  bitRate      Int?         @map("bit_rate") @db.UnsignedInt
-  channelCount Int?         @map("channel_count") @db.UnsignedTinyInt
-  isDeleted    Boolean      @default(dbgenerated("(b'0')")) @map("is_deleted") @db.Bit(1)
-  createdAt    DateTime     @default(now()) @map("created_at") @db.DateTime(0)
-  mediaVideos  MediaVideo[]
-  imageMovie   Movie?       @relation("movie.image_media_id,media.id")
-  videoMovie   Movie?       @relation("movie.video_media_id,media.id")
-  bannerUser   User?        @relation("user.banner_media_id,media.id")
-  profileUser  User?        @relation("user.profile_media_id,media.id")
+  id                 Int                 @id @default(autoincrement()) @db.UnsignedInt
+  hash               String              @unique(map: "hash") @db.VarChar(128)
+  userId             Int                 @map("user_id") @db.UnsignedInt
+  type               String              @db.VarChar(3)
+  size               Int                 @db.UnsignedInt
+  width              Int                 @db.UnsignedInt
+  height             Int                 @db.UnsignedInt
+  aspectRatio        String              @map("aspect_ratio") @db.VarChar(16)
+  isDeleted          Boolean             @default(dbgenerated("(b'0')")) @map("is_deleted") @db.Bit(1)
+  createdAt          DateTime            @default(now()) @map("created_at") @db.DateTime(0)
+  mediaVideos        MediaVideo[]
+  mediaVideoMetadata MediaVideoMetadata?
+  imageMovie         Movie?              @relation("movie.image_media_id,media.id")
+  videoMovie         Movie?              @relation("movie.video_media_id,media.id")
+  bannerUser         User?               @relation("user.banner_media_id,media.id")
+  profileUser        User?               @relation("user.profile_media_id,media.id")
 
   @@index([userId], map: "media.user_id,user.id")
   @@map("media")
@@ -40,14 +36,25 @@ model MediaVideo {
   index        Int   @db.UnsignedInt
   size         Int   @db.UnsignedInt
   duration     Float
-  frameRate    Float @map("frame_rate")
   videoBitRate Int   @map("video_bit_rate") @db.UnsignedInt
-  sampleRate   Int   @map("sample_rate") @db.UnsignedInt
   audioBitRate Int   @map("audio_bit_rate") @db.UnsignedInt
   media        Media @relation(fields: [mediaId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "media_video.media_id,media.id")
 
   @@unique([mediaId, index], map: "media_id, index")
   @@map("media_video")
+}
+
+model MediaVideoMetadata {
+  id           Int   @id @default(autoincrement()) @db.UnsignedInt
+  mediaId      Int   @unique(map: "UNIQUE INDEX(media_id)") @map("media_id") @db.UnsignedInt
+  duration     Float
+  frameRate    Float @map("frame_rate")
+  bitRate      Int   @map("bit_rate") @db.UnsignedInt
+  sampleRate   Int   @map("sample_rate") @db.UnsignedInt
+  channelCount Int   @map("channel_count") @db.UnsignedTinyInt
+  media        Media @relation(fields: [mediaId], references: [id], onDelete: Cascade, map: "media_video_metadata.media_id,media.id")
+
+  @@map("media_video_metadata")
 }
 
 model Movie {
