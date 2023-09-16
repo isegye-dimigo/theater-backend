@@ -4,8 +4,8 @@ import { NullSchema, ObjectSchema } from 'fluent-json-schema';
 import { join } from 'path/posix';
 import schemaErrorFormatHandler from '../handlers/schemaErrorFormat';
 import { Schema } from './schema';
-import authHandler from 'source/handlers/auth';
-import optionsHandler from 'source/handlers/options';
+import authHandler from '../handlers/auth';
+import optionsHandler from '../handlers/options';
 
 export default class Module {
 	public static registeredUrl: Set<string> = new Set<string>();
