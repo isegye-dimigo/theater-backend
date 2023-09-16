@@ -68,32 +68,18 @@ export function execute(command: string, options: {
 
 		let output: string | undefined;
 
-		console.log(command)
-		console.log(options)
-
 		const childProcess: ChildProcessWithoutNullStreams = spawn(command, {
 			cwd: options['basePath'],
 			shell: true,
-			//env: process['env'],
 		}).on('close', function (code: number, error): void {
 			if(code === 0) {
 				resolve(output);
 			} else {
-				//console.log(error)
-
 				reject(new Error('Process exited with code ' + code));
 			}
 
 			return;
 		});
-		
-	//	childProcess.stdout.on('data', function(data) {
-	//		console.log(data.toString()); 
-	//});
-	
-	childProcess.stderr.on('data', function(data) {
-			console.error(data.toString());
-	});
 
 		if(options['isOutputNeeded']) {
 			output = '';
