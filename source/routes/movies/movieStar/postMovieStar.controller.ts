@@ -1,5 +1,5 @@
 import { prisma } from '@library/database';
-import { Conflict, InternalServerHttpError, NotFound } from '@library/httpError';
+import { Conflict, NotFound } from '@library/httpError';
 import { Movie, MovieStar, Prisma } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
@@ -53,6 +53,6 @@ export default function (request: FastifyRequest<{
 		}
 	})
 	.catch(reply.send.bind(reply));
-	
+
 	return;
 }

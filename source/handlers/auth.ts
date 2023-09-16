@@ -12,7 +12,7 @@ export default function authHandler(request: FastifyRequest, reply: FastifyReply
 				handle: jsonWebToken['payload']['hdl'],
 				isVerified: jsonWebToken['payload']['vrf']
 			};
-			
+
 			done();
 		} else {
 			reply.send(new BadRequest('Header[\'authorization\'] must be valid in value'));

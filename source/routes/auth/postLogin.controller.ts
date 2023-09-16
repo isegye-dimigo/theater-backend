@@ -60,6 +60,6 @@ export default function (request: FastifyRequest<{
 		return;
 	})
 	.catch(reply.send.bind(reply));
-	
+
 	return;
 }

@@ -23,6 +23,6 @@ redis.on('error', function (error: Error): void {
 			return;
 		}
 	}
-	
+
 	return;
 });

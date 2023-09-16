@@ -31,7 +31,7 @@ export default function (request: FastifyRequest<{
 				if(request['params']['userHandle'] === request['user']['handle']) {
 					user['email'] = _user['email'];
 					user['password'] = _user['password'];
-	
+
 					return getEncryptedPassword(request['body']['currentPassword'], _user['email']);
 				} else {
 					throw new Unauthorized('User must be same');
@@ -44,29 +44,29 @@ export default function (request: FastifyRequest<{
 			if(encryptedCurrentPassword === user['password']) {
 				const validations: Promise<void>[] = [];
 				const isNewPassword: boolean = typeof(request['body']['password']) === 'string';
-				
+
 				if(typeof(request['body']['email']) === 'string' && !isNewPassword) {
 					validations.push(getEncryptedPassword(request['body']['currentPassword'], user['email'])
 					.then(function (encryptedPassword: string): void {
 						request['body']['password'] = encryptedPassword;
-	
+
 						return;
 					}));
 				}
-	
+
 				if(isNewPassword) {
 					validations.push(getEncryptedPassword(request['body']['password'] as string, user['email'])
 					.then(function (encryptedPassword: string): void {
 						request['body']['password'] = encryptedPassword;
-	
+
 						return;
 					}));
 				}
-	
+
 				if(typeof(request['body']['description']) === 'string' && request['body']['description']['length'] === 0) {
 					request['body']['description'] = null;
 				}
-	
+
 				if(typeof(request['body']['handle']) === 'string') {
 					validations.push(prisma['user'].count({
 						where: {
@@ -81,7 +81,7 @@ export default function (request: FastifyRequest<{
 						}
 					}));
 				}
-	
+
 				if(typeof(request['body']['profileMediaId']) === 'number') {
 					validations.push(prisma['media'].count({
 						where: {
@@ -97,7 +97,7 @@ export default function (request: FastifyRequest<{
 						}
 					}));
 				}
-	
+
 				if(typeof(request['body']['bannerMediaId']) === 'number') {
 					validations.push(prisma['media'].count({
 						where: {
@@ -113,7 +113,7 @@ export default function (request: FastifyRequest<{
 						}
 					}));
 				}
-	
+
 				return Promise.all(validations);
 			} else {
 				throw new Unauthorized('Body[\'currentPassword\'] must be valid');
@@ -163,10 +163,10 @@ export default function (request: FastifyRequest<{
 			});
 		})
 		.then(reply.send.bind(reply))
-		.catch(reply.send.bind(reply));	
+		.catch(reply.send.bind(reply));
 	} else {
 		reply.send(new BadRequest('Body must have more than one key'));
 	}
-	
+
 	return;
 }

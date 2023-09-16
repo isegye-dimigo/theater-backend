@@ -16,17 +16,17 @@ export default function (request: FastifyRequest<{
 		switch(request['query']['page[rank]']) {
 			case 'viewCount': {
 				orderBy = 'movie_statistic.view_count';
-	
+
 				break;
 			}
 			case 'commentCount': {
 				orderBy = 'movie_statistic.comment_count';
-	
+
 				break;
 			}
 			case 'starAverage': {
 				orderBy = 'movie_statistic.star_average';
-	
+
 				break;
 			}
 		}

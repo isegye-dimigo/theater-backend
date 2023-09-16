@@ -11,7 +11,7 @@ export default function (request: FastifyRequest<{
 	};
 	Querystring: PageQuery;
 }>, reply: FastifyReply): void {
-	
+
 	prisma['movie'].count({
 		where: {
 			OR: [{
@@ -55,6 +55,6 @@ export default function (request: FastifyRequest<{
 	})
 	.then(reply.send.bind(reply))
 	.catch(reply.send.bind(reply));
-	
+
 	return;
 }

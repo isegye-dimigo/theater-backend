@@ -55,6 +55,6 @@ export default function (request: FastifyRequest<{
 	} else {
 		reply.callNotFound();
 	}
-	
+
 	return;
 }

@@ -81,6 +81,6 @@ export default function (request: FastifyRequest<{
 	})
 	.then(reply.status(204).send.bind(reply))
 	.catch(reply.send.bind(reply));
-	
+
 	return;
 }

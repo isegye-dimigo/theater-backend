@@ -20,7 +20,7 @@ export default function (request: FastifyRequest<{
 	.then(function (movie: Pick<Movie, 'userId'> | null): Promise<[Prisma.BatchPayload, Prisma.BatchPayload]> {
 		if(movie !== null) {
 			if(request['user']['id'] === movie['userId']) {
-				
+
 				return prisma.$transaction([prisma['movie'].updateMany({
 					data: {
 						isDeleted: true
@@ -51,6 +51,6 @@ export default function (request: FastifyRequest<{
 		}
 	})
 	.catch(reply.send.bind(reply));
-	
+
 	return;
 }

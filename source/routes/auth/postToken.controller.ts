@@ -47,7 +47,7 @@ export default function (request: FastifyRequest<{
 				return;
 			}
 		}
-		
+
 		throw new BadRequest('Body[\'refreshToken\'] must be valid');
 	})
 	.catch(reply.send.bind(reply));

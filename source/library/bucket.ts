@@ -23,7 +23,7 @@ export function deleteObjects(paths: string[]): Promise<ServiceOutputTypes> {
 				Key: paths[i]
 			});
 		}
-		
+
 		return s3Client.send(new DeleteObjectsCommand({
 			Bucket: process['env']['AWS_BUCKET_NAME'],
 			Delete: {

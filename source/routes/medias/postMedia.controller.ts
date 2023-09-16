@@ -42,7 +42,7 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 				case 'mp4': {
 					if(request['user']['isVerified']) {
 						file['isVideo'] = true;
-						
+
 						break;
 					} else {
 						throw new Unauthorized('User must be verified');
@@ -75,11 +75,11 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 					} else {
 						reject(new PayloadTooLarge('File must not exceed size limit'));
 					}
-					
+
 					return;
 				})
 				.once('error', reject);
-		
+
 				return;
 			});
 		} else {
@@ -91,7 +91,7 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 			open(file['path'])
 			.then(function (fileHandle: FileHandle): void {
 				const buffer: Buffer = Buffer.alloc(24);
-	
+
 				read(fileHandle['fd'], buffer, 0, 24, 0, function (error: Error | null): void {
 					if(error === null) {
 						fileHandle.close()
@@ -102,7 +102,7 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 					} else {
 						reject(error);
 					}
-	
+
 					return;
 				});
 			})
@@ -112,10 +112,10 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 		if(isValidType(partialBuffer, file['type'])) {
 			return new Promise<string>(function (resolve: ResolveFunction<string>, reject: RejectFunction): void {
 				const hash: Hash = createHash('sha512').setEncoding('hex');
-		
+
 				createReadStream(file['path']).pipe(hash)
 				.once('error', reject);
-			
+
 				hash.once('finish', function (): void {
 					resolve(hash.read());
 				})
@@ -311,7 +311,7 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 		})
 		.then(function (): void {
 			reply.send(error);
-			
+
 			return;
 		})
 		.catch(reply.send.bind(reply));

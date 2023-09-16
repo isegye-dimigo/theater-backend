@@ -82,6 +82,6 @@ export default function (request: FastifyRequest<{
 	} else {
 		reply.send(new Unauthorized('User must be verified'));
 	}
-	
+
 	return;
 }

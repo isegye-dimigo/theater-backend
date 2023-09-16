@@ -67,7 +67,7 @@ export function execute(command: string, options: {
 		const childProcess: ChildProcessWithoutNullStreams = spawn(command, {
 			cwd: options['basePath'],
 			shell: true,
-		}).on('close', function (code: number, error): void {
+		}).on('close', function (code: number): void {
 			if(code === 0) {
 				resolve(output);
 			} else {
@@ -83,7 +83,7 @@ export function execute(command: string, options: {
 			childProcess['stdout']
 			.on('data', function (data: Buffer): void {
 				output += data.toString();
-	
+
 				return;
 			});
 		}
@@ -136,12 +136,12 @@ export function getVideoMetadata(fileName: string): Promise<VideoMetadata> {
 				// @ts-expect-error
 				result['streams'].push(result['streams'].pop());
 			}
-			
+
 			const splitFramerate: string[] = result['streams'][0]['avg_frame_rate'].split('/');
 			const videoBitRate: number = Number.parseInt(result['streams'][0]['bit_rate'], 10);
 			const audioBitRate: number = Number.parseInt(result['streams'][1]['bit_rate'], 10);
 			const totalBitRate: number = Number.parseInt(result['format']['bit_rate'], 10);
-		
+
 			return {
 				video: {
 					width: result['streams'][0]['width'],
@@ -172,13 +172,13 @@ export function getImageMetadata(fileName: string): Promise<ImageMetadata> {
 	})
 	.then(function (output: string): ImageMetadata {
 		const result: Record<'ImageWidth' | 'ImageHeight' | 'Orientation' | 'FileSize', number> = JSON.parse(output)[0];
-		
+
 		if(typeof(result['Orientation']) === 'number' && result['Orientation'] >= 5) {
 			[result['ImageHeight'], result['ImageWidth']] = [result['ImageWidth'], result['ImageHeight']];
 		}
 
 		const greatestCommonDivisor: number = getGreatestCommonDivisor(result['ImageWidth'], result['ImageHeight']);
-			
+
 		return {
 			width: result['ImageWidth'],
 			height: result['ImageHeight'],
@@ -191,13 +191,13 @@ export function getImageMetadata(fileName: string): Promise<ImageMetadata> {
 export function getGreatestCommonDivisor(a: number, b: number): number {
 	if(Number.isInteger(a) && Number.isInteger(b) && a > 0 && b > 0) {
 		let r: number;
-	
+
 		while(b != 0) {
 			r = a % b;
 			a = b;
 			b = r;
 		}
-	
+
 		return a;
 	} else {
 		throw new Error('A and B must be natural number');
@@ -221,7 +221,7 @@ export const reportTypes = {
 	6: '적절하지 않은 프로필 사진',
 	7: '적절하지 않은 배너 사진',
 	8: '기타',
-	
+
 	10: '성적인 콘텐츠',
 	11: '폭력적 또는 혐오스러운 콘텐츠',
 	12: '증오 또는 악의적인 콘텐츠',

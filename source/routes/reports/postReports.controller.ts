@@ -28,7 +28,7 @@ export default function (request: FastifyRequest<{
 
 			break;
 		}
-			
+
 		case 10:
 		case 11:
 		case 12:
@@ -65,7 +65,7 @@ export default function (request: FastifyRequest<{
 			break;
 		}
 	}
-	
+
 	if(typeof(validation) === 'object') {
 		validation.then(function (targetCount: number): Promise<Prisma.BatchPayload> {
 			if(targetCount === 1) {

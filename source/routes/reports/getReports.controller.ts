@@ -77,10 +77,10 @@ export default function (request: FastifyRequest<{
 								isDeleted: false
 							}
 						}));
-						
+
 						break;
 					}
-						
+
 					case 10:
 					case 11:
 					case 12:
@@ -102,7 +102,7 @@ export default function (request: FastifyRequest<{
 
 						break;
 					}
-			
+
 					case 20:
 					case 21:
 					case 22:
@@ -125,7 +125,7 @@ export default function (request: FastifyRequest<{
 								}
 							}
 						}));
-			
+
 						break;
 					}
 				}
@@ -147,6 +147,6 @@ export default function (request: FastifyRequest<{
 	} else {
 		reply.send(reportTypes);
 	}
-	
+
 	return;
 }

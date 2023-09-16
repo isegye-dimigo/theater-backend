@@ -1,5 +1,5 @@
-import { createHmac } from 'crypto';
 import { getEpoch } from '@library/utility';
+import { createHmac } from 'crypto';
 
 export default class JsonWebToken {
 	private token: string;

@@ -75,7 +75,7 @@ export default class Module {
 					case 'object': {
 						if(Array.isArray(this['options']['routers'][i]['preHandler'])) {
 							(this['options']['routers'][i]['preHandler'] as PreHandlerHookHandler[]).unshift(authHandler);
-							
+
 							break;
 						}
 					}

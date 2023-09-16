@@ -43,6 +43,6 @@ export default function (request: FastifyRequest<{
 		}
 	})
 	.catch(reply.send.bind(reply));
-	
+
 	return;
 }

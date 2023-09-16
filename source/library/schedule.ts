@@ -28,27 +28,27 @@ setInterval(function (): void {
 		return new Promise<Set<string>>(function (resolve: ResolveFunction<Set<string>>, reject: RejectFunction): void {
 			const keys: Set<string> = new Set<string>();
 			let cursor: string = '0';
-			
+
 			(function scanKeys(): Promise<void> {
 				return redis.scan(cursor, 'MATCH', 'movieView:*')
 				.then(function (results: [string, string[]]): Promise<void> | void {
 					for(let i: number = 0; i < results[1]['length']; i++) {
 						keys.add(results[1][i]);
 					}
-	
+
 					if(results[0] !== '0') {
 						cursor = results[0];
-	
+
 						return scanKeys();
 					} else {
 						resolve(keys);
-	
+
 						return;
 					}
 				})
 				.catch(reject);
 			})();
-	
+
 			return;
 		});
 	}).then(function (_keys: Set<string>): Promise<(string | null)[]> | [] {
@@ -57,7 +57,7 @@ setInterval(function (): void {
 				movieIds.push(Number.parseInt(key.slice(10), 10));
 				keys.push(key);
 			}
-	
+
 			return redis.mget(keys);
 		} else {
 			return [];
@@ -66,13 +66,13 @@ setInterval(function (): void {
 	.then(function (results: (string | null)[]): Promise<[number, number]> | [number, number] {
 		if(results['length'] !== 0) {
 			const values: string[] = [];
-	
+
 			for(let i: number = 0; i < results['length']; i++) {
 				if(results[i] !== null) {
 					values.push('((SELECT id FROM current_movie_statistic WHERE movie_id = ' + movieIds[i] + '), ' + results[i] + ')');
 				}
 			}
-	
+
 			if(values['length'] !== 0) {
 				return Promise.all([redis.unlink(keys), prisma.$executeRawUnsafe('INSERT IGNORE INTO movie_statistic (id, view_count) VALUES ' + values.join(', ') + ' ON DUPLICATE KEY UPDATE view_count = view_count + VALUES(view_count)')]);
 			}
@@ -115,7 +115,7 @@ setInterval(function (): void {
 //	new Promise<Set<string>>(function (resolve: ResolveFunction<Set<string>>, reject: RejectFunction): void {
 //		const keys: Set<string> = new Set<string>();
 //		let cursor: string = '0';
-		
+
 //		(function scanKeys(): Promise<void> {
 //			return redis.scan(cursor, 'MATCH', 'movieView:*')
 //			.then(function (results: [string, string[]]): Promise<void> | void {
@@ -144,7 +144,7 @@ setInterval(function (): void {
 //				movieIds.push(Number.parseInt(key.slice(10), 10));
 //				keys.push(key);
 //			}
-	
+
 //			return redis.mget(keys);
 //		} else {
 //			return [];
@@ -153,13 +153,13 @@ setInterval(function (): void {
 //	.then(function (results: (string | null)[]): Promise<[number, number]> | [number, number] {
 //		if(results['length'] !== 0) {
 //			const values: string[] = [];
-	
+
 //			for(let i: number = 0; i < results['length']; i++) {
 //				if(results[i] !== null) {
 //					values.push('((SELECT id FROM current_movie_statistic WHERE movie_id = ' + movieIds[i] + '), ' + results[i] + ')');
 //				}
 //			}
-	
+
 //			if(values['length'] !== 0) {
 //				return Promise.all([redis.unlink(keys), prisma.$executeRawUnsafe('INSERT IGNORE INTO movie_statistic (id, view_count) VALUES ' + values.join(', ') + ' ON DUPLICATE KEY UPDATE view_count = view_count + VALUES(view_count)')]);
 //			}

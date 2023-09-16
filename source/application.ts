@@ -1,14 +1,14 @@
+import fastifyMultipart from '@fastify/multipart';
 import '@library/environment';
+import JsonWebToken from '@library/jsonWebToken';
+import { logger } from '@library/logger';
 import '@library/schedule';
 import fastify, { FastifyInstance } from 'fastify';
-import { logger } from '@library/logger';
 import errorHandler from './handlers/error';
 import headerHandler from './handlers/header';
 import notFoundHandler from './handlers/notFound';
 import serializeHandler from './handlers/serialize';
 import rootModule from './routes/root.module';
-import fastifyMultipart from '@fastify/multipart';
-import JsonWebToken from '@library/jsonWebToken';
 
 const fastifyInstance: FastifyInstance = fastify({
 	trustProxy: true,
