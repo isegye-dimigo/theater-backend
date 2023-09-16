@@ -62,10 +62,6 @@ export function execute(command: string, options: {
 	isOutputNeeded?: boolean;
 } = {}): Promise<string | void> {
 	return new Promise<string | void>(function (resolve: ResolveFunction<string | void>, reject: RejectFunction): void {
-		if(typeof(options['isOutputNeeded']) !== 'boolean') {
-			options['isOutputNeeded'] = false;
-		}
-
 		let output: string | undefined;
 
 		const childProcess: ChildProcessWithoutNullStreams = spawn(command, {
@@ -81,7 +77,7 @@ export function execute(command: string, options: {
 			return;
 		});
 
-		if(options['isOutputNeeded']) {
+		if(options['isOutputNeeded'] === true) {
 			output = '';
 
 			childProcess['stdout']
