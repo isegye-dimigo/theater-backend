@@ -21,7 +21,8 @@ export default function (request: FastifyRequest<{
 					id: true,
 					hash: true,
 					width: true,
-					height: true
+					height: true,
+					isVideo: true
 				}
 			},
 			bannerMedia: {
@@ -29,7 +30,8 @@ export default function (request: FastifyRequest<{
 					id: true,
 					hash: true,
 					width: true,
-					height: true
+					height: true,
+					isVideo: true
 				}
 			},
 			createdAt: true
@@ -40,7 +42,7 @@ export default function (request: FastifyRequest<{
 			isDeleted: false
 		}
 	})
-	.then(function (user: Pick<User, 'id' | 'handle' | 'name' | 'description' | 'isVerified' | 'createdAt'> & Record<'profileMedia' | 'bannerMedia', Pick<Media, 'id' | 'hash' | 'width' | 'height'> | null> | null): void {
+	.then(function (user: Pick<User, 'id' | 'handle' | 'name' | 'description' | 'isVerified' | 'createdAt'> & Record<'profileMedia' | 'bannerMedia', Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'> | null> | null): void {
 		if(user !== null) {
 			reply.send(user);
 

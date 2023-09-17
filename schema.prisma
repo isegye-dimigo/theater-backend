@@ -17,6 +17,7 @@ model Media {
   width              Int                 @db.UnsignedInt
   height             Int                 @db.UnsignedInt
   aspectRatio        String              @map("aspect_ratio") @db.VarChar(16)
+  isVideo            Boolean             @map("is_video") @db.Bit(1)
   isDeleted          Boolean             @default(dbgenerated("(b'0')")) @map("is_deleted") @db.Bit(1)
   createdAt          DateTime            @default(now()) @map("created_at") @db.DateTime(0)
   mediaVideos        MediaVideo[]

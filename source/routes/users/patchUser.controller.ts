@@ -86,6 +86,7 @@ export default function (request: FastifyRequest<{
 					validations.push(prisma['media'].count({
 						where: {
 							id: request['body']['profileMediaId'],
+
 							isDeleted: false
 						}
 					})
@@ -119,7 +120,7 @@ export default function (request: FastifyRequest<{
 				throw new Unauthorized('Body[\'currentPassword\'] must be valid');
 			}
 		})
-		.then(function (): Promise<Pick<User, 'id' | 'handle' | 'name' | 'description' | 'isVerified' | 'createdAt'> & Record<'profileMedia' | 'bannerMedia', Pick<Media, 'id' | 'hash' | 'width' | 'height'> | null>> {
+		.then(function (): Promise<Pick<User, 'id' | 'handle' | 'name' | 'description' | 'isVerified' | 'createdAt'> & Record<'profileMedia' | 'bannerMedia', Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'> | null>> {
 			return prisma['user'].update({
 				select: {
 					id: true,
@@ -132,7 +133,8 @@ export default function (request: FastifyRequest<{
 							id: true,
 							hash: true,
 							width: true,
-							height: true
+							height: true,
+							isVideo: true
 						}
 					},
 					bannerMedia: {
@@ -140,7 +142,8 @@ export default function (request: FastifyRequest<{
 							id: true,
 							hash: true,
 							width: true,
-							height: true
+							height: true,
+							isVideo: true
 						}
 					},
 					createdAt: true

@@ -5,10 +5,10 @@
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
-CREATE DATABASE IF NOT EXISTS `isegye` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci */;
+CREATE DATABASE `isegye` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci */;
 USE `isegye`;
 
-CREATE TABLE IF NOT EXISTS `media` (
+CREATE TABLE `media` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `hash` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL,
   `user_id` int(10) unsigned NOT NULL,
@@ -18,10 +18,6 @@ CREATE TABLE IF NOT EXISTS `media` (
   `height` int(10) unsigned NOT NULL,
   `aspect_ratio` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL,
   `is_video` bit(1) NOT NULL,
-  `duration` double unsigned DEFAULT NULL,
-  `frame_rate` double unsigned DEFAULT NULL,
-  `bit_rate` int(10) unsigned DEFAULT NULL,
-  `channel_count` tinyint(2) unsigned DEFAULT NULL,
   `is_deleted` bit(1) NOT NULL DEFAULT b'0',
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
@@ -29,22 +25,33 @@ CREATE TABLE IF NOT EXISTS `media` (
   KEY `media.user_id,user.id` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `media_video` (
+CREATE TABLE `media_video` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `media_id` int(10) unsigned NOT NULL,
   `index` int(10) unsigned NOT NULL,
   `size` int(10) unsigned NOT NULL,
   `duration` double unsigned NOT NULL,
-  `frame_rate` double unsigned NOT NULL,
   `video_bit_rate` int(10) unsigned NOT NULL,
-  `sample_rate` int(10) unsigned NOT NULL,
   `audio_bit_rate` int(10) unsigned NOT NULL,
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE KEY `media_id, index` (`media_id`,`index`) USING BTREE,
   CONSTRAINT `media_video.media_id,media.id` FOREIGN KEY (`media_id`) REFERENCES `media` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `movie` (
+CREATE TABLE `media_video_metadata` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `media_id` int(10) unsigned NOT NULL,
+  `duration` double unsigned NOT NULL,
+  `frame_rate` double unsigned NOT NULL,
+  `bit_rate` int(10) unsigned NOT NULL,
+  `sample_rate` int(10) unsigned NOT NULL,
+  `channel_count` tinyint(2) unsigned NOT NULL,
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE KEY `UNIQUE INDEX(media_id)` (`media_id`) USING BTREE,
+  CONSTRAINT `media_video_metadata.media_id,media.id` FOREIGN KEY (`media_id`) REFERENCES `media` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `movie` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `user_id` int(10) unsigned NOT NULL,
   `title` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -62,7 +69,7 @@ CREATE TABLE IF NOT EXISTS `movie` (
   CONSTRAINT `movie.video_media_id,media.id` FOREIGN KEY (`video_media_id`) REFERENCES `media` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `movie_comment` (
+CREATE TABLE `movie_comment` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `movie_id` int(10) unsigned NOT NULL,
   `user_id` int(10) unsigned NOT NULL,
@@ -77,7 +84,7 @@ CREATE TABLE IF NOT EXISTS `movie_comment` (
   CONSTRAINT `movie_comment.user_id,user.id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `movie_like` (
+CREATE TABLE `movie_like` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `movie_id` int(10) unsigned NOT NULL,
   `user_id` int(10) unsigned NOT NULL,
@@ -89,7 +96,7 @@ CREATE TABLE IF NOT EXISTS `movie_like` (
   CONSTRAINT `movie_like.user_id,user.id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `movie_star` (
+CREATE TABLE `movie_star` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `user_id` int(10) unsigned NOT NULL,
   `movie_id` int(10) unsigned NOT NULL,
@@ -102,7 +109,7 @@ CREATE TABLE IF NOT EXISTS `movie_star` (
   CONSTRAINT `movie_star.user_id,user.id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `movie_statistic` (
+CREATE TABLE `movie_statistic` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `movie_id` int(10) unsigned NOT NULL,
   `view_count` int(10) unsigned NOT NULL,
@@ -115,7 +122,7 @@ CREATE TABLE IF NOT EXISTS `movie_statistic` (
   CONSTRAINT `movie_statistic.movie_id,movie.id` FOREIGN KEY (`movie_id`) REFERENCES `movie` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `report` (
+CREATE TABLE `report` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `user_id` int(10) unsigned NOT NULL,
   `type` tinyint(3) unsigned NOT NULL,
@@ -127,7 +134,7 @@ CREATE TABLE IF NOT EXISTS `report` (
   CONSTRAINT `report.user_id,user.id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `user` (
+CREATE TABLE `user` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `email` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
   `password` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -150,7 +157,7 @@ CREATE TABLE IF NOT EXISTS `user` (
   CONSTRAINT `user.profile_media_id,media.id` FOREIGN KEY (`profile_media_id`) REFERENCES `media` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `user_history` (
+CREATE TABLE `user_history` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `user_id` int(10) unsigned NOT NULL,
   `movie_id` int(10) unsigned NOT NULL,

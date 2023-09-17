@@ -133,6 +133,7 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 				width: true,
 				height: true,
 				aspectRatio: true,
+				isVideo: true,
 				createdAt: true,
 				mediaVideos: true,
 				mediaVideoMetadata: true
@@ -177,7 +178,8 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 					size: metadata['size'],
 					width: metadata['video']['width'],
 					height: metadata['video']['height'],
-					aspectRatio: metadata['video']['aspectRatio']
+					aspectRatio: metadata['video']['aspectRatio'],
+					isVideo: false
 				};
 
 				return Promise.all([putObject(join('images', paths[0]), createReadStream(join(file['basePath'], paths[0])), 'image/webp')]);
@@ -211,6 +213,7 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 					width: metadatas[0]['video']['width'],
 					height: metadatas[0]['video']['height'],
 					aspectRatio: metadatas[0]['video']['aspectRatio'],
+					isVideo: true,
 					mediaVideos: {
 						createMany: {
 							data: []
@@ -268,6 +271,7 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 				width: true,
 				height: true,
 				aspectRatio: true,
+				isVideo: true,
 				createdAt: true,
 				mediaVideos: true,
 				mediaVideoMetadata: true

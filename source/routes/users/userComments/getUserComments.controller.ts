@@ -20,7 +20,7 @@ export default function (request: FastifyRequest<{
 		})
 		.then(function (userCount: number): Promise<(Omit<MovieComment, 'movieId' | 'userId' | 'isDeleted'> & {
 			movie: Pick<Movie, 'id' | 'title'> & {
-				imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'>;
+				imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'>;
 			};
 		})[]> {
 			if(userCount === 1) {
@@ -36,7 +36,8 @@ export default function (request: FastifyRequest<{
 										id: true,
 										hash: true,
 										width: true,
-										height: true
+										height: true,
+										isVideo: true
 									}
 								}
 							}

@@ -22,7 +22,8 @@ export default function (request: FastifyRequest<{
 							id: true,
 							hash: true,
 							width: true,
-							height: true
+							height: true,
+							isVideo: true
 						}
 					}
 				}
@@ -35,6 +36,7 @@ export default function (request: FastifyRequest<{
 					hash: true,
 					width: true,
 					height: true,
+					isVideo: true,
 					mediaVideoMetadata: {
 						select: {
 							duration: true,
@@ -64,9 +66,9 @@ export default function (request: FastifyRequest<{
 	})
 	.then(function (movie: Pick<Movie, 'id' | 'title' | 'description' | 'createdAt'> & {
 		user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'> & {
-			profileMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'> | null;
+			profileMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'> | null;
 		};
-		videoMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'> & {
+		videoMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'> & {
 			mediaVideoMetadata: Pick<MediaVideoMetadata, 'duration' | 'frameRate'> | null;
 		};
 		movieStatistics: Pick<MovieStatistic, 'viewCount' | 'commentCount' | 'likeCount' | 'starAverage'>[];
