@@ -31,10 +31,7 @@ export function deleteObjects(paths: string[]): Promise<ServiceOutputTypes> {
 			}
 		}));
 	} else {
-		return Promise.resolve({
-			TagSet: [],
-			$metadata: {}
-		});
+		throw new Error('Paths must be exist');
 	}
 }
 
