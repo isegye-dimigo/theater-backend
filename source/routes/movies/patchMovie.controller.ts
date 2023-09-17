@@ -23,54 +23,27 @@ export default function (request: FastifyRequest<{
 					}]
 				}
 			})
-			.then(function (movieCount: number): Promise<Pick<Movie, 'id' | 'title' | 'description'> & {
-				imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'>;
-				videoMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'> & {
-					mediaVideoMetadata: Pick<MediaVideoMetadata, 'duration' | 'frameRate'> | null;
-				};
-			}> {
+			.then(function (movieCount: number): Promise<void> | void {
 				switch(movieCount) {
 					default: {
-						return prisma['movie'].update({
-							select: {
-								id: true,
-								title: true,
-								description: true,
-								imageMedia: {
-									select: {
-										id: true,
-										hash: true,
-										width: true,
-										height: true,
-										isVideo: true
-									}
-								},
-								videoMedia: {
-									select: {
-										id: true,
-										hash: true,
-										width: true,
-										height: true,
-										isVideo: true,
-										mediaVideoMetadata: {
-											select: {
-												duration: true,
-												frameRate: true
-											}
-										}
-									}
+						if(typeof(request['body']['imageMediaId']) === 'number') {
+							return prisma['media'].count({
+								where: {
+									id: request['body']['imageMediaId'],
+									isVideo: false,
+									isDeleted: false
 								}
-							},
-							data: {
-								title: request['body']['title'],
-								description: request['body']['description'],
-								imageMediaId: request['body']['imageMediaId']
-							},
-							where: {
-								id: request['params']['movieId'],
-								isDeleted: false
-							}
-						});
+							})
+							.then(function (mediaCount: number): void {
+								if(mediaCount === 1) {
+									return;
+								} else {
+									throw new BadRequest('Body[\'imageMediaId\'] must be valid');
+								}
+							});
+						} else {
+							return;
+						}
 					}
 					case 1: {
 						throw new Unauthorized('User must be same');
@@ -79,6 +52,53 @@ export default function (request: FastifyRequest<{
 						throw new NotFound('Parameter[\'movieId\'] must be valid');
 					}
 				}
+			})
+			.then(function (): Promise<Pick<Movie, 'id' | 'title' | 'description'> & {
+				imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'>;
+				videoMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'> & {
+					mediaVideoMetadata: Pick<MediaVideoMetadata, 'duration' | 'frameRate'> | null;
+				};
+			}> {
+				return prisma['movie'].update({
+					select: {
+						id: true,
+						title: true,
+						description: true,
+						imageMedia: {
+							select: {
+								id: true,
+								hash: true,
+								width: true,
+								height: true,
+								isVideo: true
+							}
+						},
+						videoMedia: {
+							select: {
+								id: true,
+								hash: true,
+								width: true,
+								height: true,
+								isVideo: true,
+								mediaVideoMetadata: {
+									select: {
+										duration: true,
+										frameRate: true
+									}
+								}
+							}
+						}
+					},
+					data: {
+						title: request['body']['title'],
+						description: request['body']['description'],
+						imageMediaId: request['body']['imageMediaId']
+					},
+					where: {
+						id: request['params']['movieId'],
+						isDeleted: false
+					}
+				});
 			})
 			.then(reply.send.bind(reply))
 			.catch(reply.send.bind(reply));
