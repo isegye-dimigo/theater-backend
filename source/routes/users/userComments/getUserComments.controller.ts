@@ -10,20 +10,23 @@ export default function (request: FastifyRequest<{
 	};
 	Querystring: PageQuery;
 }>, reply: FastifyReply): void {
-	if(request['user']['handle'] === request['params']['userHandle']) {
-		prisma['user'].count({
-			where: {
-				handle: request['params']['userHandle'],
-				verificationKey: null,
-				isDeleted: false
-			}
-		})
-		.then(function (userCount: number): Promise<(Omit<MovieComment, 'movieId' | 'userId' | 'isDeleted'> & {
-			movie: Pick<Movie, 'id' | 'title'> & {
-				imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'>;
-			};
-		})[]> {
-			if(userCount === 1) {
+	prisma['user'].findFirst({
+		select: {
+			id: true
+		},
+		where: {
+			handle: request['params']['userHandle'],
+			verificationKey: null,
+			isDeleted: false
+		}
+	})
+	.then(function (user: Pick<User, 'id'> | null): Promise<(Omit<MovieComment, 'movieId' | 'userId' | 'isDeleted'> & {
+		movie: Pick<Movie, 'id' | 'title'> & {
+			imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'>;
+		};
+	})[]> {
+		if(user !== null) {
+			if(request['user']['id'] === user['id']) {
 				return prisma['movieComment'].findMany({
 					select: {
 						id: true,
@@ -49,6 +52,7 @@ export default function (request: FastifyRequest<{
 					where: {
 						user: {
 							handle: request['params']['userHandle'],
+							verificationKey: null,
 							isDeleted: false
 						},
 						isDeleted: false,
@@ -63,14 +67,14 @@ export default function (request: FastifyRequest<{
 					}
 				});
 			} else {
-				throw new NotFound('Parameter[\'userHandle\'] must be valid');
+				throw new Unauthorized('User must be same');
 			}
-		})
-		.then(reply.send.bind(reply))
-		.catch(reply.send.bind(reply));
-	} else {
-		reply.send(new Unauthorized('User must be same'));
-	}
+		} else {
+			throw new NotFound('Parameter[\'userHandle\'] must be valid');
+		}
+	})
+	.then(reply.send.bind(reply))
+	.catch(reply.send.bind(reply));
 
 	return;
 }

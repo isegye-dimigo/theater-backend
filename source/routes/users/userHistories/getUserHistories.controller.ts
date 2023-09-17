@@ -10,23 +10,26 @@ export default function (request: FastifyRequest<{
 	};
 	Querystring: PageQuery;
 }>, reply: FastifyReply): void {
-	if(request['user']['handle'] === request['params']['userHandle']) {
-		prisma['user'].count({
-			where: {
-				handle: request['params']['userHandle'],
-				verificationKey: null,
-				isDeleted: false
-			}
-		})
-		.then(function (userCount: number): Promise<(Pick<UserHistory, 'id' | 'createdAt'> & {
-			movie: Pick<Movie, 'id' | 'title' | 'createdAt'> & {
-				user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'> & {
-					profileMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'> | null;
-				};
-				imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'>;
+	prisma['user'].count({
+		select: {
+			id: true
+		},
+		where: {
+			handle: request['params']['userHandle'],
+			verificationKey: null,
+			isDeleted: false
+		}
+	})
+	.then(function (user: Pick<User, 'id'> | null): Promise<(Pick<UserHistory, 'id' | 'createdAt'> & {
+		movie: Pick<Movie, 'id' | 'title' | 'createdAt'> & {
+			user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'> & {
+				profileMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'> | null;
 			};
-		})[]> {
-			if(userCount === 1) {
+			imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'>;
+		};
+	})[]> {
+		if(user !== null) {
+			if(request['user']['id'] === user['id']) {
 				return prisma['userHistory'].findMany({
 					select: {
 						id: true,
@@ -68,6 +71,7 @@ export default function (request: FastifyRequest<{
 					where: {
 						user: {
 							handle: request['params']['userHandle'],
+							verificationKey: null,
 							isDeleted: false
 						},
 						isDeleted: false,
@@ -82,14 +86,14 @@ export default function (request: FastifyRequest<{
 					}
 				});
 			} else {
-				throw new NotFound('Parameter[\'userHandle\'] must be valid');
+				throw new Unauthorized('User must be same');
 			}
-		})
-		.then(reply.send.bind(reply))
-		.catch(reply.send.bind(reply));
-	} else {
-		reply.send(new Unauthorized('User must be same'));
-	}
-
+		} else {
+			throw new NotFound('Parameter[\'userHandle\'] must be valid');
+		}
+	})
+	.then(reply.send.bind(reply))
+	.catch(reply.send.bind(reply));
+	
 	return;
 }

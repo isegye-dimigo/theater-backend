@@ -18,6 +18,7 @@ export default function (request: FastifyRequest<{
 
 		prisma['user'].findUnique({
 			select: {
+				id: true,
 				email: true,
 				password: true
 			},
@@ -26,9 +27,9 @@ export default function (request: FastifyRequest<{
 				isDeleted: false
 			}
 		})
-		.then(function (_user: Pick<User, 'email' | 'password'> | null): Promise<string> {
+		.then(function (_user: Pick<User, 'id' | 'email' | 'password'> | null): Promise<string> {
 			if(_user !== null) {
-				if(request['params']['userHandle'] === request['user']['handle']) {
+				if(request['user']['id'] === _user['id']) {
 					user['email'] = _user['email'];
 					user['password'] = _user['password'];
 
@@ -86,7 +87,7 @@ export default function (request: FastifyRequest<{
 					validations.push(prisma['media'].count({
 						where: {
 							id: request['body']['profileMediaId'],
-
+							isVideo: false,
 							isDeleted: false
 						}
 					})
@@ -103,6 +104,7 @@ export default function (request: FastifyRequest<{
 					validations.push(prisma['media'].count({
 						where: {
 							id: request['body']['bannerMediaId'],
+							isVideo: false,
 							isDeleted: false
 						}
 					})

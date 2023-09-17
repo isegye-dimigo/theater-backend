@@ -1,5 +1,5 @@
 import { prisma } from '@library/database';
-import { BadRequest, NotFound } from '@library/httpError';
+import { BadRequest, NotFound, Unauthorized } from '@library/httpError';
 import { Movie, Prisma, User } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
@@ -28,15 +28,19 @@ export default function (request: FastifyRequest<{
 	})])
 	.then(function (results: [Pick<User, 'id'> | null, number]): Promise<Prisma.BatchPayload> {
 		if(results[0] !== null) {
-			if(results[1] === 1) {
-				return prisma['userHistory'].createMany({
-					data: {
-						userId: results[0]['id'],
-						movieId: request['body']['movieId']
-					}
-				})
+			if(request['user']['id'] === results[0]['id']) {
+				if(results[1] === 1) {
+					return prisma['userHistory'].createMany({
+						data: {
+							userId: results[0]['id'],
+							movieId: request['body']['movieId']
+						}
+					});
+				} else {
+					throw new BadRequest('Body[\'movieId\'] must be valid');
+				}
 			} else {
-				throw new BadRequest('Body[\'movieId\'] must be valid')
+				throw new Unauthorized('User must be same');
 			}
 		} else {
 			throw new NotFound('Parameter[\'userHandle\'] must be valid');

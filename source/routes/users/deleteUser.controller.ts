@@ -8,15 +8,19 @@ export default function (request: FastifyRequest<{
 		userHandle: User['handle'];
 	};
 }>, reply: FastifyReply): void {
-	prisma['user'].count({
+	prisma['user'].findFirst({
+		select: {
+			id: true
+		},
 		where: {
 			handle: request['params']['userHandle'],
+			verificationKey: null,
 			isDeleted: false
 		}
 	})
-	.then(function (userCount: number): Promise<Prisma.BatchPayload> {
-		if(userCount === 1) {
-			if(request['user']['handle'] === request['params']['userHandle']) {
+	.then(function (user: Pick<User, 'id'> | null): Promise<Prisma.BatchPayload> {
+		if(user !== null) {
+			if(request['user']['id'] === user['id']) {
 				return prisma['user'].updateMany({
 					where: {
 						handle: request['params']['userHandle'],
