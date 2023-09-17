@@ -64,9 +64,6 @@ export function execute(command: string, options: {
 	return new Promise<string | void>(function (resolve: ResolveFunction<string | void>, reject: RejectFunction): void {
 		let output: string | undefined;
 
-		console.log(command);
-		console.log(options);
-
 		const childProcess: ChildProcessWithoutNullStreams = spawn(command, {
 			cwd: options['basePath'],
 			shell: true,
@@ -76,12 +73,6 @@ export function execute(command: string, options: {
 			} else {
 				reject(new Error('Process exited with code ' + code));
 			}
-
-			return;
-		});
-
-		childProcess['stderr'].on('data', function (chunk: Buffer) {
-			console.log(chunk.toString());
 
 			return;
 		});
@@ -127,8 +118,7 @@ export function getMetadata(fileName: string, options: {
 	isVideo?: boolean;
 	basePath?: string;
 } = {}): Promise<Metadata<'video' | 'image'>> {
-	return execute('ffprobe -print_format json -show_format -show_streams -show_entries format=size' + (options['isVideo'] === true ? ',duration,bit_rate:stream=bit_rate,avg_frame_rate,sample_rate,channels,display_aspect_ratio,' : ':stream=') + 'codec_type,width,height ' + fileName, {
-	//return execute('ffprobe -print_format json -show_format -show_streams -show_entries format=size' + (isVideo ? ',duration,bit_rate:stream=bit_rate,avg_frame_rate,sample_rate,channels,display_aspect_ratio,' : ':stream=') + 'codec_type,width,height', {
+	return execute('ffprobe -v quiet -print_format json -show_format -show_streams -show_entries format=size' + (options['isVideo'] === true ? ',duration,bit_rate:stream=bit_rate,avg_frame_rate,sample_rate,channels,display_aspect_ratio,' : ':stream=') + 'codec_type,width,height ' + fileName, {
 		isOutputNeeded: true,
 		basePath: options['basePath']
 	})
