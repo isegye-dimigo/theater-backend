@@ -24,8 +24,8 @@ export default function (request: FastifyRequest<{
 				}
 			})
 			.then(function (movieCount: number): Promise<Pick<Movie, 'id' | 'title' | 'description'> & {
-				imageMedia: Pick<Media, 'id' | 'hash' | 'type' | 'width' | 'height'>;
-				videoMedia: Pick<Media, 'id' | 'hash' | 'type' | 'width' | 'height'> & {
+				imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'>;
+				videoMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'> & {
 					mediaVideoMetadata: Pick<MediaVideoMetadata, 'duration' | 'frameRate'> | null;
 				};
 			}> {
@@ -40,7 +40,6 @@ export default function (request: FastifyRequest<{
 									select: {
 										id: true,
 										hash: true,
-										type: true,
 										width: true,
 										height: true
 									}
@@ -49,7 +48,6 @@ export default function (request: FastifyRequest<{
 									select: {
 										id: true,
 										hash: true,
-										type: true,
 										width: true,
 										height: true,
 										mediaVideoMetadata: {

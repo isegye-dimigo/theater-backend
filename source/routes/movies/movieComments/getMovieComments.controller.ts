@@ -18,7 +18,7 @@ export default function (request: FastifyRequest<{
 	})
 	.then(function (movieCount: number): Promise<(Pick<MovieComment, 'id' | 'time' | 'content' | 'createdAt'> & {
 		user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'> & {
-			profileMedia: Pick<Media, 'id' | 'hash' | 'type' | 'width' | 'height'> | null;
+			profileMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'> | null;
 		};
 	})[]> {
 		if(movieCount === 1) {
@@ -34,7 +34,6 @@ export default function (request: FastifyRequest<{
 								select: {
 									hash: true,
 									id: true,
-									type: true,
 									width: true,
 									height: true
 								}

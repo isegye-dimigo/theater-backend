@@ -21,9 +21,9 @@ export default function (request: FastifyRequest<{
 		.then(function (userCount: number): Promise<(Pick<UserHistory, 'id' | 'createdAt'> & {
 			movie: Pick<Movie, 'id' | 'title' | 'createdAt'> & {
 				user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'> & {
-					profileMedia: Pick<Media, 'id' | 'hash' | 'type' | 'width' | 'height'> | null;
+					profileMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'> | null;
 				};
-				imageMedia: Pick<Media, 'id' | 'hash' | 'type' | 'width' | 'height'>;
+				imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'>;
 			};
 		})[]> {
 			if(userCount === 1) {
@@ -43,7 +43,6 @@ export default function (request: FastifyRequest<{
 											select: {
 												id: true,
 												hash: true,
-												type: true,
 												width: true,
 												height: true
 											}
@@ -55,7 +54,6 @@ export default function (request: FastifyRequest<{
 									select: {
 										id: true,
 										hash: true,
-										type: true,
 										width: true,
 										height: true
 									}

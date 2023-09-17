@@ -20,7 +20,6 @@ export default function (request: FastifyRequest<{
 				select: {
 					id: true,
 					hash: true,
-					type: true,
 					width: true,
 					height: true
 				}
@@ -29,7 +28,6 @@ export default function (request: FastifyRequest<{
 				select: {
 					id: true,
 					hash: true,
-					type: true,
 					width: true,
 					height: true
 				}
@@ -42,7 +40,7 @@ export default function (request: FastifyRequest<{
 			isDeleted: false
 		}
 	})
-	.then(function (user: Pick<User, 'id' | 'handle' | 'name' | 'description' | 'isVerified' | 'createdAt'> & Record<'profileMedia' | 'bannerMedia', Pick<Media, 'id' | 'hash' | 'type' | 'width' | 'height'> | null> | null): void {
+	.then(function (user: Pick<User, 'id' | 'handle' | 'name' | 'description' | 'isVerified' | 'createdAt'> & Record<'profileMedia' | 'bannerMedia', Pick<Media, 'id' | 'hash' | 'width' | 'height'> | null> | null): void {
 		if(user !== null) {
 			reply.send(user);
 

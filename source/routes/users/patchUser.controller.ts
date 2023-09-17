@@ -119,7 +119,7 @@ export default function (request: FastifyRequest<{
 				throw new Unauthorized('Body[\'currentPassword\'] must be valid');
 			}
 		})
-		.then(function (): Promise<Pick<User, 'id' | 'handle' | 'name' | 'description' | 'isVerified' | 'createdAt'> & Record<'profileMedia' | 'bannerMedia', Pick<Media, 'id' | 'hash' | 'type' | 'width' | 'height'> | null>> {
+		.then(function (): Promise<Pick<User, 'id' | 'handle' | 'name' | 'description' | 'isVerified' | 'createdAt'> & Record<'profileMedia' | 'bannerMedia', Pick<Media, 'id' | 'hash' | 'width' | 'height'> | null>> {
 			return prisma['user'].update({
 				select: {
 					id: true,
@@ -131,7 +131,6 @@ export default function (request: FastifyRequest<{
 						select: {
 							id: true,
 							hash: true,
-							type: true,
 							width: true,
 							height: true
 						}
@@ -140,7 +139,6 @@ export default function (request: FastifyRequest<{
 						select: {
 							id: true,
 							hash: true,
-							type: true,
 							width: true,
 							height: true
 						}
