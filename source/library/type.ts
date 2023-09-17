@@ -10,7 +10,7 @@ type RecursiveRecord<T extends string | number | symbol, S> = {
 export type SchemaKey = 'body' | 'querystring' | 'params' | 'headers';
 
 export interface RouteOptions extends Omit<_RouteOptions, 'handler' | 'schema'> {
-	method: HTTPMethods;
+	method: Uppercase<HTTPMethods>;
 	handler: RouteHandlerMethod<Server, IncomingMessage, ServerResponse, any, any, FastifySchema, FastifyTypeProvider, FastifyBaseLogger>;
 	schema?: Partial<Pick<RecursiveRecord<string, | Partial<Record<'$isRequired', boolean>> | Omit<Record<string, JSONSchema>, '$isRequired'>>, SchemaKey>>;
 	isAuthNeeded?: boolean;
