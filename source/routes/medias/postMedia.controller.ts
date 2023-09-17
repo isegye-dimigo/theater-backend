@@ -81,9 +81,9 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 		}
 	})
 	.then(function (): Promise<Buffer> {
-		return new Promise<Buffer>(function (resolve: ResolveFunction<Buffer>, reject: RejectFunction): void {
-			open(file['inputPath'])
-			.then(function (fileHandle: FileHandle): void {
+		return open(file['inputPath'])
+		.then(function (fileHandle: FileHandle): Promise<Buffer> {
+			return new Promise<Buffer>(function (resolve: ResolveFunction<Buffer>, reject: RejectFunction): void {
 				const buffer: Buffer = Buffer.alloc(24);
 
 				read(fileHandle['fd'], buffer, 0, 24, 0, function (error: Error | null): void {
@@ -99,7 +99,9 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 
 					return;
 				});
-			})
+
+				return;
+			});
 		});
 	})
 	.then(function (partialBuffer: Buffer): Promise<string> {
