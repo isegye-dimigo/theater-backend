@@ -47,7 +47,7 @@ const fileSignatures: Record<FileType, FileSignature[]> = {
 		offsetByte: 0,
 		buffer: Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
 	}]
-}
+};
 
 export function 	execute(command: string, isOutputNeeded?: {
 	basePath?: string;
@@ -204,7 +204,7 @@ export function getMetadata(fileName: string, options: {
 		}
 
 		throw new Error('Media must contain valid streams');
-	})
+	});
 }
 
 export function getGreatestCommonDivisor(a: number, b: number): number {

@@ -106,7 +106,7 @@ export default function (request: FastifyRequest<{
 						starAverage: Number(rawMovies[i]['movie_statistic_star_average'])
 				}],
 				createdAt: rawMovies[i]['created_at']
-			})
+			});
 		}
 
 		reply.send(movies);
