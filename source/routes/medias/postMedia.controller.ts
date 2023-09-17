@@ -1,12 +1,12 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { MultipartFile } from '@fastify/multipart';
 import { BadRequest, PayloadTooLarge, Unauthorized, UnsupportedMediaType } from '@library/httpError';
-import { execute, getImageMetadata, getVideoMetadata, isValidType } from '@library/utility';
+import { execute, getMetadata, isValidType } from '@library/utility';
 import { join } from 'path/posix';
 import { createReadStream, createWriteStream, read } from 'fs';
 import { prisma } from '@library/database';
 import { Media, MediaVideo, MediaVideoMetadata, Prisma } from '@prisma/client';
-import { FileType, ImageMetadata, RejectFunction, ResolveFunction, VideoMetadata } from '@library/type';
+import { FileType, Metadata, RejectFunction, ResolveFunction } from '@library/type';
 import { deleteObjects, getObjectKeys, putObject } from '@library/bucket';
 import { ServiceOutputTypes } from '@aws-sdk/client-s3';
 import { FileHandle, mkdtemp, open, readdir, rm } from 'fs/promises';
@@ -16,12 +16,11 @@ import { Hash, createHash } from 'crypto';
 export default function (request: FastifyRequest, reply: FastifyReply): void {
 	/// @ts-expect-error :: imtoolazy
 	const file: {
-		path: string;
+		inputPath: string;
 		basePath: string;
 		type: FileType;
 		isVideo: boolean;
 		hash: string;
-		mime: string;
 	} = {
 		isVideo: false
 	};
@@ -48,14 +47,8 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 						throw new Unauthorized('User must be verified');
 					}
 				}
-				case 'jpg': {
-					file['mime'] = 'image/jpeg';
-
-					break;
-				}
+				case 'jpg':
 				case 'png': {
-					file['mime'] = 'image/png';
-
 					break;
 				}
 
@@ -64,9 +57,10 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 				}
 			}
 
-			file['path'] = join(file['basePath'], 'input.' + file['type']);
+			file['inputPath'] = join(file['basePath'], 'input.' + file['type']);
+			
 			return new Promise<void>(function (resolve: ResolveFunction, reject: RejectFunction): void {
-				multipartFile['file'].pipe(createWriteStream(file['path']), {
+				multipartFile['file'].pipe(createWriteStream(file['inputPath']), {
 					end: true
 				})
 				.once('finish', function () {
@@ -88,7 +82,7 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 	})
 	.then(function (): Promise<Buffer> {
 		return new Promise<Buffer>(function (resolve: ResolveFunction<Buffer>, reject: RejectFunction): void {
-			open(file['path'])
+			open(file['inputPath'])
 			.then(function (fileHandle: FileHandle): void {
 				const buffer: Buffer = Buffer.alloc(24);
 
@@ -113,7 +107,7 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 			return new Promise<string>(function (resolve: ResolveFunction<string>, reject: RejectFunction): void {
 				const hash: Hash = createHash('sha512').setEncoding('hex');
 
-				createReadStream(file['path']).pipe(hash)
+				createReadStream(file['inputPath']).pipe(hash)
 				.once('error', reject);
 
 				hash.once('finish', function (): void {
@@ -150,47 +144,65 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 	})
 	.then(function (media: Omit<Media, 'userId' | 'isDeleted'> & {
 		mediaVideos: MediaVideo[];
-	} | null): Promise<string[]> | undefined {
+	} | null): Promise<void> {
 		if(media === null) {
-			if(file['isVideo']) {
-				return execute('ffmpeg -v quiet -i input.mp4 -filter:v "scale=\'min(1280,iw)\':min\'(720,ih)\':force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2" -map 0:v:0 -map 0:a:0 -c:v h264_qsv -c:a aac -q 23 -preset veryslow -f ssegment -segment_list "index.m3u8" "%d.ts"', {
-					basePath: file['basePath']
-				})
-				.then(function (): Promise<void> {
-					return rm(file['path'], {
-						force: true
-					});
-				})
-				.then(function (): Promise<string[]> {
-					return readdir(file['basePath']);
-				});
-			} else {
-				return;
-			}
+			return execute('ffmpeg -i input.' + file['type'] + ' -vf "scale=\'if(gte(iw,ih),min(1270,iw),720)\':\'if(gte(iw,ih),720,min(1280,ih))\'" -c:v ' + (file['isVideo'] ? 'h264_qsv -map 0:v:0 -map 0:a:0 -c:a aac -q 23 -preset veryslow -f ssegment -segment_list index.m3u8 %d.ts' : 'libwebp -quality 100 -preset photo ' + file['hash'] + '.webp'), {
+				basePath: file['basePath']
+			});
 		} else {
+			// @ts-expect-error
+			file['hash'] = undefined;
+
 			throw media;
 		}
 	})
-	.then(function (paths: string[] | undefined): Promise<ServiceOutputTypes[]> {
-		if(Array.isArray(paths)) {
+	.then(function (): Promise<void> {
+		return rm(file['inputPath'], {
+			force: true
+		});
+	})
+	.then(function (): Promise<string[]> | string[] {
+		return readdir(file['basePath']);
+	})
+	.then(function (paths: string[]): Promise<ServiceOutputTypes[]> {
+		if(paths['length'] === 1) {
+			return getMetadata(paths[0], {
+				basePath: file['basePath']
+			})
+			.then(function (metadata: Metadata<'image'>) {
+				media = {
+					hash: file['hash'],
+					userId: request['user']['id'],
+					type: file['type'],
+					size: metadata['size'],
+					width: metadata['video']['width'],
+					height: metadata['video']['height'],
+					aspectRatio: metadata['video']['aspectRatio']
+				};
+
+				return Promise.all([putObject(join('images', paths[0]), createReadStream(join(file['basePath'], paths[0])), 'image/webp')]);
+			});
+		} else {
+			const metadataPromises: Promise<Metadata<'video'>>[] = [];
 			const putObjectPromises: Promise<ServiceOutputTypes>[] = [];
-			const metadataPromises: Promise<VideoMetadata>[] = [];
 
 			for(let i: number = 0; i < paths['length']; i++) {
-				const filePath: string = join(file['basePath'], paths[i]);
 				let mime: string = 'video/MP2T';
 
 				if(paths[i].endsWith('ts')) {
-					metadataPromises.push(getVideoMetadata(filePath));
+					metadataPromises.push(getMetadata(paths[i], {
+						isVideo: true,
+						basePath: file['basePath']
+					}));
 				} else {
 					mime = 'application/x-mpegURL';
 				}
 
-				putObjectPromises.push(putObject(join('videos', file['hash'], paths[i]), createReadStream(filePath), mime));
+				putObjectPromises.push(putObject(join('videos', file['hash'], paths[i]), createReadStream(join(file['basePath'], paths[i])), mime));
 			}
 
 			return Promise.all(metadataPromises)
-			.then(function (metadatas: VideoMetadata[]): Promise<ServiceOutputTypes[]> {
+			.then(function (metadatas: Metadata<'video'>[]) {
 				media = {
 					hash: file['hash'],
 					userId: request['user']['id'],
@@ -235,21 +247,6 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 
 				return Promise.all(putObjectPromises);
 			});
-		} else {
-			return getImageMetadata(file['path'])
-			.then(function (metadata: ImageMetadata): Promise<ServiceOutputTypes[]> {
-				media = {
-					hash: file['hash'],
-					userId: request['user']['id'],
-					type: file['type'],
-					size: metadata['size'],
-					width: metadata['width'],
-					height: metadata['height'],
-					aspectRatio: metadata['aspectRatio']
-				};
-
-				return Promise.all([putObject(join('images', file['hash'] + '.' + file['type']), createReadStream(file['path']), file['mime'])]);
-			});
 		}
 	})
 	.then(function (): Promise<void> {
@@ -286,7 +283,7 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 		})
 		.then(function (): Promise<string[]> | string[] {
 			if(typeof(file['hash']) === 'string') {
-				return file['isVideo'] ? getObjectKeys('vidoes/' + file['hash'] + '/') : ['images/' + file['hash'] + '.' + file['type']];
+				return file['isVideo'] ? getObjectKeys('vidoes/' + file['hash'] + '/') : ['images/' + file['hash'] + '.webp'];
 			} else {
 				return [];
 			}

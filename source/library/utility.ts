@@ -1,5 +1,5 @@
 
-import { FileSignature, FileType, VideoMetadata, RejectFunction, ResolveFunction, ImageMetadata } from '@library/type';
+import { FileSignature, FileType, RejectFunction, ResolveFunction, Metadata } from '@library/type';
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
 import { pbkdf2 } from 'crypto';
 
@@ -64,6 +64,9 @@ export function execute(command: string, options: {
 	return new Promise<string | void>(function (resolve: ResolveFunction<string | void>, reject: RejectFunction): void {
 		let output: string | undefined;
 
+		console.log(command);
+		console.log(options);
+
 		const childProcess: ChildProcessWithoutNullStreams = spawn(command, {
 			cwd: options['basePath'],
 			shell: true,
@@ -73,6 +76,12 @@ export function execute(command: string, options: {
 			} else {
 				reject(new Error('Process exited with code ' + code));
 			}
+
+			return;
+		});
+
+		childProcess['stderr'].on('data', function (chunk: Buffer) {
+			console.log(chunk.toString());
 
 			return;
 		});
@@ -106,14 +115,26 @@ export function isValidType(buffer: Buffer, fileType: FileType): boolean {
 	return isValidFile;
 }
 
-export function getVideoMetadata(fileName: string): Promise<VideoMetadata> {
-	return execute('ffprobe -v quiet -print_format json -show_format -show_streams -show_entries format=bit_rate,duration,size:stream=index,codec_type,bit_rate,avg_frame_rate,width,height,sample_rate,channels,display_aspect_ratio ' + fileName, {
-		isOutputNeeded: true
+export function getMetadata(fileName: string, isVideo?: {
+	isVideo?: false;
+	basePath?: string;
+}): Promise<Metadata<'image'>>;
+export function getMetadata(fileName: string, isVideo: {
+	isVideo: true;
+	basePath?: string;
+}): Promise<Metadata<'video'>>;
+export function getMetadata(fileName: string, options: {
+	isVideo?: boolean;
+	basePath?: string;
+} = {}): Promise<Metadata<'video' | 'image'>> {
+	return execute('ffprobe -print_format json -show_format -show_streams -show_entries format=size' + (options['isVideo'] === true ? ',duration,bit_rate:stream=bit_rate,avg_frame_rate,sample_rate,channels,display_aspect_ratio,' : ':stream=') + 'codec_type,width,height ' + fileName, {
+	//return execute('ffprobe -print_format json -show_format -show_streams -show_entries format=size' + (isVideo ? ',duration,bit_rate:stream=bit_rate,avg_frame_rate,sample_rate,channels,display_aspect_ratio,' : ':stream=') + 'codec_type,width,height', {
+		isOutputNeeded: true,
+		basePath: options['basePath']
 	})
-	.then(function (output: string): VideoMetadata {
+	.then(function (output: string): Metadata<'video' | 'image'> {
 		const result: {
 			streams: [{
-				index: number;
 				codec_type: 'video';
 				width: number;
 				height: number;
@@ -121,71 +142,79 @@ export function getVideoMetadata(fileName: string): Promise<VideoMetadata> {
 				avg_frame_rate: string;
 				bit_rate: string;
 			}, {
-				index: number;
 				codec_type: 'audio';
 				sample_rate: string;
 				channels: number;
 				bit_rate: string;
+			}] | [{
+				codec_type: 'video';
+				width: number;
+				height: number;
 			}];
-			format: Record<'duration' | 'size' | 'bit_rate', string>;
+			format: {
+				size: string;
+				duration: string; // Do not use on image
+				bit_rate: string; // Do not use on image
+			};
 		} = JSON.parse(output);
 
-		// @ts-expect-error
-		if(result['streams']['length'] === 2 && result['streams'][0]['codec_type'] !== result['streams'][1]['codec_type']) {
-			if(result['streams'][0]['codec_type'] !== 'video') {
+		switch(result['streams']['length']) {
+			case 2: {
 				// @ts-expect-error
-				result['streams'].push(result['streams'].pop());
+				if(options['isVideo'] === true && result['streams'][0]['codec_type'] !== result['streams'][1]['codec_type']) {
+					if(result['streams'][0]['codec_type'] !== 'video') {
+						// @ts-expect-error
+						result['streams'].push(result['streams'].pop());
+					}
+
+					const splitFramerate: string[] = result['streams'][0]['avg_frame_rate'].split('/');
+					const videoBitRate: number = Number.parseInt(result['streams'][0]['bit_rate'], 10);
+					const audioBitRate: number = Number.parseInt(result['streams'][1]['bit_rate'], 10);
+					const totalBitRate: number = Number.parseInt(result['format']['bit_rate'], 10);
+		
+					return {
+						video: {
+							width: result['streams'][0]['width'],
+							height: result['streams'][0]['height'],
+							frameRate: Number.parseInt(splitFramerate[0], 10) / Number.parseInt(splitFramerate[1], 10),
+							aspectRatio: result['streams'][0]['display_aspect_ratio'],
+							bitRate: Number.isNaN(videoBitRate) ? totalBitRate - audioBitRate : videoBitRate
+						},
+						audio: {
+							sampleRate: Number.parseInt(result['streams'][1]['sample_rate'], 10),
+							channelCount: result['streams'][1]['channels'],
+							bitRate: audioBitRate
+						},
+						index: Number.parseInt(fileName.split('.')[0], 10),
+						duration: Number.parseFloat(result['format']['duration']),
+						size: Number.parseInt(result['format']['size'], 10),
+						bitRate: totalBitRate
+					};
+				}
+
+				break;
 			}
 
-			const splitFramerate: string[] = result['streams'][0]['avg_frame_rate'].split('/');
-			const videoBitRate: number = Number.parseInt(result['streams'][0]['bit_rate'], 10);
-			const audioBitRate: number = Number.parseInt(result['streams'][1]['bit_rate'], 10);
-			const totalBitRate: number = Number.parseInt(result['format']['bit_rate'], 10);
+			case 1: {
+				if(result['streams'][0]['codec_type'] === 'video') {
+					const greatestCommonDivisor: number = getGreatestCommonDivisor(result['streams'][0]['width'], result['streams'][0]['height']);
 
-			return {
-				video: {
-					width: result['streams'][0]['width'],
-					height: result['streams'][0]['height'],
-					frameRate: Number.parseInt(splitFramerate[0], 10) / Number.parseInt(splitFramerate[1], 10),
-					aspectRatio: result['streams'][0]['display_aspect_ratio'],
-					bitRate: Number.isNaN(videoBitRate) ? totalBitRate - audioBitRate : videoBitRate
-				},
-				audio: {
-					sampleRate: Number.parseInt(result['streams'][1]['sample_rate'], 10),
-					channelCount: result['streams'][1]['channels'],
-					bitRate: audioBitRate
-				},
-				index: Number.parseInt(fileName.split('.')[0], 10),
-				duration: Number.parseFloat(result['format']['duration']),
-				size: Number.parseInt(result['format']['size'], 10),
-				bitRate: totalBitRate
-			};
-		} else {
-			throw new Error('Media must contain valid streams');
+					return {
+						video: {
+							width: result['streams'][0]['width'],
+							height: result['streams'][0]['height'],
+							aspectRatio: result['streams'][0]['width'] / greatestCommonDivisor + ':' + result['streams'][0]['height'] / greatestCommonDivisor
+						},
+						size: Number.parseInt(result['format']['size'], 10)
+					};
+				}
+
+				break;
+			}
 		}
-	});
-}
 
-export function getImageMetadata(fileName: string): Promise<ImageMetadata> {
-	return execute('exiftool -j -ImageWidth -ImageHeight -Orientation# -FileSize#  ' + fileName, {
-		isOutputNeeded: true
+		throw new Error('Media must contain valid streams');
 	})
-	.then(function (output: string): ImageMetadata {
-		const result: Record<'ImageWidth' | 'ImageHeight' | 'Orientation' | 'FileSize', number> = JSON.parse(output)[0];
-
-		if(typeof(result['Orientation']) === 'number' && result['Orientation'] >= 5) {
-			[result['ImageHeight'], result['ImageWidth']] = [result['ImageWidth'], result['ImageHeight']];
-		}
-
-		const greatestCommonDivisor: number = getGreatestCommonDivisor(result['ImageWidth'], result['ImageHeight']);
-
-		return {
-			width: result['ImageWidth'],
-			height: result['ImageHeight'],
-			aspectRatio: result['ImageWidth'] / greatestCommonDivisor + ':' + result['ImageHeight'] / greatestCommonDivisor,
-			size: result['FileSize']
-		};
-	});
 }
 
 export function getGreatestCommonDivisor(a: number, b: number): number {
