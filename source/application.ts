@@ -1,15 +1,14 @@
 import fastifyMultipart from '@fastify/multipart';
 import '@library/environment';
-import JsonWebToken from '@library/jsonWebToken';
-import { logger } from '@library/logger';
 import '@library/schedule';
 import fastify from 'fastify';
+import { FastifyInstance } from '@library/type';
+import { logger } from '@library/logger';
 import errorHandler from './handlers/error';
 import headerHandler from './handlers/header';
 import notFoundHandler from './handlers/notFound';
 import serializeHandler from './handlers/serialize';
 import rootModule from './routes/root.module';
-import { FastifyInstance } from '@library/type';
 
 const fastifyInstance: FastifyInstance = fastify({
 	trustProxy: true,
@@ -51,13 +50,6 @@ fastifyInstance.listen({
 			fastifyInstance['log'].info(routeLines[i].replace('\n', ''));
 		}
 	}
-
-	fastifyInstance['log'].debug('accessToken: ' + JsonWebToken.create({
-		uid: 0,
-		hdl: '',
-		vrf: true,
-		exp: Number['MAX_SAFE_INTEGER']
-	}, process['env']['JSON_WEB_TOKEN_SECRET']));
 
 	return;
 })
