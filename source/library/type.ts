@@ -1,4 +1,4 @@
-import { FastifyBaseLogger, FastifySchema, FastifyTypeProvider, HTTPMethods, RouteHandlerMethod, RouteOptions as _RouteOptions } from 'fastify';
+import { FastifyBaseLogger, FastifyInstance as _FastifyInstance, FastifySchema, FastifyTypeProvider, HTTPMethods, RouteHandlerMethod, RouteOptions as _RouteOptions } from 'fastify';
 import { IncomingMessage, Server, ServerResponse } from 'http';
 import Module from '@library/module';
 import { JSONSchema } from 'fluent-json-schema';
@@ -82,6 +82,4 @@ export type Metadata<T extends 'video' | 'image'> = T extends 'video' ? {
 	size: number;
 };
 
-export type NonNullableRequired<T> = {
-  [P in keyof T]-?: NonNullable<T[P]>;
-};
+export type FastifyInstance = _FastifyInstance<Server, IncomingMessage, ServerResponse, any, any>;

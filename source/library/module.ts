@@ -1,5 +1,5 @@
-import { ModuleOptions, RouteOptions, SchemaKey } from '@library/type';
-import { FastifyInstance, preHandlerHookHandler as PreHandlerHookHandler } from 'fastify';
+import { FastifyInstance, ModuleOptions, RouteOptions, SchemaKey } from '@library/type';
+import { preHandlerHookHandler as PreHandlerHookHandler } from 'fastify';
 import { NullSchema, ObjectSchema } from 'fluent-json-schema';
 import { join } from 'path/posix';
 import schemaErrorFormatHandler from '../handlers/schemaErrorFormat';

@@ -3,12 +3,13 @@ import '@library/environment';
 import JsonWebToken from '@library/jsonWebToken';
 import { logger } from '@library/logger';
 import '@library/schedule';
-import fastify, { FastifyInstance } from 'fastify';
+import fastify from 'fastify';
 import errorHandler from './handlers/error';
 import headerHandler from './handlers/header';
 import notFoundHandler from './handlers/notFound';
 import serializeHandler from './handlers/serialize';
 import rootModule from './routes/root.module';
+import { FastifyInstance } from '@library/type';
 
 const fastifyInstance: FastifyInstance = fastify({
 	trustProxy: true,
