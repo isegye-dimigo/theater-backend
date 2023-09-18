@@ -11,15 +11,16 @@ export default function (request: FastifyRequest<{
 			where: {
 				OR: [{
 					id: request['body']['videoMediaId'],
-					isDeleted: false,
-					videoMovie: null
+					isVideo: true,
+					isDeleted: false
 				}, {
 					id: request['body']['imageMediaId'],
-					isDeleted: true
+					isVideo: false,
+					isDeleted: false
 				}]
 			}
 		})
-		.then(function (mediaCount: number): Promise<Pick<Movie, 'id' | 'title'> & {
+		.then(function (mediaCount: number): Promise<Pick<Movie, 'id' | 'title' | 'description'> & {
 			imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'>;
 			videoMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'> & {
 				mediaVideoMetadata: Pick<MediaVideoMetadata, 'duration' | 'frameRate'> | null;
@@ -30,6 +31,7 @@ export default function (request: FastifyRequest<{
 					select: {
 						id: true,
 						title: true,
+						description: true,
 						imageMedia: {
 							select: {
 								id: true,
@@ -74,7 +76,7 @@ export default function (request: FastifyRequest<{
 					}
 				});
 			} else {
-				throw new BadRequest('Body[\'~MediaId\'] must be valid');
+				throw new BadRequest('Body[\'*MediaId\'] must be valid');
 			}
 		})
 		.then(reply.status(201).send.bind(reply))

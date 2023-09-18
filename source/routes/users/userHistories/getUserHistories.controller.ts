@@ -1,7 +1,7 @@
 import { prisma } from '@library/database';
 import { NotFound, Unauthorized } from '@library/httpError';
 import { PageQuery } from '@library/type';
-import { Media, Movie, User, UserHistory } from '@prisma/client';
+import { Media, MediaVideoMetadata, Movie, MovieStatistic, User, UserHistory } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 export default function (request: FastifyRequest<{
@@ -21,11 +21,15 @@ export default function (request: FastifyRequest<{
 		}
 	})
 	.then(function (user: Pick<User, 'id'> | null): Promise<(Pick<UserHistory, 'id' | 'createdAt'> & {
-		movie: Pick<Movie, 'id' | 'title' | 'createdAt'> & {
+		movie: Pick<Movie, 'id' | 'title'> & {
 			user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'> & {
 				profileMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'> | null;
 			};
+			videoMedia: {
+				mediaVideoMetadata: Pick<MediaVideoMetadata, 'duration'> | null;
+			};
 			imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'>;
+			movieStatistics: Pick<MovieStatistic, 'viewCount'>[];
 		};
 	})[]> {
 		if(user !== null) {
@@ -54,6 +58,15 @@ export default function (request: FastifyRequest<{
 									}
 								},
 								title: true,
+								videoMedia: {
+									select: {
+										mediaVideoMetadata: {
+											select: {
+												duration: true
+											}
+										}
+									}
+								},
 								imageMedia: {
 									select: {
 										id: true,
@@ -63,7 +76,15 @@ export default function (request: FastifyRequest<{
 										isVideo: true
 									}
 								},
-								createdAt: true
+								movieStatistics: {
+									select: {
+										viewCount: true
+									},
+									take: 1,
+									orderBy: {
+										id: 'desc'
+									}
+								}
 							}
 						},
 						createdAt: true

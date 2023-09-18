@@ -1,7 +1,7 @@
 import { prisma } from '@library/database';
 import { NotFound, Unauthorized } from '@library/httpError';
 import { PageQuery } from '@library/type';
-import { Media, Movie, MovieComment, User } from '@prisma/client';
+import { Media, MediaVideoMetadata, Movie, MovieComment, MovieStatistic, User } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 export default function (request: FastifyRequest<{
@@ -20,9 +20,16 @@ export default function (request: FastifyRequest<{
 			isDeleted: false
 		}
 	})
-	.then(function (user: Pick<User, 'id'> | null): Promise<(Omit<MovieComment, 'movieId' | 'userId' | 'isDeleted'> & {
+	.then(function (user: Pick<User, 'id'> | null): Promise<(Pick<MovieComment, 'id' | 'time' | 'content' | 'createdAt'> & {
 		movie: Pick<Movie, 'id' | 'title'> & {
+			user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'> & {
+				profileMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'> | null;
+			};
+			videoMedia: {
+				mediaVideoMetadata: Pick<MediaVideoMetadata, 'duration'> | null;
+			};
 			imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'>;
+			movieStatistics: Pick<MovieStatistic, 'viewCount'>[];
 		};
 	})[]> {
 		if(user !== null) {
@@ -33,7 +40,33 @@ export default function (request: FastifyRequest<{
 						movie: {
 							select: {
 								id: true,
+								user: {
+									select: {
+										id: true,
+										handle: true,
+										name: true,
+										isVerified: true,
+										profileMedia: {
+											select: {
+												id: true,
+												hash: true,
+												width: true,
+												height: true,
+												isVideo: true
+											}
+										}
+									}
+								},
 								title: true,
+								videoMedia: {
+									select: {
+										mediaVideoMetadata: {
+											select: {
+												duration: true
+											}
+										}
+									}
+								},
 								imageMedia: {
 									select: {
 										id: true,
@@ -41,6 +74,15 @@ export default function (request: FastifyRequest<{
 										width: true,
 										height: true,
 										isVideo: true
+									}
+								},
+								movieStatistics: {
+									select: {
+										viewCount: true
+									},
+									take: 1,
+									orderBy: {
+										id: 'desc'
 									}
 								}
 							}

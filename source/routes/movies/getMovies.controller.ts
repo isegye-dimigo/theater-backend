@@ -37,13 +37,13 @@ export default function (request: FastifyRequest<{
 	prisma.$queryRawUnsafe<({
 		created_at: Date;
 		user_is_verified: boolean;
-	} & Record<'id' | 'user_id' | 'user_profile_media_id' | 'user_profile_media_width' | 'user_profile_media_height' | 'image_media_id' | 'image_media_width' | 'image_media_height' | 'movie_statistic_view_count' | 'movie_statistic_comment_count' | 'movie_statistic_like_count', BigInt> & Record<'title' | 'user_handle' | 'user_name' | 'user_profile_media_hash' | 'image_media_hash', string> & Record<'movie_statistic_star_average' | 'video_media_media_video_metadata_duration' | 'video_media_media_video_metadata_frame_rate', number>)[]>(`
+	} & Record<'id' | 'user_id' | 'user_profile_media_id' | 'user_profile_media_width' | 'user_profile_media_height' | 'image_media_id' | 'image_media_width' | 'image_media_height' | 'movie_statistic_view_count' | 'movie_statistic_comment_count' | 'movie_statistic_like_count', BigInt> & Record<'title' | 'user_handle' | 'user_name' | 'user_profile_media_hash' | 'image_media_hash', string> & Record<'movie_statistic_star_average' | 'video_media_media_video_metadata_duration' | 'user_profile_media_is_video' | 'image_media_is_video', number>)[]>(`
 	SELECT
 	movie.id, movie.title, movie.created_at,
 	user.id AS user_id, user.handle AS user_handle, user.name AS user_name, user.is_verified AS user_is_verified,
-	user_profile_media.id AS user_profile_media_id, user_profile_media.hash AS user_profile_media_hash, user_profile_media.width AS user_profile_media_width, user_profile_media.height AS user_profile_media_height,
-	image_media.id AS image_media_id, image_media.hash AS image_media_hash, image_media.width AS image_media_width, image_media.height AS image_media_height,
-	media_video_metadata.duration AS video_media_media_video_metadata_duration, media_video_metadata.frame_rate AS video_media_media_video_metadata_frame_rate,
+	user_profile_media.id AS user_profile_media_id, user_profile_media.hash AS user_profile_media_hash, user_profile_media.width AS user_profile_media_width, user_profile_media.height AS user_profile_media_height, user_profile_media.is_video AS user_profile_media_is_video,
+	image_media.id AS image_media_id, image_media.hash AS image_media_hash, image_media.width AS image_media_width, image_media.height AS image_media_height, image_media.is_video AS image_media_is_video,
+	media_video_metadata.duration AS video_media_media_video_metadata_duration,
 	movie_statistic.view_count AS movie_statistic_view_count, movie_statistic.comment_count AS movie_statistic_comment_count, movie_statistic.like_count AS movie_statistic_like_count, movie_statistic.star_average AS movie_statistic_star_average
 	FROM movie 
 	INNER JOIN user ON movie.user_id = user.id 
@@ -58,15 +58,15 @@ export default function (request: FastifyRequest<{
 	.then(function (rawMovies: ({
 		created_at: Date;
 		user_is_verified: boolean;
-	} & Record<'id' | 'user_id' | 'user_profile_media_id' | 'user_profile_media_width' | 'user_profile_media_height' | 'image_media_id' | 'image_media_width' | 'image_media_height' | 'movie_statistic_view_count' | 'movie_statistic_comment_count' | 'movie_statistic_like_count', BigInt> & Record<'title' | 'user_handle' | 'user_name' | 'user_profile_media_hash' | 'image_media_hash', string> & Record<'movie_statistic_star_average' | 'video_media_media_video_metadata_duration' | 'video_media_media_video_metadata_frame_rate', number>)[]) {
+	} & Record<'id' | 'user_id' | 'user_profile_media_id' | 'user_profile_media_width' | 'user_profile_media_height' | 'image_media_id' | 'image_media_width' | 'image_media_height' | 'movie_statistic_view_count' | 'movie_statistic_comment_count' | 'movie_statistic_like_count', BigInt> & Record<'title' | 'user_handle' | 'user_name' | 'user_profile_media_hash' | 'image_media_hash', string> & Record<'movie_statistic_star_average' | 'video_media_media_video_metadata_duration' | 'user_profile_media_is_video' | 'image_media_is_video', number>)[]) {
 
 		const movies: (Pick<Movie, 'id' | 'title' | 'createdAt'> & {
 			user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'> & {
-				profileMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'> | null;
+				profileMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'> | null;
 			};
-			imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'>;
+			imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'>;
 			videoMedia: {
-				mediaVideoMetadata: Pick<MediaVideoMetadata, 'duration' | 'frameRate'>;
+				mediaVideoMetadata: Pick<MediaVideoMetadata, 'duration'>;
 			};
 			movieStatistics: Pick<MovieStatistic, 'viewCount' | 'commentCount' | 'likeCount' | 'starAverage'>[];
 		})[] = [];
@@ -83,7 +83,8 @@ export default function (request: FastifyRequest<{
 						id: Number(rawMovies[i]['user_profile_media_id']),
 						hash: rawMovies[i]['user_profile_media_hash'],
 						width: Number(rawMovies[i]['user_profile_media_width']),
-						height: Number(rawMovies[i]['user_profile_media_height'])
+						height: Number(rawMovies[i]['user_profile_media_height']),
+						isVideo: Boolean(rawMovies[i]['user_profile_media_is_video'])
 					}
 				},
 				title: rawMovies[i]['title'],
@@ -91,12 +92,12 @@ export default function (request: FastifyRequest<{
 					id: Number(rawMovies[i]['image_media_id']),
 					hash: rawMovies[i]['image_media_hash'],
 					width: Number(rawMovies[i]['image_media_width']),
-					height: Number(rawMovies[i]['image_media_height'])
+					height: Number(rawMovies[i]['image_media_height']),
+					isVideo: Boolean(rawMovies[i]['image_media_is_video'])
 				},
 				videoMedia: {
 					mediaVideoMetadata: {
-						duration: rawMovies[i]['video_media_media_video_metadata_duration'],
-						frameRate: rawMovies[i]['video_media_media_video_metadata_frame_rate']
+						duration: rawMovies[i]['video_media_media_video_metadata_duration']
 					}
 				},
 				movieStatistics: [{
