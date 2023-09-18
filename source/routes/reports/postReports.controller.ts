@@ -67,7 +67,8 @@ export default function (request: FastifyRequest<{
 	}
 
 	if(typeof(validation) === 'object') {
-		validation.then(function (targetCount: number): Promise<Prisma.BatchPayload> {
+		validation
+		.then(function (targetCount: number): Promise<Prisma.BatchPayload> {
 			if(targetCount === 1) {
 				return prisma['report'].createMany({
 					data: {
