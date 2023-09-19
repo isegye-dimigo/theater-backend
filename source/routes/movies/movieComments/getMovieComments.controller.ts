@@ -47,7 +47,10 @@ export default function (request: FastifyRequest<{
 					createdAt: true
 				},
 				where: {
-					movieId: request['params']['movieId'],
+					movie: {
+						id: request['params']['movieId'],
+						isDeleted: false
+					},
 					isDeleted: false
 				},
 				skip: request['query']['page[size]'] * request['query']['page[index]'],
