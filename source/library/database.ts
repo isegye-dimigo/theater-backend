@@ -54,7 +54,6 @@ export function getUniqueRandomHandle(): Promise<string> {
 export function getMovieViewKeys(keys: Set<string>, cursor: string): Promise<Set<string>> {
 	return redis.scan(cursor, 'MATCH', 'movieView:*')
 	.then(function (results: [string, string[]]): Promise<Set<string>> | Set<string> {
-		console.log(keys, results)
 		for(let i: number = 0; i < results[1]['length']; i++) {
 			keys.add(results[1][i]);
 		}
