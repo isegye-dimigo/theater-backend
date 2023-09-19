@@ -191,10 +191,10 @@ model UserHistory {
 
 model UserVerification {
   id        Int      @id @default(autoincrement()) @db.UnsignedInt
+  token     String   @unique(map: "UNIQUE INDEX(token)") @map("token") @db.VarChar(40)
   email     String   @unique(map: "UNIQUE INDEX(email)") @db.VarChar(64)
   password  String   @db.VarChar(128)
   name      String   @db.VarChar(64)
-  token     String   @unique(map: "UNIQUE INDEX(token)") @map("token") @db.VarChar(40)
   createdAt DateTime @default(now()) @map("created_at") @db.DateTime(0)
 
   @@map("user_verification")
