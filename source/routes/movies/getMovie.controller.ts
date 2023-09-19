@@ -3,6 +3,8 @@ import { BadRequest } from '@library/httpError';
 import { Media, MediaVideoMetadata, Movie, MovieStatistic, User } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
+// TODO: Send user if liked or starred on movie
+
 export default function (request: FastifyRequest<{
 	Params: {
 		movieId: Movie['id'];

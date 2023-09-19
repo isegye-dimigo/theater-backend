@@ -3,6 +3,8 @@ import { PageQuery } from '@library/type';
 import { Media, MediaVideoMetadata, Movie, MovieStatistic, User } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
+// TODO: Implement natural language search with elasticsearch
+
 export default function (request: FastifyRequest<{
 	Querystring: PageQuery & {
 		'page[rank]': 'id' | 'viewCount' | 'commentCount' | 'starAverage';
