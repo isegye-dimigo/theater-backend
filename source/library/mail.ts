@@ -7,7 +7,7 @@ const smtp: SMTPChannel = new SMTPChannel({
 	//secure: true
 });
 
-export default function sendMail(email: string, title: string, content: string): Promise<void> {
+export default function sendMail(email: string, title: string, content: string): Promise<boolean> {
 	return smtp.connect()
 	.then(function (): Promise<void> {
 		return smtp.write('EHLO server\r\n');
