@@ -30,7 +30,7 @@ redis.on('error', function (error: Error): void {
 
 const handleCharacter = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.';
 
-export function getUniqueHandle(): Promise<string> {
+export function getUniqueRandomHandle(): Promise<string> {
 	let handle: string = '';
 	
 	for(const byte of randomBytes(30)) {
@@ -46,7 +46,7 @@ export function getUniqueHandle(): Promise<string> {
 		if(userCount === 0) {
 			return handle;
 		} else {
-			return getUniqueHandle();
+			return getUniqueRandomHandle();
 		}
 	})
 }

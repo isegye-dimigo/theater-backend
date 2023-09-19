@@ -1,4 +1,4 @@
-import { getUniqueHandle, prisma } from '@library/database';
+import { getUniqueRandomHandle, prisma } from '@library/database';
 import { BadRequest } from '@library/httpError';
 import { Prisma, User, UserVerification } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
@@ -18,7 +18,7 @@ export default function (request: FastifyRequest<{
 	})
 	.then(function (userVerification: Pick<UserVerification, 'email' | 'password' | 'name'> | null): Promise<Pick<User, 'email' | 'password' | 'handle' | 'name'>> {
 		if(userVerification !== null) {
-			return getUniqueHandle()
+			return getUniqueRandomHandle()
 			.then(function (handle: string): Pick<User, 'email' | 'password' | 'handle' | 'name'> {
 				return {
 					email: userVerification['email'],
