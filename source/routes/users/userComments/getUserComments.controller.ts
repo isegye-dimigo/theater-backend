@@ -10,13 +10,12 @@ export default function (request: FastifyRequest<{
 	};
 	Querystring: PageQuery;
 }>, reply: FastifyReply): void {
-	prisma['user'].findFirst({
+	prisma['user'].findUnique({
 		select: {
 			id: true
 		},
 		where: {
 			handle: request['params']['userHandle'],
-			verificationKey: null,
 			isDeleted: false
 		}
 	})
@@ -94,7 +93,6 @@ export default function (request: FastifyRequest<{
 					where: {
 						user: {
 							handle: request['params']['userHandle'],
-							verificationKey: null,
 							isDeleted: false
 						},
 						isDeleted: false,

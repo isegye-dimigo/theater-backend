@@ -8,28 +8,90 @@ export default function (request: FastifyRequest<{
 		userHandle: User['handle'];
 	};
 }>, reply: FastifyReply): void {
-	prisma['user'].findFirst({
+	prisma['user'].findUnique({
 		select: {
 			id: true
 		},
 		where: {
 			handle: request['params']['userHandle'],
-			verificationKey: null,
 			isDeleted: false
 		}
 	})
-	.then(function (user: Pick<User, 'id'> | null): Promise<Prisma.BatchPayload> {
+	.then(function (user: Pick<User, 'id'> | null): Promise<Prisma.BatchPayload[]> {
 		if(user !== null) {
 			if(request['user']['id'] === user['id']) {
-				return prisma['user'].updateMany({
-					where: {
-						handle: request['params']['userHandle'],
-						isDeleted: true
-					},
-					data: {
-						isDeleted: true
-					}
-				});
+				return prisma.$transaction([
+					prisma['media'].updateMany({
+						data: {
+							isDeleted: true
+						},
+						where: {
+							userId: user['id'],
+							OR: [{
+								videoMovie: {
+									userId: user['id']
+								}
+							}, {
+								profileUser: {
+									id: user['id']
+								}
+							}, {
+								bannerUser: {
+									id: user['id']
+								}
+							}]
+						}
+					}), prisma['movie'].updateMany({
+						data: {
+							isDeleted: true
+						},
+						where: {
+							userId: user['id']
+						}
+					}), prisma['movieComment'].updateMany({
+						data: {
+							isDeleted: true
+						},
+						where: {
+							userId: user['id']
+						}
+					}), prisma['movieLike'].deleteMany({
+						where: {
+							userId: user['id']
+						}
+					}), prisma['movieStar'].deleteMany({
+						where: {
+							userId: user['id']
+						}
+					}), prisma['movieStatistic'].deleteMany({
+						where: {
+							movie: {
+								userId: user['id']
+							}
+						}
+					}), prisma['report'].updateMany({
+						data: {
+							isDeleted: true
+						},
+						where: {
+							userId: user['id']
+						}
+					}), prisma['userHistory'].deleteMany({
+						where: {
+							userId: user['id']
+						}
+					}), prisma['user'].updateMany({
+						where: {
+							id: user['id'],
+							isDeleted: false
+						},
+						data: {
+							isDeleted: true,
+							bannerMediaId: null,
+							profileMediaId: null
+						}
+					})
+				]);
 			} else {
 				throw new Unauthorized('User must be same');
 			}
@@ -37,8 +99,8 @@ export default function (request: FastifyRequest<{
 			throw new NotFound('Parameter[\'userHandle\'] must be valid');
 		}
 	})
-	.then(function (result: Prisma.BatchPayload): void {
-		if(result['count'] === 1) {
+	.then(function (result: Prisma.BatchPayload[]): void {
+		if(result[0]['count'] === 1) {
 			reply.status(204).send();
 
 			return;

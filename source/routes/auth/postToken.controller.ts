@@ -21,7 +21,6 @@ export default function (request: FastifyRequest<{
 		},
 		where: {
 			id: jsonWebToken['payload']['id'],
-			verificationKey: null,
 			isDeleted: false
 		}
 	})

@@ -5,6 +5,7 @@ import postTokenController from './postToken.controller';
 import getAuthController from './getAuth.controller';
 import userSchema from '@schemas/user';
 import commonSchema from '@schemas/common';
+import userVerificationSchema from '@schemas/userVerification';
 
 export default new Module({
 	routers: [{
@@ -17,7 +18,7 @@ export default new Module({
 		handler: getEmailController,
 		schema: {
 			querystring: {
-				verificationKey: userSchema.get('verificationKey').required()
+				token: userVerificationSchema.get('token').required()
 			}
 		}
 	}, {

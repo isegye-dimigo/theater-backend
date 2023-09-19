@@ -13,8 +13,7 @@ export default function (request: FastifyRequest<{
 	};
 }>, reply: FastifyReply): void {
 	if(Object.keys(request['body'])['length'] !== 0) {
-		// @ts-expect-error
-		const user: Pick<User, 'email' | 'password'> = {};
+		let user: Pick<User, 'email' | 'password'>;
 
 		prisma['user'].findUnique({
 			select: {
@@ -30,8 +29,10 @@ export default function (request: FastifyRequest<{
 		.then(function (_user: Pick<User, 'id' | 'email' | 'password'> | null): Promise<string> {
 			if(_user !== null) {
 				if(request['user']['id'] === _user['id']) {
-					user['email'] = _user['email'];
-					user['password'] = _user['password'];
+					user = {
+						email: _user['email'],
+						password: _user['password']
+					};
 
 					return getEncryptedPassword(request['body']['currentPassword'], _user['email']);
 				} else {
@@ -62,10 +63,6 @@ export default function (request: FastifyRequest<{
 
 						return;
 					}));
-				}
-
-				if(typeof(request['body']['description']) === 'string' && request['body']['description']['length'] === 0) {
-					request['body']['description'] = null;
 				}
 
 				if(typeof(request['body']['handle']) === 'string') {

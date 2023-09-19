@@ -9,10 +9,9 @@ const userSchema: Schema<keyof User> = new Schema<keyof User>({
 	password: schema.string().minLength(1),
 	handle: schema.string().pattern(/^[A-Za-z0-9-_.]{3,30}$/),
 	name: schema.string().minLength(1).maxLength(64),
-	description: schema.string().maxLength(1024),
-	profileMediaId: commonSchema.get('positiveInteger'),
-	bannerMediaId: commonSchema.get('positiveInteger'),
-	verificationKey: commonSchema['defaultSchema'].string().pattern(/^[0-9a-f]{40}$/),
+	description: schema.oneOf([schema.string().minLength(1).maxLength(1024), schema.null()]),
+	profileMediaId: schema.oneOf([commonSchema.get('positiveInteger'), schema.null()]),
+	bannerMediaId: schema.oneOf([commonSchema.get('positiveInteger'), schema.null()]),
 	isVerified: schema.boolean(),
 	isDeleted: schema.boolean(),
 	createdAt: commonSchema.get('datetime')

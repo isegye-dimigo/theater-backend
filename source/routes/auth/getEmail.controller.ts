@@ -1,37 +1,44 @@
-import { prisma } from '@library/database';
+import { getUniqueHandle, prisma } from '@library/database';
 import { BadRequest } from '@library/httpError';
-import { User } from '@prisma/client';
+import { Prisma, User, UserVerification } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 export default function (request: FastifyRequest<{
-	Querystring: {
-		verificationKey: string;
-	};
+	Querystring: Pick<UserVerification, 'token'>;
 }>, reply: FastifyReply): void {
-	prisma['user'].count({
+	prisma['userVerification'].findUnique({
+		select: {
+			email: true,
+			password: true,
+			name: true
+		},
 		where: {
-			verificationKey: request['query']['verificationKey']
+			token: request['query']['token']
 		}
 	})
-	.then(function (userCount: number): void {
-		if(userCount === 1) {
-			return;
+	.then(function (userVerification: Pick<UserVerification, 'email' | 'password' | 'name'> | null): Promise<Pick<User, 'email' | 'password' | 'handle' | 'name'>> {
+		if(userVerification !== null) {
+			return getUniqueHandle()
+			.then(function (handle: string): Pick<User, 'email' | 'password' | 'handle' | 'name'> {
+				return {
+					email: userVerification['email'],
+					password: userVerification['password'],
+					handle: handle,
+					name: userVerification['name']
+				};
+			});
 		} else {
-			throw new BadRequest('Query[\'verificationKey\'] must be valid');
+			throw new BadRequest('Query[\'token\'] must be valid');
 		}
 	})
-	.then(function (): Promise<Pick<User, 'id'>> {
-		return prisma['user'].update({
-			select: {
-				id: true
-			},
+	.then(function (user: Pick<User, 'email' | 'password' | 'handle' | 'name'>): Promise<Prisma.BatchPayload[]> {
+		return prisma.$transaction([prisma['user'].createMany({
+			data: user
+		}), prisma['userVerification'].deleteMany({
 			where: {
-				verificationKey: request['query']['verificationKey']
-			},
-			data: {
-				verificationKey: null
+				token: request['query']['token']
 			}
-		});
+		})]);
 	})
 	.then(function (): void {
 		// TODO: Chnage below url to real one

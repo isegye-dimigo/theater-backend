@@ -11,6 +11,8 @@ export default function (request: FastifyRequest<{
 			where: {
 				OR: [{
 					id: request['body']['videoMediaId'],
+					userId: request['user']['id'],
+					videoMovie: null,
 					isVideo: true,
 					isDeleted: false
 				}, {

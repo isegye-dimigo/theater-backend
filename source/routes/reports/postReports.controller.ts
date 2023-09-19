@@ -21,7 +21,6 @@ export default function (request: FastifyRequest<{
 			validation = prisma['user'].count({
 				where: {
 					id: request['body']['targetId'],
-					verificationKey: null,
 					isDeleted: false
 				}
 			});
@@ -63,6 +62,10 @@ export default function (request: FastifyRequest<{
 			});
 
 			break;
+		}
+
+		default: {
+			throw new BadRequest('Body[\'type\'] must be valid');
 		}
 	}
 

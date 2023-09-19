@@ -13,7 +13,6 @@ export default function (request: FastifyRequest<{
 			id: true,
 			password: true,
 			handle: true,
-			verificationKey: true,
 			isVerified: true
 		},
 		where: {
@@ -21,20 +20,16 @@ export default function (request: FastifyRequest<{
 			isDeleted: false
 		}
 	})
-	.then(function (user: Pick<User, 'id' | 'password' | 'handle' | 'verificationKey' | 'isVerified'> | null): Promise<Pick<User, 'id' | 'password' | 'handle' | 'isVerified'>> {
+	.then(function (user: Pick<User, 'id' | 'password' | 'handle' | 'isVerified'> | null): Promise<Pick<User, 'id' | 'password' | 'handle' | 'isVerified'>> {
 		if(user !== null) {
-			if(user['verificationKey'] === null) {
-				return getEncryptedPassword(request['body']['password'], request['body']['email'])
-				.then(function (encryptedPassword: string): Pick<User, 'id' | 'password' | 'handle' | 'isVerified'> {
-					if(user['password'] === encryptedPassword) {
-						return user;
-					} else {
-						throw new Unauthorized('Body[\'password\'] must be valid');
-					}
-				});
-			} else {
-				throw new Unauthorized('Body[\'email\'] must be verified');
-			}
+			return getEncryptedPassword(request['body']['password'], request['body']['email'])
+			.then(function (encryptedPassword: string): Pick<User, 'id' | 'password' | 'handle' | 'isVerified'> {
+				if(user['password'] === encryptedPassword) {
+					return user;
+				} else {
+					throw new Unauthorized('Body[\'password\'] must be valid');
+				}
+			});
 		} else {
 			throw new BadRequest('Body[\'email\'] must be valid');
 		}

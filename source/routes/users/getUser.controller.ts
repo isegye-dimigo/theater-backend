@@ -38,7 +38,6 @@ export default function (request: FastifyRequest<{
 		},
 		where: {
 			handle: request['params']['userHandle'],
-			verificationKey: null,
 			isDeleted: false
 		}
 	})
