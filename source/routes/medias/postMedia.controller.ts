@@ -149,7 +149,7 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 		mediaVideos: MediaVideo[];
 	} | null): Promise<void> {
 		if(media === null) {
-			return execute('ffmpeg -v quiet -i input.' + file['type'] + ' -vf "scale=\'if(gte(iw,ih),min(1270,iw),720)\':\'if(gte(iw,ih),720,min(1280,ih))\'" -c:v ' + (file['isVideo'] ? 'h264_qsv -map 0:v:0 -map 0:a:0 -c:a aac -q 17 -preset veryslow -f ssegment -segment_list index.m3u8 %d.ts' : 'libwebp -quality 100 -preset photo ' + file['hash'] + '.webp'), {
+			return execute('ffmpeg -v quiet -i input.' + file['type'] + ' -vf "scale=\'if(gte(iw,1270)*gte(ih,720),min(1270,iw),iw)\':\'if(gte(iw,720)*gte(ih,1280),min(1280,ih),ih)\'" -c:v ' + (file['isVideo'] ? 'h264_qsv -r 30 -map 0:v:0 -map 0:a:0 -c:a aac -q 17 -preset veryslow -f ssegment -segment_list index.m3u8 %d.ts' : 'libwebp -quality 100 -preset photo ' + file['hash'] + '.webp'), {
 				basePath: file['basePath']
 			});
 		} else {
