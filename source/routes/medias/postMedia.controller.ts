@@ -64,6 +64,7 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 					end: true
 				})
 				.once('finish', function () {
+					// TODO: Validate fileSize before download whole file
 					if(!multipartFile['file']['truncated'] && (file['isVideo'] || multipartFile['file']['bytesRead'] < 5243000)) {
 						resolve();
 					} else {
