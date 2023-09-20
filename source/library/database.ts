@@ -1,9 +1,11 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, User } from '@prisma/client';
 import { Redis } from 'ioredis';
 import { logger } from './logger';
 import { randomBytes } from 'crypto';
 
-export const prisma: PrismaClient = new PrismaClient();
+export const prisma: PrismaClient = new PrismaClient({
+	log: ['query']
+});
 
 export const redis: Redis = new Redis(process['env']['SUB_DATABASE_URL']);
 
@@ -37,13 +39,16 @@ export function getUniqueRandomHandle(): Promise<string> {
 		handle += handleCharacter[byte % 65];
 	}
 
-	return prisma['user'].count({
+	return prisma['user'].findUnique({
+		select: {
+			id: true
+		},
 		where: {
 			handle: handle
 		}
 	})
-	.then(function (userCount: number): Promise<string> | string {
-		if(userCount === 0) {
+	.then(function (user: Pick<User, 'id'> | null): Promise<string> | string {
+		if(user === null) {
 			return handle;
 		} else {
 			return getUniqueRandomHandle();

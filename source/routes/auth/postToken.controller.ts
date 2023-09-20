@@ -12,7 +12,7 @@ export default function (request: FastifyRequest<{
 }>, reply: FastifyReply): void {
 	const jsonWebToken: JsonWebToken = new JsonWebToken(request['body']['refreshToken'], '');
 
-	prisma['user'].findFirst({
+	prisma['user'].findUnique({
 		select: {
 			id: true,
 			password: true,

@@ -11,46 +11,43 @@ export default function (request: FastifyRequest<{
 }>, reply: FastifyReply): void {
 	if(request['user']['isVerified']) {
 		if(Object.keys(request['body'])['length'] !== 0) {
-			prisma['movie'].count({
+			const isImageMediaIdDefined: boolean = typeof(request['body']['imageMediaId']) === 'number';
+
+			prisma['movie'].findUnique({
+				select: {
+					userId: true,
+					imageMedia: isImageMediaIdDefined ? {
+						select: {
+							isVideo: true
+						}
+					} : undefined
+				},
 				where: {
-					OR: [{
-						userId: request['user']['id'],
-						id: request['params']['movieId'],
-						isDeleted: false
-					}, {
-						id: request['params']['movieId'],
-						isDeleted: false
-					}]
+					id: request['params']['movieId'],
+					isDeleted: false
 				}
 			})
-			.then(function (movieCount: number): Promise<void> | void {
-				switch(movieCount) {
-					default: {
+			.then(function (movie: Pick<Movie, 'userId'> & {
+				imageMedia?: Pick<Media, 'isVideo'> | null;
+			} | null): Promise<void> | void {
+				if(movie !== null) {
+					if(movie['userId'] === request['user']['id']) {
 						if(typeof(request['body']['imageMediaId']) === 'number') {
-							return prisma['media'].count({
-								where: {
-									id: request['body']['imageMediaId'],
-									isVideo: false,
-									isDeleted: false
+							if(typeof(movie['imageMedia']) !== 'undefined' && movie['imageMedia'] !== null) {
+								if(movie['imageMedia']['isVideo']) {
+									throw new BadRequest('Body[\'imageMediaId\'] must not be id of video');
 								}
-							})
-							.then(function (mediaCount: number): void {
-								if(mediaCount === 1) {
-									return;
-								} else {
-									throw new BadRequest('Body[\'imageMediaId\'] must be valid');
-								}
-							});
-						} else {
-							return;
+							} else {
+								throw new BadRequest('Body[\'imageMediaId\'] must be valid')
+							}
 						}
-					}
-					case 1: {
+						
+						return;
+					} else {
 						throw new Unauthorized('User must be same');
 					}
-					case 0: {
-						throw new NotFound('Parameter[\'movieId\'] must be valid');
-					}
+				} else {
+					throw new NotFound('Parameter[\'movieId\'] must be valid');
 				}
 			})
 			.then(function (): Promise<Pick<Movie, 'id' | 'title' | 'description'> & {

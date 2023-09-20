@@ -66,13 +66,16 @@ export default function (request: FastifyRequest<{
 				}
 
 				if(typeof(request['body']['handle']) === 'string') {
-					validations.push(prisma['user'].count({
+					validations.push(prisma['user'].findUnique({
+						select: {
+							id: true
+						},
 						where: {
 							handle: request['body']['handle']
 						}
 					})
-					.then(function (userCount: number): void {
-						if(userCount === 0) {
+					.then(function (user: Pick<User, 'id'> | null): void {
+						if(user !== null) {
 							return;
 						} else {
 							throw new Conflict('Body[\'handle\'] must be unique');
@@ -81,15 +84,18 @@ export default function (request: FastifyRequest<{
 				}
 
 				if(typeof(request['body']['profileMediaId']) === 'number') {
-					validations.push(prisma['media'].count({
+					validations.push(prisma['media'].findUnique({
+						select: {
+							id: true
+						},
 						where: {
 							id: request['body']['profileMediaId'],
 							isVideo: false,
 							isDeleted: false
 						}
 					})
-					.then(function (mediaCount: number): void {
-						if(mediaCount === 1) {
+					.then(function (media: Pick<Media, 'id'> | null): void {
+						if(media !== null) {
 							return;
 						} else {
 							throw new BadRequest('Body[\'profileMediaId\'] must be valid');
@@ -98,15 +104,18 @@ export default function (request: FastifyRequest<{
 				}
 
 				if(typeof(request['body']['bannerMediaId']) === 'number') {
-					validations.push(prisma['media'].count({
+					validations.push(prisma['media'].findUnique({
+						select: {
+							id: true
+						},
 						where: {
 							id: request['body']['bannerMediaId'],
 							isVideo: false,
 							isDeleted: false
 						}
 					})
-					.then(function (mediaCount: number): void {
-						if(mediaCount === 1) {
+					.then(function (media: Pick<Media, 'id'> | null): void {
+						if(media !== null) {
 							return;
 						} else {
 							throw new BadRequest('Body[\'bannerMediaId\'] must be valid');

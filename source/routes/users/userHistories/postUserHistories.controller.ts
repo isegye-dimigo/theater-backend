@@ -11,7 +11,7 @@ export default function (request: FastifyRequest<{
 		movieId: Movie['id'];
 	};
 }>, reply: FastifyReply): void {
-	Promise.all([prisma['user'].findFirst({
+	Promise.all([prisma['user'].findUnique({
 		select: {
 			id: true
 		},
@@ -19,16 +19,19 @@ export default function (request: FastifyRequest<{
 			handle: request['params']['userHandle'],
 			isDeleted: false
 		}
-	}), prisma['movie'].count({
+	}), prisma['movie'].findUnique({
+		select: {
+			id: true
+		},
 		where: {
 			id: request['body']['movieId'],
 			isDeleted: false
 		}
 	})])
-	.then(function (results: [Pick<User, 'id'> | null, number]): Promise<Prisma.BatchPayload> {
+	.then(function (results: [Pick<User, 'id'> | null, Pick<Movie, 'id'> | null]): Promise<Prisma.BatchPayload> {
 		if(results[0] !== null) {
 			if(request['user']['id'] === results[0]['id']) {
-				if(results[1] === 1) {
+				if(results[1] !== null) {
 					return prisma['userHistory'].createMany({
 						data: {
 							userId: results[0]['id'],

@@ -18,16 +18,7 @@ export default function (request: FastifyRequest<{
 					id: true,
 					handle: true,
 					name: true,
-					isVerified: true,
-					profileMedia: {
-						select: {
-							id: true,
-							hash: true,
-							width: true,
-							height: true,
-							isVideo: true
-						}
-					}
+					isVerified: true
 				}
 			},
 			title: true,
@@ -67,9 +58,7 @@ export default function (request: FastifyRequest<{
 		}
 	})
 	.then(function (movie: Pick<Movie, 'id' | 'title' | 'description' | 'createdAt'> & {
-		user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'> & {
-			profileMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'> | null;
-		};
+		user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'>;
 		videoMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'> & {
 			mediaVideoMetadata: Pick<MediaVideoMetadata, 'duration' | 'frameRate'> | null;
 		};

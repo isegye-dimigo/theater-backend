@@ -9,7 +9,7 @@ export default function (request: FastifyRequest<{
 		userHandle: User['handle'];
 	};
 }>, reply: FastifyReply): void {
-	prisma['user'].findFirst({
+	prisma['user'].findUnique({
 		select: {
 			id: true,
 			handle: true,

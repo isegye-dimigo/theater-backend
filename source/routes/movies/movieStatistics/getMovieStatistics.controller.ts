@@ -10,15 +10,9 @@ export default function (request: FastifyRequest<{
 	};
 	Querystring: PageQuery;
 }>, reply: FastifyReply): void {
-	prisma['movie'].count({
-		where: {
-			id: request['params']['movieId'],
-			isDeleted: false
-		}
-	})
-	.then(function (movieCount: number): Promise<Omit<MovieStatistic, 'movieId'>[]> {
-		if(movieCount === 1) {
-			return prisma['movieStatistic'].findMany({
+	prisma['movie'].findUnique({
+		select: {
+			movieStatistics: {
 				select: {
 					id: true,
 					viewCount: true,
@@ -35,7 +29,20 @@ export default function (request: FastifyRequest<{
 				orderBy: {
 					id: request['query']['page[order]'] === 'asc' ? 'asc' : 'desc'
 				}
-			});
+			}
+		},
+		where: {
+			id: request['params']['movieId'],
+			isDeleted: false
+		}
+	})
+	.then(function (movie: {
+		movieStatistics: Omit<MovieStatistic, 'movieId'>[];
+	} | null): void {
+		if(movie !== null) {
+			reply.send(movie['movieStatistics']);
+
+			return;
 		} else {
 			throw new NotFound('Parameter[\'movieId\'] must be valid');
 		}

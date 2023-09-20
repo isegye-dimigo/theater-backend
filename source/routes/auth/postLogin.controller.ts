@@ -8,7 +8,7 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 export default function (request: FastifyRequest<{
 	Body: Pick<User, 'email' | 'password'>;
 }>, reply: FastifyReply): void {
-	prisma['user'].findFirst({
+	prisma['user'].findUnique({
 		select: {
 			id: true,
 			password: true,

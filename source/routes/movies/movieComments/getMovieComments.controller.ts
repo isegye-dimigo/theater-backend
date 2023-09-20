@@ -10,19 +10,9 @@ export default function (request: FastifyRequest<{
 	};
 	Querystring: PageQuery;
 }>, reply: FastifyReply): void {
-	prisma['movie'].count({
-		where: {
-			id: request['params']['movieId'],
-			isDeleted: false
-		}
-	})
-	.then(function (movieCount: number): Promise<(Pick<MovieComment, 'id' | 'time' | 'content' | 'createdAt'> & {
-		user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'> & {
-			profileMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'> | null;
-		};
-	})[]> {
-		if(movieCount === 1) {
-			return prisma['movieComment'].findMany({
+	prisma['movie'].findUnique({
+		select: {
+			movieComments: {
 				select: {
 					id: true,
 					user: {
@@ -30,6 +20,7 @@ export default function (request: FastifyRequest<{
 							id: true,
 							handle: true,
 							name: true,
+							isVerified: true,
 							profileMedia: {
 								select: {
 									hash: true,
@@ -38,8 +29,7 @@ export default function (request: FastifyRequest<{
 									height: true,
 									isVideo: true
 								}
-							},
-							isVerified: true
+							}
 						}
 					},
 					time: true,
@@ -58,7 +48,24 @@ export default function (request: FastifyRequest<{
 				orderBy: {
 					id: request['query']['page[order]'] === 'asc' ? 'asc' : 'desc'
 				}
-			});
+			}
+		},
+		where: {
+			id: request['params']['movieId'],
+			isDeleted: false
+		}
+	})
+	.then(function (movie: {
+		movieComments: (Pick<MovieComment, 'id' | 'time' | 'content' | 'createdAt'> & {
+			user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'> & {
+				profileMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'> | null;
+			};
+		})[];
+	} | null): void {
+		if(movie !== null) {
+			reply.send(movie['movieComments']);
+
+			return;
 		} else {
 			throw new NotFound('Parameter[\'movieId\'] must be valid');
 		}

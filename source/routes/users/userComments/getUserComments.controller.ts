@@ -21,9 +21,7 @@ export default function (request: FastifyRequest<{
 	})
 	.then(function (user: Pick<User, 'id'> | null): Promise<(Pick<MovieComment, 'id' | 'time' | 'content' | 'createdAt'> & {
 		movie: Pick<Movie, 'id' | 'title'> & {
-			user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'> & {
-				profileMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'> | null;
-			};
+			user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'>;
 			videoMedia: {
 				mediaVideoMetadata: Pick<MediaVideoMetadata, 'duration'> | null;
 			};
@@ -44,16 +42,7 @@ export default function (request: FastifyRequest<{
 										id: true,
 										handle: true,
 										name: true,
-										isVerified: true,
-										profileMedia: {
-											select: {
-												id: true,
-												hash: true,
-												width: true,
-												height: true,
-												isVideo: true
-											}
-										}
+										isVerified: true
 									}
 								},
 								title: true,

@@ -11,46 +11,40 @@ export default function (request: FastifyRequest<{
 	};
 	Querystring: PageQuery;
 }>, reply: FastifyReply): void {
-
-	prisma['movie'].count({
-		where: {
-			OR: [{
-				id: request['params']['movieId'],
-				isDeleted: false
-			}, {
-				id: request['params']['movieId'],
-				isDeleted: false,
-				movieStatistics: {
-					some: {
-						id: request['params']['movieStatisticId']
-					}
+	prisma['movie'].findUnique({
+		select: {
+			movieStatistics: {
+				select: {
+					id: true,
+					viewCount: true,
+					commentCount: true,
+					likeCount: true,
+					starAverage: true,
+					createdAt: true
+				},
+				where: {
+					id: request['params']['movieStatisticId']
 				}
-			}]
+			}
+		},
+		where: {
+			id: request['params']['movieId'],
+			isDeleted: false
 		}
 	})
-	.then(function (movieCount: number): Promise<Omit<MovieStatistic, 'movieId'> | null> {
-		switch(movieCount) {
-			default: {
-				return prisma['movieStatistic'].findUnique({
-					select: {
-						id: true,
-						viewCount: true,
-						commentCount: true,
-						likeCount: true,
-						starAverage: true,
-						createdAt: true
-					},
-					where: {
-						id: request['params']['movieStatisticId']
-					}
-				});
-			}
-			case 1: {
+	.then(function (movie: {
+		movieStatistics: Omit<MovieStatistic, 'movieId'>[];
+	} | null): void {
+		if(movie !== null) {
+			if(movie['movieStatistics']['length'] === 1) {
+				reply.send(movie['movieStatistics'][0]);
+	
+				return;
+			} else {
 				throw new NotFound('Parameter[\'movieStatisticId\'] must be valid');
 			}
-			case 0: {
-				throw new NotFound('Parameter[\'movieId\'] must be valid');
-			}
+		} else {
+			throw new NotFound('Parameter[\'movieId\'] must be valid');
 		}
 	})
 	.then(reply.send.bind(reply))

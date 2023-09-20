@@ -11,7 +11,10 @@ export default function (request: FastifyRequest<{
 }>, reply: FastifyReply): void {
 	let token: string;
 
-	Promise.all([prisma['user'].count({
+	Promise.all([prisma['user'].findUnique({
+		select: {
+			id: true
+		},
 		where: {
 			email: request['body']['email']
 		}
@@ -23,8 +26,8 @@ export default function (request: FastifyRequest<{
 			email: request['body']['email']
 		}
 	})])
-	.then(function (results: [number, Pick<UserVerification, 'token'> | null]): Promise<string> {
-		if(results[0] === 0) {
+	.then(function (results: [Pick<User, 'id'> | null, Pick<UserVerification, 'token'> | null]): Promise<string> {
+		if(results[0] === null) {
 			if(results[1] === null) {
 				return getEncryptedPassword(request['body']['password'], request['body']['email']);
 			} else {

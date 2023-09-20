@@ -6,7 +6,7 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 export default function (request: FastifyRequest<{
 	Body: Pick<Report, 'type' | 'targetId'>;
 }>, reply: FastifyReply): void {
-	let validation: Prisma.PrismaPromise<number> | undefined;
+	let validation: Prisma.PrismaPromise<unknown> | undefined;
 
 	switch(request['body']['type']) {
 		case 0:
@@ -18,7 +18,10 @@ export default function (request: FastifyRequest<{
 		case 6:
 		case 7:
 		case 8: {
-			validation = prisma['user'].count({
+			validation = prisma['user'].findUnique({
+				select: {
+					id: true
+				},
 				where: {
 					id: request['body']['targetId'],
 					isDeleted: false
@@ -36,7 +39,10 @@ export default function (request: FastifyRequest<{
 		case 15:
 		case 16:
 		case 17: {
-			validation = prisma['movie'].count({
+			validation = prisma['movie'].findUnique({
+				select: {
+					id: true
+				},
 				where: {
 					id: request['body']['targetId'],
 					isDeleted: false
@@ -54,7 +60,10 @@ export default function (request: FastifyRequest<{
 		case 25:
 		case 26:
 		case 27: {
-			validation = prisma['movieComment'].count({
+			validation = prisma['movieComment'].findUnique({
+				select: {
+					id: true
+				},
 				where: {
 					id: request['body']['targetId'],
 					isDeleted: false
@@ -71,8 +80,8 @@ export default function (request: FastifyRequest<{
 
 	if(typeof(validation) === 'object') {
 		validation
-		.then(function (targetCount: number): Promise<Prisma.BatchPayload> {
-			if(targetCount === 1) {
+		.then(function (target: unknown): Promise<Prisma.BatchPayload> {
+			if(target !== null) {
 				return prisma['report'].createMany({
 					data: {
 						userId: request['user']['id'],

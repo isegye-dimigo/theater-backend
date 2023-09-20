@@ -1,6 +1,6 @@
 import { prisma } from '@library/database';
 import { NotFound } from '@library/httpError';
-import { Movie, Prisma } from '@prisma/client';
+import { Movie, MovieStar, Prisma } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 export default function (request: FastifyRequest<{
@@ -8,44 +8,46 @@ export default function (request: FastifyRequest<{
 		movieId: Movie['id'];
 	};
 }>, reply: FastifyReply): void {
-	prisma['movie'].count({
-		where: {
-			OR: [{
-				id: request['params']['movieId'],
-				isDeleted: false
-			}, {
-				id: request['params']['movieId'],
-				isDeleted: false,
-				movieStars: {
-					some: {
-						movieId: request['params']['movieId'],
-						userId: request['user']['id']
-					}
+	prisma['movie'].findUnique({
+		select: {
+			movieStars: {
+				select: {
+					id: true
+				},
+				where: {
+					movieId: request['params']['movieId'],
+					userId: request['user']['id']
 				}
-			}]
+			}
+		},
+		where: {
+			id: request['params']['movieId'],
+			isDeleted: false
 		}
 	})
-	.then(function (movieCount: number): Promise<Prisma.BatchPayload> {
-		switch(movieCount) {
-			default: {
+	.then(function (movie: {
+		movieStars: Pick<MovieStar, 'id'>[];
+	} | null): Promise<Prisma.BatchPayload> {
+		if(movie !== null) {
+			if(movie['movieStars']['length'] === 1) {
 				return prisma['movieStar'].deleteMany({
 					where: {
 						id: request['params']['movieId'],
 						userId: request['user']['id']
 					}
 				});
-			}
-			case 1: {
+			} else {
 				throw new NotFound('User must starred first');
 			}
-			case 0: {
-				throw new NotFound('Parameter[\'movieId\'] must be valid');
-			}
+		} else {
+			throw new NotFound('Parameter[\'movieId\'] must be valid');
 		}
 	})
 	.then(function (result: Prisma.BatchPayload): void {
 		if(result['count'] === 1) {
 			reply.status(204).send();
+
+			return;
 		} else {
 			throw new NotFound('Parameter[\'movieId\'] must be valid');
 		}
