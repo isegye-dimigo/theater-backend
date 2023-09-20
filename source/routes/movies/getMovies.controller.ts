@@ -3,7 +3,9 @@ import { PageQuery } from '@library/type';
 import { Media, MediaVideoMetadata, Movie, MovieStatistic, User } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
-// TODO: Implement natural language search with elasticsearch
+/* TODO: Implement natural language search with elasticsearch 
+	text.replace(/[^\p{Script=Hangul}\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}a-zA-Z0-9\s]+/gu, '') -> replace except for CJK + alphanumeric
+*/
 
 export default function (request: FastifyRequest<{
 	Querystring: PageQuery & {
