@@ -11,7 +11,8 @@
 		"baseUrl": ".",
 		"paths": {
 			"@library/*": ["source/library/*", "distribution/library/*"],
-			"@schemas/*": ["source/schemas/*", "distribution/schemas/*"]
+			"@schemas/*": ["source/schemas/*", "distribution/schemas/*"],
+			"@handlers/*": ["source/handlers/*", "distribution/handlers/*"]
 		},
 		"typeRoots": ["source/types", "node_modules/@types"],
 		"removeComments": true

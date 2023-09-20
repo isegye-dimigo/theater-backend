@@ -4,10 +4,10 @@ import '@library/schedule';
 import fastify from 'fastify';
 import { FastifyInstance } from '@library/type';
 import { logger } from '@library/logger';
-import errorHandler from './handlers/error';
-import headerHandler from './handlers/header';
-import notFoundHandler from './handlers/notFound';
-import serializeHandler from './handlers/serialize';
+import errorHandler from '@handlers/error';
+import headerHandler from '@handlers/header';
+import notFoundHandler from '@handlers/notFound';
+import serializeHandler from '@handlers/serialize';
 import rootModule from './routes/root.module';
 
 const fastifyInstance: FastifyInstance = fastify({
