@@ -28,7 +28,7 @@ fastifyInstance.register(fastifyMultipart, {
 	throwFileSizeLimit: true,
 	limits: {
 		files: 1,
-		fileSize: 2147000000
+		fileSize: 17180000000
 	}
 });
 
