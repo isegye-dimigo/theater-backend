@@ -3,7 +3,7 @@ import { MultipartFile } from '@fastify/multipart';
 import { BadRequest, PayloadTooLarge, Unauthorized, UnsupportedMediaType } from '@library/httpError';
 import { execute, getMetadata, isValidType } from '@library/utility';
 import { join } from 'path/posix';
-import { createReadStream, createWriteStream, read } from 'fs';
+import { WriteStream, createReadStream, createWriteStream, read } from 'fs';
 import { prisma } from '@library/database';
 import { Media, MediaVideo, MediaVideoMetadata, Prisma } from '@prisma/client';
 import { FileType, Metadata, RejectFunction, ResolveFunction } from '@library/type';
@@ -58,22 +58,33 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 			}
 
 			file['inputPath'] = join(file['basePath'], 'input.' + file['type']);
-			
+
 			return new Promise<void>(function (resolve: ResolveFunction, reject: RejectFunction): void {
-				multipartFile['file'].pipe(createWriteStream(file['inputPath']), {
-					end: true
-				})
-				.once('finish', function () {
-					// TODO: Validate fileSize before download whole file
-					if(!multipartFile['file']['truncated'] && (file['isVideo'] || multipartFile['file']['bytesRead'] < 5243000)) {
-						resolve();
-					} else {
-						reject(new PayloadTooLarge('File must not exceed size limit'));
+				const byteLengthLimit: number = file['isVideo'] ? 17180000000 : 5243000;
+				let readByteLength: number = 0;
+
+				const writeStream: WriteStream = createWriteStream(file['inputPath']).once('close', resolve).once('error', reject);
+
+				multipartFile['file'].on('data', function (chunk: Buffer) {
+					if(!multipartFile['file']['truncated']) {
+						readByteLength += chunk['byteLength'];
+						
+						if(readByteLength > byteLengthLimit) {
+							reply.send(new PayloadTooLarge('File must not exceed size limit'))
+							.then(function () {
+								writeStream.close(function () {
+									request['raw'].destroy();
+								
+									return;
+								});
+
+								return;
+							}, reject);
+						}
 					}
 
 					return;
-				})
-				.once('error', reject);
+				}).once('error', reject).pipe(writeStream).once('error', reject);
 
 				return;
 			});
@@ -265,6 +276,7 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 		mediaVideos: MediaVideo[];
 		mediaVideoMetadata: MediaVideoMetadata | null;
 	} | null> {
+		console.log('a')
 		return prisma['media'].create({
 			select: {
 				id: true,
@@ -314,11 +326,19 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 			}
 		})
 		.then(function (): void {
-			reply.send(error);
+			if(!request['raw']['destroyed']) {
+				reply.send(error);
+			}
 
 			return;
 		})
-		.catch(reply.send.bind(reply));
+		.catch(function (error: Error) {
+			if(!request['raw']['destroyed']) {
+				reply.send(error);
+			}
+
+			return;
+		});
 
 		return;
 	});
