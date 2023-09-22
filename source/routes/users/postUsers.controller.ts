@@ -56,7 +56,10 @@ export default function (request: FastifyRequest<{
 		return sendMail(request['body']['email'], '이세계 이메일 인증', getMailContent(request['body']['name'], token));
 	})
 	.then(function () {
-		reply.status(201).send(null);
+		reply.status(201).send({
+			name: request['body']['name'],
+			email: request['body']['email']
+		});
 
 		return;
 	})
