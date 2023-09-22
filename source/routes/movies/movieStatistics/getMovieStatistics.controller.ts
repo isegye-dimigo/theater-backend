@@ -35,11 +35,6 @@ export default function (request: FastifyRequest<{
 		where: {
 			id: request['params']['movieId'],
 			isDeleted: false
-		},
-		skip: request['query']['page[size]'] * request['query']['page[index]'],
-		take: request['query']['page[size]'],
-		orderBy: {
-			id: request['query']['page[order]'] === 'asc' ? 'asc' : 'desc'
 		}
 	})
 	.then(function (movie: Pick<Movie, 'userId'> & {
