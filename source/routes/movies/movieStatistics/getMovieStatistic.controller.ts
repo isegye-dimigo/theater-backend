@@ -1,5 +1,5 @@
 import { prisma } from '@library/database';
-import { NotFound } from '@library/httpError';
+import { NotFound, Unauthorized } from '@library/httpError';
 import { PageQuery } from '@library/type';
 import { Movie, MovieStatistic } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
@@ -13,6 +13,7 @@ export default function (request: FastifyRequest<{
 }>, reply: FastifyReply): void {
 	prisma['movie'].findUnique({
 		select: {
+			userId: true,
 			movieStatistics: {
 				select: {
 					id: true,
@@ -32,14 +33,18 @@ export default function (request: FastifyRequest<{
 			isDeleted: false
 		}
 	})
-	.then(function (movie: {
+	.then(function (movie: Pick<Movie, 'userId'> & {
 		movieStatistics: Omit<MovieStatistic, 'movieId'>[];
 	} | null): void {
 		if(movie !== null) {
 			if(movie['movieStatistics']['length'] === 1) {
-				reply.send(movie['movieStatistics'][0]);
-
-				return;
+				if(request['user']['id'] === movie['userId']) {
+					reply.send(movie['movieStatistics'][0]);
+	
+					return;
+				} else {
+					throw new Unauthorized('User must be same');
+				}
 			} else {
 				throw new NotFound('Parameter[\'movieStatisticId\'] must be valid');
 			}
@@ -47,7 +52,6 @@ export default function (request: FastifyRequest<{
 			throw new NotFound('Parameter[\'movieId\'] must be valid');
 		}
 	})
-	.then(reply.send.bind(reply))
 	.catch(reply.send.bind(reply));
 
 	return;

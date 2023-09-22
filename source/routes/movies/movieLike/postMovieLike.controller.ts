@@ -1,5 +1,5 @@
 import { prisma } from '@library/database';
-import { NotFound } from '@library/httpError';
+import { Conflict, NotFound } from '@library/httpError';
 import { Movie, MovieLike, Prisma } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
@@ -37,7 +37,7 @@ export default function (request: FastifyRequest<{
 					}
 				});
 			} else {
-				throw new NotFound('User must not liked');
+				throw new Conflict('User must not liked');
 			}
 		} else {
 			throw new NotFound('Parameter[\'movieId\'] must be valid');

@@ -1,6 +1,6 @@
 import { prisma } from '@library/database';
 import { BadRequest, NotFound, Unauthorized } from '@library/httpError';
-import { Media, MediaVideoMetadata, Movie } from '@prisma/client';
+import { Media, MediaVideoMetadata, Movie, User } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 export default function (request: FastifyRequest<{
@@ -35,7 +35,7 @@ export default function (request: FastifyRequest<{
 						if(typeof(request['body']['imageMediaId']) === 'number') {
 							if(typeof(movie['imageMedia']) !== 'undefined' && movie['imageMedia'] !== null) {
 								if(movie['imageMedia']['isVideo']) {
-									throw new BadRequest('Body[\'imageMediaId\'] must not be id of video');
+									throw new BadRequest('Body[\'imageMediaId\'] must not be video');
 								}
 							} else {
 								throw new BadRequest('Body[\'imageMediaId\'] must be valid')
@@ -51,6 +51,7 @@ export default function (request: FastifyRequest<{
 				}
 			})
 			.then(function (): Promise<Pick<Movie, 'id' | 'title' | 'description'> & {
+				user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'>;
 				imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'>;
 				videoMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'> & {
 					mediaVideoMetadata: Pick<MediaVideoMetadata, 'duration' | 'frameRate'> | null;
@@ -59,6 +60,14 @@ export default function (request: FastifyRequest<{
 				return prisma['movie'].update({
 					select: {
 						id: true,
+						user: {
+							select: {
+								id: true,
+								handle: true,
+								name: true,
+								isVerified: true
+							}
+						},
 						title: true,
 						description: true,
 						imageMedia: {

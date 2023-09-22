@@ -37,7 +37,7 @@ export default function (request: FastifyRequest<{
 					}
 				});
 			} else {
-				throw new NotFound('User must liked first');
+				throw new NotFound('User must liked');
 			}
 		} else {
 			throw new NotFound('Parameter[\'movieId\'] must be valid');

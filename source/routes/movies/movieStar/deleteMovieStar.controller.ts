@@ -37,7 +37,7 @@ export default function (request: FastifyRequest<{
 					}
 				});
 			} else {
-				throw new NotFound('User must starred first');
+				throw new NotFound('User must starred');
 			}
 		} else {
 			throw new NotFound('Parameter[\'movieId\'] must be valid');

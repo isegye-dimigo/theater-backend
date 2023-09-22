@@ -86,17 +86,20 @@ export default function (request: FastifyRequest<{
 				if(typeof(request['body']['profileMediaId']) === 'number') {
 					validations.push(prisma['media'].findUnique({
 						select: {
-							id: true
+							isVideo: true
 						},
 						where: {
 							id: request['body']['profileMediaId'],
-							isVideo: false,
 							isDeleted: false
 						}
 					})
-					.then(function (media: Pick<Media, 'id'> | null): void {
+					.then(function (media: Pick<Media, 'isVideo'> | null): void {
 						if(media !== null) {
-							return;
+							if(!media['isVideo']) {
+								return;
+							} else {
+								throw new BadRequest('Body[\'profileMediaId\'] must not be video');
+							}
 						} else {
 							throw new BadRequest('Body[\'profileMediaId\'] must be valid');
 						}
@@ -106,17 +109,20 @@ export default function (request: FastifyRequest<{
 				if(typeof(request['body']['bannerMediaId']) === 'number') {
 					validations.push(prisma['media'].findUnique({
 						select: {
-							id: true
+							isVideo: true
 						},
 						where: {
 							id: request['body']['bannerMediaId'],
-							isVideo: false,
 							isDeleted: false
 						}
 					})
-					.then(function (media: Pick<Media, 'id'> | null): void {
+					.then(function (media: Pick<Media, 'isVideo'> | null): void {
 						if(media !== null) {
-							return;
+							if(!media['isVideo']) {
+								return;
+							} else {
+								throw new BadRequest('Body[\'bannerMediaId\'] must not be video');
+							}
 						} else {
 							throw new BadRequest('Body[\'bannerMediaId\'] must be valid');
 						}

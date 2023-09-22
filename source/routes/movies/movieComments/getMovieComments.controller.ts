@@ -70,7 +70,6 @@ export default function (request: FastifyRequest<{
 			throw new NotFound('Parameter[\'movieId\'] must be valid');
 		}
 	})
-	.then(reply.send.bind(reply))
 	.catch(reply.send.bind(reply));
 
 	return;

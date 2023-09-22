@@ -1,6 +1,6 @@
 import { prisma } from '@library/database';
 import { BadRequest, NotFound, Unauthorized } from '@library/httpError';
-import { Movie, MovieComment } from '@prisma/client';
+import { Media, Movie, MovieComment, User } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 export default function (request: FastifyRequest<{
@@ -47,7 +47,11 @@ export default function (request: FastifyRequest<{
 				} | null;
 			} | null;
 			movieComments: Pick<MovieComment, 'userId'>[];
-		} | null): Promise<Pick<MovieComment, 'id' | 'time' | 'content' | 'createdAt'>> {
+		} | null): Promise<Pick<MovieComment, 'id' | 'time' | 'content' | 'createdAt'> & {
+			user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'> & {
+				profileMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'> | null;
+			};
+		}> {
 			if(movie !== null) {
 				if(movie['movieComments']['length'] === 1) {
 					if(movie['movieComments'][1]['userId'] === request['user']['id']) {
@@ -55,6 +59,23 @@ export default function (request: FastifyRequest<{
 							return prisma['movieComment'].update({
 								select: {
 									id: true,
+									user: {
+										select: {
+											id: true,
+											handle: true,
+											name: true,
+											isVerified: true,
+											profileMedia: {
+												select: {
+													hash: true,
+													id: true,
+													width: true,
+													height: true,
+													isVideo: true
+												}
+											}
+										}
+									},
 									time: true,
 									content: true,
 									createdAt: true

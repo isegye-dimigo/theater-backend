@@ -1,5 +1,6 @@
 import Module from '@library/module';
 import getMovieStatisticsController from './getMovieStatistics.controller';
+import getMovieStatisticController from './getMovieStatistic.controller';
 import movieSchema from '@schemas/movie';
 import movieStatisticSchema from '@schemas/movieStatistic';
 import pageSchema from '@schemas/page';
@@ -23,7 +24,7 @@ export default new Module({
 	}, {
 		method: 'GET',
 		url: ':movieStatisticId',
-		handler: getMovieStatisticsController,
+		handler: getMovieStatisticController,
 		schema: {
 			params: {
 				movieId: movieSchema.get('id').required(),
