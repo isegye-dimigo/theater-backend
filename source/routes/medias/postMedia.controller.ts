@@ -35,235 +35,279 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 	})
 	.then(function (multipartFile: MultipartFile | undefined): Promise<void> {
 		if(typeof(multipartFile) === 'object') {
-			file['type'] = multipartFile['filename'].split('.').pop() as FileType;
-
-			switch(file['type']) {
-				case 'mp4': {
-					if(request['user']['isVerified']) {
-						file['isVideo'] = true;
-
-						break;
-					} else {
-						throw new Unauthorized('User must be verified');
-					}
-				}
-				case 'jpg':
-				case 'png': {
-					break;
-				}
-
-				default: {
-					throw new UnsupportedMediaType('File must be valid type');
-				}
-			}
-
-			file['inputPath'] = join(file['basePath'], 'input.' + file['type']);
-
-			return new Promise<void>(function (resolve: ResolveFunction, reject: RejectFunction): void {
-				const byteLengthLimit: number = file['isVideo'] ? 17180000000 : 5243000;
-				let readByteLength: number = 0;
-
-				const writeStream: WriteStream = createWriteStream(file['inputPath']).once('close', resolve).once('error', reject);
-
-				multipartFile['file'].on('data', function (chunk: Buffer) {
-					if(!multipartFile['file']['truncated']) {
-						readByteLength += chunk['byteLength'];
-						
-						if(readByteLength > byteLengthLimit) {
-							reply.send(new PayloadTooLarge('File must not exceed size limit'))
-							.then(function () {
-								writeStream.close(function () {
-									request['raw'].destroy();
-								
-									return;
-								});
-
-								return;
-							}, reject);
+			if(!request['raw']['destroyed']) {
+				file['type'] = multipartFile['filename'].split('.').pop() as FileType;
+	
+				switch(file['type']) {
+					case 'mp4': {
+						if(request['user']['isVerified']) {
+							file['isVideo'] = true;
+	
+							break;
+						} else {
+							throw new Unauthorized('User must be verified');
 						}
 					}
-
-					return;
-				}).once('error', reject).pipe(writeStream).once('error', reject);
-
-				return;
-			});
+					case 'jpg':
+					case 'png': {
+						break;
+					}
+	
+					default: {
+						throw new UnsupportedMediaType('File must be valid type');
+					}
+				}
+	
+				const fileSizeLimit: number = file['isVideo'] ? 17180000000 : 5243000;
+				
+				if(typeof(request['headers']['content-length']) === 'string') {
+					if(Number.parseInt(request['headers']['content-length'], 10) <= fileSizeLimit) {
+						file['inputPath'] = join(file['basePath'], 'input.' + file['type']);
+	
+						return new Promise<void>(function (resolve: ResolveFunction, reject: RejectFunction): void {
+							const writeStream: WriteStream = createWriteStream(file['inputPath']).once('close', resolve).once('error', reject);
+							let readFileSize: number = 0;
+			
+							multipartFile['file'].on('data', function (chunk: Buffer) {
+								if(!multipartFile['file']['truncated']) {
+									readFileSize += chunk['byteLength'];
+									
+									if(readFileSize > fileSizeLimit) {
+										reply.send(new PayloadTooLarge('File must not exceed size limit'))
+										.then(function () {
+											writeStream.close(function () {
+												request['raw'].destroy();
+											
+												return;
+											});
+			
+											return;
+										}, reject);
+									}
+								}
+			
+								return;
+							}).once('error', reject).pipe(writeStream).once('error', reject);
+			
+							return;
+						});
+					} else {
+						throw new PayloadTooLarge('File must not exceed size limit');
+					}
+				} else {
+					throw new BadRequest('Header[\'Content-Length\'] must be exist');
+				}
+			} else {
+				throw new BadRequest('File must be exist');
+			}
 		} else {
-			throw new BadRequest('File must be exist');
+			throw new Error('Reuqest destroyed');
 		}
 	})
 	.then(function (): Promise<Buffer> {
-		return open(file['inputPath'])
-		.then(function (fileHandle: FileHandle): Promise<Buffer> {
-			return new Promise<Buffer>(function (resolve: ResolveFunction<Buffer>, reject: RejectFunction): void {
-				const buffer: Buffer = Buffer.alloc(24);
-
-				read(fileHandle['fd'], buffer, 0, 24, 0, function (error: Error | null): void {
-					if(error === null) {
-						fileHandle.close()
-						.then(function (): void {
-							resolve(buffer);
-						})
-						.catch(reject);
-					} else {
-						reject(error);
-					}
-
+		if(!request['raw']['destroyed']) {
+			return open(file['inputPath'])
+			.then(function (fileHandle: FileHandle): Promise<Buffer> {
+				return new Promise<Buffer>(function (resolve: ResolveFunction<Buffer>, reject: RejectFunction): void {
+					const buffer: Buffer = Buffer.alloc(24);
+	
+					read(fileHandle['fd'], buffer, 0, 24, 0, function (error: Error | null): void {
+						if(error === null) {
+							fileHandle.close()
+							.then(function (): void {
+								resolve(buffer);
+							})
+							.catch(reject);
+						} else {
+							reject(error);
+						}
+	
+						return;
+					});
+	
 					return;
 				});
-
-				return;
-			});
-		});
-	})
-	.then(function (partialBuffer: Buffer): Promise<string> {
-		if(isValidType(partialBuffer, file['type'])) {
-			return new Promise<string>(function (resolve: ResolveFunction<string>, reject: RejectFunction): void {
-				const hash: Hash = createHash('sha512').setEncoding('hex');
-
-				createReadStream(file['inputPath']).pipe(hash)
-				.once('error', reject);
-
-				hash.once('finish', function (): void {
-					resolve(hash.read());
-				})
-				.once('error', reject);
 			});
 		} else {
-			throw new UnsupportedMediaType('File must be valid type');
+			throw new Error('Reuqest destroyed');
+		}
+	})
+	.then(function (partialBuffer: Buffer): Promise<string> {
+		if(!request['raw']['destroyed']) {
+			if(isValidType(partialBuffer, file['type'])) {
+				return new Promise<string>(function (resolve: ResolveFunction<string>, reject: RejectFunction): void {
+					const hash: Hash = createHash('sha512').setEncoding('hex');
+	
+					createReadStream(file['inputPath']).pipe(hash)
+					.once('error', reject);
+	
+					hash.once('finish', function (): void {
+						resolve(hash.read());
+					})
+					.once('error', reject);
+				});
+			} else {
+				throw new UnsupportedMediaType('File must be valid type');
+			}
+		} else {
+			throw new Error('Reuqest destroyed');
 		}
 	})
 	.then(function (fileHash: string): Promise<Omit<Media, 'userId' | 'isDeleted'> & {
 		mediaVideos: MediaVideo[];
 	} | null> {
-		file['hash'] = fileHash;
-
-		return prisma['media'].findUnique({
-			select: {
-				id: true,
-				hash: true,
-				type: true,
-				size: true,
-				width: true,
-				height: true,
-				aspectRatio: true,
-				isVideo: true,
-				createdAt: true,
-				mediaVideos: true,
-				mediaVideoMetadata: true
-			},
-			where: {
-				hash: fileHash
-			}
-		});
+		if(!request['raw']['destroyed']) {
+			file['hash'] = fileHash;
+	
+			return prisma['media'].findUnique({
+				select: {
+					id: true,
+					hash: true,
+					type: true,
+					size: true,
+					width: true,
+					height: true,
+					aspectRatio: true,
+					isVideo: true,
+					createdAt: true,
+					mediaVideos: true,
+					mediaVideoMetadata: true
+				},
+				where: {
+					hash: fileHash
+				}
+			});
+		} else {
+			throw new Error('Reuqest destroyed');
+		}
 	})
 	.then(function (media: Omit<Media, 'userId' | 'isDeleted'> & {
 		mediaVideos: MediaVideo[];
 	} | null): Promise<void> {
-		if(media === null) {
-			return execute('ffmpeg -v quiet -i input.' + file['type'] + ' -vf "scale=\'if(gte(iw,1270)*gte(ih,720),min(1270,iw),iw)\':\'if(gte(iw,720)*gte(ih,1280),min(1280,ih),ih)\'" -c:v ' + (file['isVideo'] ? 'h264_qsv -r 30 -map 0:v:0 -map 0:a:0 -c:a aac -q 17 -preset veryslow -f ssegment -segment_list index.m3u8 %d.ts' : 'libwebp -quality 100 -preset photo ' + file['hash'] + '.webp'), {
-				basePath: file['basePath']
-			});
+		if(!request['raw']['destroyed']) {
+			if(media === null) {
+				return execute('ffmpeg -v quiet -i input.' + file['type'] + ' -vf "scale=\'if(gte(iw,1270)*gte(ih,720),min(1270,iw),iw)\':\'if(gte(iw,720)*gte(ih,1280),min(1280,ih),ih)\'" -c:v ' + (file['isVideo'] ? 'h264_qsv -r 30 -map 0:v:0 -map 0:a:0 -c:a aac -q 17 -preset veryslow -f ssegment -segment_list index.m3u8 %d.ts' : 'libwebp -quality 100 -preset photo ' + file['hash'] + '.webp'), {
+					basePath: file['basePath']
+				});
+			} else {
+				// @ts-expect-error
+				file['hash'] = undefined;
+	
+				throw media;
+			}
 		} else {
-			// @ts-expect-error
-			file['hash'] = undefined;
-
-			throw media;
+			throw new Error('Reuqest destroyed');
 		}
 	})
 	.then(function (): Promise<void> {
-		return rm(file['inputPath'], {
-			force: true
-		});
-	})
-	.then(function (): Promise<string[]> | string[] {
-		return readdir(file['basePath']);
-	})
-	.then(function (paths: string[]): Promise<ServiceOutputTypes[]> {
-		if(paths['length'] === 1) {
-			return getMetadata(paths[0], {
-				basePath: file['basePath']
-			})
-			.then(function (metadata: Metadata<'image'>) {
-				media = {
-					hash: file['hash'],
-					userId: request['user']['id'],
-					type: file['type'],
-					size: metadata['size'],
-					width: metadata['video']['width'],
-					height: metadata['video']['height'],
-					aspectRatio: metadata['video']['aspectRatio'],
-					isVideo: false
-				};
-
-				return Promise.all([putObject(join('images', paths[0]), createReadStream(join(file['basePath'], paths[0])), 'image/webp')]);
+		if(!request['raw']['destroyed']) {
+			return rm(file['inputPath'], {
+				force: true
 			});
 		} else {
-			const metadataPromises: Promise<Metadata<'video'>>[] = [];
-			const putObjectPromises: Promise<ServiceOutputTypes>[] = [];
-
-			for(let i: number = 0; i < paths['length']; i++) {
-				let mime: string = 'video/MP2T';
-
-				if(paths[i].endsWith('ts')) {
-					metadataPromises.push(getMetadata(paths[i], {
-						isVideo: true,
-						basePath: file['basePath']
-					}));
-				} else {
-					mime = 'application/x-mpegURL';
-				}
-
-				putObjectPromises.push(putObject(join('videos', file['hash'], paths[i]), createReadStream(join(file['basePath'], paths[i])), mime));
-			}
-
-			return Promise.all(metadataPromises)
-			.then(function (metadatas: Metadata<'video'>[]) {
-				media = {
-					hash: file['hash'],
-					userId: request['user']['id'],
-					type: file['type'],
-					size: 0,
-					width: metadatas[0]['video']['width'],
-					height: metadatas[0]['video']['height'],
-					aspectRatio: metadatas[0]['video']['aspectRatio'],
-					isVideo: true,
-					mediaVideos: {
-						createMany: {
-							data: []
-						}
-					},
-					mediaVideoMetadata: {
-						create: {
-							duration: 0,
-							frameRate: 0,
-							bitRate: 0,
-							sampleRate: metadatas[0]['audio']['sampleRate'],
-							channelCount: metadatas[0]['audio']['channelCount']
-						}
+			throw new Error('Reuqest destroyed');
+		}
+	})
+	.then(function (): Promise<string[]> | string[] {
+		if(!request['raw']['destroyed']) {
+			return readdir(file['basePath']);
+		} else {
+			throw new Error('Reuqest destroyed');
+		}
+	})
+	.then(function (paths: string[]): Promise<ServiceOutputTypes> {
+		if(!request['raw']['destroyed']) {
+			if(paths['length'] === 1) {
+				return getMetadata(paths[0], {
+					basePath: file['basePath']
+				})
+				.then(function (metadata: Metadata<'image'>) {
+					media = {
+						hash: file['hash'],
+						userId: request['user']['id'],
+						type: file['type'],
+						size: metadata['size'],
+						width: metadata['video']['width'],
+						height: metadata['video']['height'],
+						aspectRatio: metadata['video']['aspectRatio'],
+						isVideo: false
+					};
+	
+					return putObject(join('images', paths[0]), createReadStream(join(file['basePath'], paths[0])), 'image/webp');
+				});
+			} else {
+				const metadataPromises: Promise<Metadata<'video'>>[] = [];
+				const putObjectPromises: Promise<ServiceOutputTypes>[] = [];
+	
+				for(let i: number = 0; i < paths['length']; i++) {
+					let mime: string = 'video/MP2T';
+	
+					if(paths[i].endsWith('ts')) {
+						metadataPromises.push(getMetadata(paths[i], {
+							isVideo: true,
+							basePath: file['basePath']
+						}));
+					} else {
+						mime = 'application/x-mpegURL';
 					}
-				};
-
-				for(let i: number = 0; i < metadatas['length']; i++) {
-					((media['mediaVideos'] as Required<Prisma.MediaVideoUncheckedCreateNestedManyWithoutMediaInput>)['createMany']['data'] as Prisma.MediaVideoCreateManyMediaInput[]).push({
-						index: metadatas[i]['index'],
-						size: metadatas[i]['size'],
-						duration: metadatas[i]['duration'],
-						videoBitRate: metadatas[i]['video']['bitRate'],
-						audioBitRate: metadatas[i]['audio']['bitRate']
-					});
-
-					media['size'] += metadatas[i]['size'];
-					(media['mediaVideoMetadata'] as Required<Prisma.MediaVideoMetadataUncheckedCreateNestedOneWithoutMediaInput>)['create']['duration'] += metadatas[i]['duration'];
-					(media['mediaVideoMetadata'] as Required<Prisma.MediaVideoMetadataUncheckedCreateNestedOneWithoutMediaInput>)['create']['frameRate'] += metadatas[i]['video']['frameRate'];
-					(media['mediaVideoMetadata'] as Required<Prisma.MediaVideoMetadataUncheckedCreateNestedOneWithoutMediaInput>)['create']['bitRate'] += metadatas[i]['bitRate'];
+	
+					putObjectPromises.push(putObject(join('videos', file['hash'], paths[i]), createReadStream(join(file['basePath'], paths[i])), mime));
 				}
-
-				(media['mediaVideoMetadata'] as Required<Prisma.MediaVideoMetadataUncheckedCreateNestedOneWithoutMediaInput>)['create']['frameRate'] /= metadatas['length'];
-				(media['mediaVideoMetadata'] as Required<Prisma.MediaVideoMetadataUncheckedCreateNestedOneWithoutMediaInput>)['create']['bitRate'] /= metadatas['length'];
-
-				return Promise.all(putObjectPromises);
-			});
+	
+				return Promise.all(metadataPromises)
+				.then(function (metadatas: Metadata<'video'>[]) {
+					media = {
+						hash: file['hash'],
+						userId: request['user']['id'],
+						type: file['type'],
+						size: 0,
+						width: metadatas[0]['video']['width'],
+						height: metadatas[0]['video']['height'],
+						aspectRatio: metadatas[0]['video']['aspectRatio'],
+						isVideo: true,
+						mediaVideos: {
+							createMany: {
+								data: []
+							}
+						},
+						mediaVideoMetadata: {
+							create: {
+								duration: 0,
+								frameRate: 0,
+								bitRate: 0,
+								sampleRate: metadatas[0]['audio']['sampleRate'],
+								channelCount: metadatas[0]['audio']['channelCount']
+							}
+						}
+					};
+	
+					for(let i: number = 0; i < metadatas['length']; i++) {
+						((media['mediaVideos'] as Required<Prisma.MediaVideoUncheckedCreateNestedManyWithoutMediaInput>)['createMany']['data'] as Prisma.MediaVideoCreateManyMediaInput[]).push({
+							index: metadatas[i]['index'],
+							size: metadatas[i]['size'],
+							duration: metadatas[i]['duration'],
+							videoBitRate: metadatas[i]['video']['bitRate'],
+							audioBitRate: metadatas[i]['audio']['bitRate']
+						});
+	
+						media['size'] += metadatas[i]['size'];
+						(media['mediaVideoMetadata'] as Required<Prisma.MediaVideoMetadataUncheckedCreateNestedOneWithoutMediaInput>)['create']['duration'] += metadatas[i]['duration'];
+						(media['mediaVideoMetadata'] as Required<Prisma.MediaVideoMetadataUncheckedCreateNestedOneWithoutMediaInput>)['create']['frameRate'] += metadatas[i]['video']['frameRate'];
+						(media['mediaVideoMetadata'] as Required<Prisma.MediaVideoMetadataUncheckedCreateNestedOneWithoutMediaInput>)['create']['bitRate'] += metadatas[i]['bitRate'];
+					}
+	
+					(media['mediaVideoMetadata'] as Required<Prisma.MediaVideoMetadataUncheckedCreateNestedOneWithoutMediaInput>)['create']['frameRate'] /= metadatas['length'];
+					(media['mediaVideoMetadata'] as Required<Prisma.MediaVideoMetadataUncheckedCreateNestedOneWithoutMediaInput>)['create']['bitRate'] /= metadatas['length'];
+					
+					return putObjectPromises.reduce(function (previousPromise, currentPromise): Promise<ServiceOutputTypes> {
+						return previousPromise.then(function (): Promise<ServiceOutputTypes> {
+							return currentPromise;
+						});
+					});
+				});
+			}
+		} else {
+			throw new Error('Reuqest destroyed');
 		}
 	})
 	.then(function (): Promise<void> {
@@ -276,23 +320,26 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 		mediaVideos: MediaVideo[];
 		mediaVideoMetadata: MediaVideoMetadata | null;
 	} | null> {
-		console.log('a')
-		return prisma['media'].create({
-			select: {
-				id: true,
-				hash: true,
-				type: true,
-				size: true,
-				width: true,
-				height: true,
-				aspectRatio: true,
-				isVideo: true,
-				createdAt: true,
-				mediaVideos: true,
-				mediaVideoMetadata: true
-			},
-			data: media
-		});
+		if(!request['raw']['destroyed']) {
+			return prisma['media'].create({
+				select: {
+					id: true,
+					hash: true,
+					type: true,
+					size: true,
+					width: true,
+					height: true,
+					aspectRatio: true,
+					isVideo: true,
+					createdAt: true,
+					mediaVideos: true,
+					mediaVideoMetadata: true
+				},
+				data: media
+			});
+		} else {
+			throw new Error('Reuqest destroyed');
+		}
 	})
 	.then(reply.status(201).send.bind(reply))
 	.catch(function (error: any): void {
@@ -328,6 +375,8 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 		.then(function (): void {
 			if(!request['raw']['destroyed']) {
 				reply.send(error);
+			} else {
+				request['log'].error(error);
 			}
 
 			return;
@@ -335,6 +384,8 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 		.catch(function (error: Error) {
 			if(!request['raw']['destroyed']) {
 				reply.send(error);
+			} else {
+				request['log'].error(error);
 			}
 
 			return;
