@@ -38,7 +38,7 @@ export default function (request: FastifyRequest<{
 		if(movie !== null) {
 			if(movie['movieStatistics']['length'] === 1) {
 				reply.send(movie['movieStatistics'][0]);
-	
+
 				return;
 			} else {
 				throw new NotFound('Parameter[\'movieStatisticId\'] must be valid');

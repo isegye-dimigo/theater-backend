@@ -41,7 +41,7 @@ export default function (request: FastifyRequest<{
 								throw new BadRequest('Body[\'imageMediaId\'] must be valid')
 							}
 						}
-						
+
 						return;
 					} else {
 						throw new Unauthorized('User must be same');

@@ -37,12 +37,12 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 		if(typeof(multipartFile) === 'object') {
 			if(!request['raw']['destroyed']) {
 				file['type'] = multipartFile['filename'].split('.').pop() as FileType;
-	
+
 				switch(file['type']) {
 					case 'mp4': {
 						if(request['user']['isVerified']) {
 							file['isVideo'] = true;
-	
+
 							break;
 						} else {
 							throw new Unauthorized('User must be verified');
@@ -52,43 +52,43 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 					case 'png': {
 						break;
 					}
-	
+
 					default: {
 						throw new UnsupportedMediaType('File must be valid type');
 					}
 				}
-	
+
 				const fileSizeLimit: number = file['isVideo'] ? 17180000000 : 5243000;
-				
+
 				if(typeof(request['headers']['content-length']) === 'string') {
 					if(Number.parseInt(request['headers']['content-length'], 10) <= fileSizeLimit) {
 						file['inputPath'] = join(file['basePath'], 'input.' + file['type']);
-	
+
 						return new Promise<void>(function (resolve: ResolveFunction, reject: RejectFunction): void {
 							const writeStream: WriteStream = createWriteStream(file['inputPath']).once('close', resolve).once('error', reject);
 							let readFileSize: number = 0;
-			
+
 							multipartFile['file'].on('data', function (chunk: Buffer) {
 								if(!multipartFile['file']['truncated']) {
 									readFileSize += chunk['byteLength'];
-									
+
 									if(readFileSize > fileSizeLimit) {
 										reply.send(new PayloadTooLarge('File must not exceed size limit'))
 										.then(function () {
 											writeStream.close(function () {
 												request['raw'].destroy();
-											
+
 												return;
 											});
-			
+
 											return;
 										}, reject);
 									}
 								}
-			
+
 								return;
 							}).once('error', reject).pipe(writeStream).once('error', reject);
-			
+
 							return;
 						});
 					} else {
@@ -110,7 +110,7 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 			.then(function (fileHandle: FileHandle): Promise<Buffer> {
 				return new Promise<Buffer>(function (resolve: ResolveFunction<Buffer>, reject: RejectFunction): void {
 					const buffer: Buffer = Buffer.alloc(24);
-	
+
 					read(fileHandle['fd'], buffer, 0, 24, 0, function (error: Error | null): void {
 						if(error === null) {
 							fileHandle.close()
@@ -121,10 +121,10 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 						} else {
 							reject(error);
 						}
-	
+
 						return;
 					});
-	
+
 					return;
 				});
 			});
@@ -137,10 +137,10 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 			if(isValidType(partialBuffer, file['type'])) {
 				return new Promise<string>(function (resolve: ResolveFunction<string>, reject: RejectFunction): void {
 					const hash: Hash = createHash('sha512').setEncoding('hex');
-	
+
 					createReadStream(file['inputPath']).pipe(hash)
 					.once('error', reject);
-	
+
 					hash.once('finish', function (): void {
 						resolve(hash.read());
 					})
@@ -158,7 +158,7 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 	} | null> {
 		if(!request['raw']['destroyed']) {
 			file['hash'] = fileHash;
-	
+
 			return prisma['media'].findUnique({
 				select: {
 					id: true,
@@ -192,7 +192,7 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 			} else {
 				// @ts-expect-error
 				file['hash'] = undefined;
-	
+
 				throw media;
 			}
 		} else {
@@ -232,16 +232,16 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 						aspectRatio: metadata['video']['aspectRatio'],
 						isVideo: false
 					};
-	
+
 					return putObject(join('images', paths[0]), createReadStream(join(file['basePath'], paths[0])), 'image/webp');
 				});
 			} else {
 				const metadataPromises: Promise<Metadata<'video'>>[] = [];
 				const putObjectPromises: Promise<ServiceOutputTypes>[] = [];
-	
+
 				for(let i: number = 0; i < paths['length']; i++) {
 					let mime: string = 'video/MP2T';
-	
+
 					if(paths[i].endsWith('ts')) {
 						metadataPromises.push(getMetadata(paths[i], {
 							isVideo: true,
@@ -250,10 +250,10 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 					} else {
 						mime = 'application/x-mpegURL';
 					}
-	
+
 					putObjectPromises.push(putObject(join('videos', file['hash'], paths[i]), createReadStream(join(file['basePath'], paths[i])), mime));
 				}
-	
+
 				return Promise.all(metadataPromises)
 				.then(function (metadatas: Metadata<'video'>[]) {
 					media = {
@@ -280,7 +280,7 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 							}
 						}
 					};
-	
+
 					for(let i: number = 0; i < metadatas['length']; i++) {
 						((media['mediaVideos'] as Required<Prisma.MediaVideoUncheckedCreateNestedManyWithoutMediaInput>)['createMany']['data'] as Prisma.MediaVideoCreateManyMediaInput[]).push({
 							index: metadatas[i]['index'],
@@ -289,16 +289,16 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 							videoBitRate: metadatas[i]['video']['bitRate'],
 							audioBitRate: metadatas[i]['audio']['bitRate']
 						});
-	
+
 						media['size'] += metadatas[i]['size'];
 						(media['mediaVideoMetadata'] as Required<Prisma.MediaVideoMetadataUncheckedCreateNestedOneWithoutMediaInput>)['create']['duration'] += metadatas[i]['duration'];
 						(media['mediaVideoMetadata'] as Required<Prisma.MediaVideoMetadataUncheckedCreateNestedOneWithoutMediaInput>)['create']['frameRate'] += metadatas[i]['video']['frameRate'];
 						(media['mediaVideoMetadata'] as Required<Prisma.MediaVideoMetadataUncheckedCreateNestedOneWithoutMediaInput>)['create']['bitRate'] += metadatas[i]['bitRate'];
 					}
-	
+
 					(media['mediaVideoMetadata'] as Required<Prisma.MediaVideoMetadataUncheckedCreateNestedOneWithoutMediaInput>)['create']['frameRate'] /= metadatas['length'];
 					(media['mediaVideoMetadata'] as Required<Prisma.MediaVideoMetadataUncheckedCreateNestedOneWithoutMediaInput>)['create']['bitRate'] /= metadatas['length'];
-					
+
 					return putObjectPromises.reduce(function (previousPromise, currentPromise): Promise<ServiceOutputTypes> {
 						return previousPromise.then(function (): Promise<ServiceOutputTypes> {
 							return currentPromise;

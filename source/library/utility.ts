@@ -49,7 +49,7 @@ const fileSignatures: Record<FileType, FileSignature[]> = {
 	}]
 };
 
-export function 	execute(command: string, isOutputNeeded?: {
+export function execute(command: string, isOutputNeeded?: {
 	basePath?: string;
 	isOutputNeeded?: false;
 }): Promise<void>;
@@ -161,7 +161,7 @@ export function getMetadata(fileName: string, options: {
 					const videoBitRate: number = Number.parseInt(result['streams'][0]['bit_rate'], 10);
 					const audioBitRate: number = Number.parseInt(result['streams'][1]['bit_rate'], 10);
 					const totalBitRate: number = Number.parseInt(result['format']['bit_rate'], 10);
-		
+
 					return {
 						video: {
 							width: result['streams'][0]['width'],

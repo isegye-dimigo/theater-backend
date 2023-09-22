@@ -34,7 +34,7 @@ const handleCharacter = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz012
 
 export function getUniqueRandomHandle(): Promise<string> {
 	let handle: string = '';
-	
+
 	for(const byte of randomBytes(30)) {
 		handle += handleCharacter[byte % 65];
 	}
