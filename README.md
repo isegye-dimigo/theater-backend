@@ -24,8 +24,8 @@ Backend of Isegye Theater
 |PBKDF2_ITERATION|"32"|
 |PORT|"3000"|
 |RATE_LIMIT|"1024"|
-|AWS_ACCESS_KEY_ID|"{accessKey}"|
+|AWS_ACCESS_KEY_ID|"{accessKeyId}"|
 |AWS_SECRET_ACCESS_KEY|"{secretAccessKey}"|
-|AWS_BUCKET_NAME|"isegye"|
+|AWS_BUCKET_NAME|"{bukkitName}"|
 |AWS_CLOUDFRONT_URL|"https://{hostname}/"|
 |LOG_LEVEL|"debug"|
