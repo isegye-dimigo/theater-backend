@@ -41,6 +41,9 @@ node_modules/
 # Distribution directory
 distribution/
 
+# Test file
+source/test.ts
+
 # TypeScript cache
 *.tsbuildinfo
 
