@@ -2,12 +2,18 @@ import { PrismaClient, User } from '@prisma/client';
 import { Redis } from 'ioredis';
 import { logger } from './logger';
 import { randomBytes } from 'crypto';
+import { Client } from '@elastic/elasticsearch';
+
 
 export const prisma: PrismaClient = new PrismaClient({
 	log: ['query']
 });
 
-export const redis: Redis = new Redis(process['env']['SUB_DATABASE_URL']);
+export const redis: Redis = new Redis(process['env']['CACHE_DATABASE_URL']);
+
+export const elasticsearch: Client = new Client({
+	node: process['env']['SEARCH_DATABASE_URL']
+});
 
 redis.on('error', function (error: Error): void {
 	// @ts-expect-error
