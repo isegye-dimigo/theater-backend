@@ -34,7 +34,7 @@ export default new Module({
 				'page[index]': pageSchema.get('page[index]'),
 				'page[size]': pageSchema.get('page[size]'),
 				'page[order]': pageSchema.get('page[order]'),
-				'page[rank]': pageSchema['defaultSchema'].string().enum(['likeCount', 'viewCount', 'starAverage', 'id']).default('id')
+				'page[orderBy]': pageSchema['defaultSchema'].string().enum(['likeCount', 'viewCount', 'starAverage', 'id']).default('id')
 			}
 		}
 	}, {

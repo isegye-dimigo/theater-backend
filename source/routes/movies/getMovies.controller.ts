@@ -4,20 +4,20 @@ import { Media, MediaVideoMetadata, Movie, MovieStatistic, User } from '@prisma/
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 /* TODO: Implement natural language search with elasticsearch 
-	text.replace(/[^\p{Script=Hangul}\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}a-zA-Z0-9\s]+/gu, '') -> replace except for CJK + alphanumeric
+	text.replace(/\n/g, ' ').replace(/[^\p{Script=Hangul}\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}a-zA-Z0-9\s]+/gu, '') -> replace except for CJK + alphanumeric
 */
 
 export default function (request: FastifyRequest<{
 	Querystring: PageQuery & {
-		'page[rank]': 'id' | 'viewCount' | 'commentCount' | 'starAverage';
+		'page[orderBy]': 'id' | 'viewCount' | 'commentCount' | 'starAverage';
 	};
 }>, reply: FastifyReply): void {
 	let orderBy: string;
 
-	if(request['query']['page[rank]'] === 'id') {
+	if(request['query']['page[orderBy]'] === 'id') {
 		orderBy = 'movie.id ' + request['query']['page[order]'];
 	} else {
-		switch(request['query']['page[rank]']) {
+		switch(request['query']['page[orderBy]']) {
 			case 'viewCount': {
 				orderBy = 'movie_statistic.view_count';
 
