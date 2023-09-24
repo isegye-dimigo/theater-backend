@@ -9,6 +9,7 @@ import headerHandler from '@handlers/header';
 import notFoundHandler from '@handlers/notFound';
 import serializeHandler from '@handlers/serialize';
 import rootModule from './routes/root.module';
+import JsonWebToken from '@library/jsonWebToken';
 
 const fastifyInstance: FastifyInstance = fastify({
 	trustProxy: true,
@@ -50,6 +51,12 @@ fastifyInstance.listen({
 			fastifyInstance['log'].info(routeLines[i].replace('\n', ''));
 		}
 	}
+
+	logger.info('accessToken: ' + JsonWebToken.create({
+		uid: 0,
+		hdl: '#',
+		vrf: true
+	}, process['env']['JSON_WEB_TOKEN_SECRET']));
 
 	return;
 })
