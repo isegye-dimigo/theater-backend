@@ -8,6 +8,7 @@ import errorHandler from '@handlers/error';
 import headerHandler from '@handlers/header';
 import notFoundHandler from '@handlers/notFound';
 import serializeHandler from '@handlers/serialize';
+import rateLimitHandler from '@handlers/rateLimit';
 import rootModule from './routes/root.module';
 import JsonWebToken from '@library/jsonWebToken';
 
@@ -24,6 +25,7 @@ fastifyInstance.setNotFoundHandler(notFoundHandler);
 fastifyInstance.setErrorHandler(errorHandler);
 fastifyInstance.setReplySerializer(serializeHandler);
 fastifyInstance.addHook('preHandler', headerHandler);
+fastifyInstance.addHook('onRequest', rateLimitHandler);
 
 fastifyInstance.register(fastifyMultipart, {
 	throwFileSizeLimit: true,
