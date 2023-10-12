@@ -16,7 +16,7 @@
 		"@aws-sdk/client-s3": "^3.414.0",
 		"@elastic/elasticsearch": "^8.9.0",
 		"@fastify/multipart": "^7.7.3",
-		"@prisma/client": "^5.3.1",
+		"@prisma/client": "^5.4.2",
 		"dotenv": "^16.3.1",
 		"fastify": "^4.23.2",
 		"fluent-json-schema": "^4.1.2",
@@ -27,7 +27,7 @@
 	},
 	"devDependencies": {
 		"@types/node": "^18.17.17",
-		"prisma": "^5.3.1",
+		"prisma": "^5.4.2",
 		"ts-node-dev": "^2.0.0",
 		"typescript": "^5.2.2"
 	},
