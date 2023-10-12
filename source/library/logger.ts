@@ -4,8 +4,8 @@ import { Socket } from 'net';
 import { inspect } from 'util';
 
 export default class Logger implements FastifyBaseLogger {
-	public level: LogLevel = 'silent';
-	public static levelRank: Record<LogLevel, number> = {
+	public level: LogLevel;
+	private levelRanks: Record<LogLevel, number> = {
 		fatal: 0,
 		error: 1,
 		warn: 2,
@@ -15,7 +15,13 @@ export default class Logger implements FastifyBaseLogger {
 		silent: -1
 	};
 
-	static log(level: LogLevel, _arguments: Record<string, any>): void {
+	constructor(level: LogLevel) {
+		this['level'] = level;
+
+		return;
+	}
+
+	private log(level: LogLevel, _arguments: Record<string, any>): void {
 		if(typeof(_arguments[0]['req']) === 'undefined') {
 			let print: Socket['write'];
 			let levelColor: number = 32;
@@ -65,48 +71,48 @@ export default class Logger implements FastifyBaseLogger {
 	}
 
 	public fatal(..._arguments: unknown[]): void {
-		if(Logger['levelRank']['fatal'] <= Logger['levelRank'][process['env']['LOG_LEVEL']]) {
-			Logger.log('fatal', _arguments);
+		if(this['levelRanks']['fatal'] <= this['levelRanks'][this['level']]) {
+			this.log('fatal', _arguments);
 		}
 
 		return;
 	}
 
 	public error(..._arguments: unknown[]): void {
-		if(Logger['levelRank']['error'] <= Logger['levelRank'][process['env']['LOG_LEVEL']]) {
-			Logger.log('error', _arguments);
+		if(this['levelRanks']['error'] <= this['levelRanks'][this['level']]) {
+			this.log('error', _arguments);
 		}
 
 		return;
 	}
 
 	public warn(..._arguments: unknown[]): void {
-		if(Logger['levelRank']['warn'] <= Logger['levelRank'][process['env']['LOG_LEVEL']]) {
-			Logger.log('warn', _arguments);
+		if(this['levelRanks']['warn'] <= this['levelRanks'][this['level']]) {
+			this.log('warn', _arguments);
 		}
 
 		return;
 	}
 
 	public info(..._arguments: unknown[]): void {
-		if(Logger['levelRank']['info'] <= Logger['levelRank'][process['env']['LOG_LEVEL']]) {
-			Logger.log('info', _arguments);
+		if(this['levelRanks']['info'] <= this['levelRanks'][this['level']]) {
+			this.log('info', _arguments);
 		}
 
 		return;
 	}
 
 	public debug(..._arguments: unknown[]): void {
-		if(Logger['levelRank']['debug'] <= Logger['levelRank'][process['env']['LOG_LEVEL']]) {
-			Logger.log('debug', _arguments);
+		if(this['levelRanks']['debug'] <= this['levelRanks'][this['level']]) {
+			this.log('debug', _arguments);
 		}
 
 		return;
 	}
 
 	public trace(..._arguments: unknown[]): void {
-		if(Logger['levelRank']['trace'] <= Logger['levelRank'][process['env']['LOG_LEVEL']]) {
-			Logger.log('trace', _arguments);
+		if(this['levelRanks']['trace'] <= this['levelRanks'][this['level']]) {
+			this.log('trace', _arguments);
 		}
 
 		return;
@@ -121,4 +127,4 @@ export default class Logger implements FastifyBaseLogger {
 	}
 }
 
-export const logger: Logger = new Logger();
+export const logger: Logger = new Logger(process['env']['LOG_LEVEL']);
