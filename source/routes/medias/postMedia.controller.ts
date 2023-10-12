@@ -1,225 +1,198 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
-import { MultipartFile } from '@fastify/multipart';
-import { BadRequest, PayloadTooLarge, Unauthorized, UnsupportedMediaType } from '@library/httpError';
+import { PayloadTooLarge, Unauthorized, UnsupportedMediaType } from '@library/httpError';
 import { execute, getMetadata, isValidType } from '@library/utility';
 import { join } from 'path/posix';
-import { WriteStream, createReadStream, createWriteStream, read } from 'fs';
+import { WriteStream, createReadStream, createWriteStream } from 'fs';
 import { prisma } from '@library/database';
 import { Media, MediaVideo, MediaVideoMetadata, Prisma } from '@prisma/client';
-import { FileType, Metadata, RejectFunction, ResolveFunction } from '@library/type';
+import { File, Metadata, RejectFunction, ResolveFunction } from '@library/type';
 import { deleteObjects, getObjectKeys, putObject } from '@library/bucket';
 import { ServiceOutputTypes } from '@aws-sdk/client-s3';
-import { FileHandle, mkdtemp, open, readdir, rm } from 'fs/promises';
+import { mkdtemp, readdir, rm } from 'fs/promises';
 import { tmpdir } from 'os';
 import { Hash, createHash } from 'crypto';
+import Busboy, { BusboyFileStream, BusboyHeaders } from '@fastify/busboy';
 
 export default function (request: FastifyRequest, reply: FastifyReply): void {
-	/// @ts-expect-error :: imtoolazy
-	const file: {
-		inputPath: string;
-		basePath: string;
-		type: FileType;
-		isVideo: boolean;
-		hash: string;
-	} = {
-		isVideo: false
-	};
-
-	let media: Prisma.MediaUncheckedCreateInput;
-
 	mkdtemp(join(tmpdir(), 'isegye-'))
-	.then(function (basePath: string): Promise<MultipartFile | undefined> {
-		file['basePath'] = basePath;
-
-		return request.file();
-	})
-	.then(function (multipartFile: MultipartFile | undefined): Promise<void> {
-		if(typeof(multipartFile) === 'object') {
-			if(!request['raw']['destroyed']) {
-				file['type'] = multipartFile['filename'].split('.').pop() as FileType;
-
-				switch(file['type']) {
-					case 'mp4': {
+	.then(function (tempPath: string): Promise<File> {
+		return new Promise<File>(function (resolve: ResolveFunction<File>, reject: RejectFunction): void {
+			request['raw'].pipe(new Busboy({
+				headers: request['raw']['headers'] as BusboyHeaders,
+				limits: {
+					files: 1
+				}
+			})
+			.on('file', function (fieldName: string, stream: BusboyFileStream, fileName: string, transferEncoding: string, mimeType: string) {
+				let isVideo: boolean = false;
+				const hash: Hash = createHash('sha512').setEncoding('hex');
+				//let header: Buffer;
+				let isHeaderChecked: boolean = false;
+				let totalByteLength: number = 0;
+				let type: File['type'];
+				
+				switch(mimeType) {
+					case 'video/x-msvideo': {
 						if(request['user']['isVerified']) {
-							file['isVideo'] = true;
-
+							type = 'avi';
+							isVideo = true;
+							
 							break;
 						} else {
-							throw new Unauthorized('User must be verified');
-						}
-					}
-					case 'jpg':
-					case 'png': {
-						break;
-					}
-
-					default: {
-						throw new UnsupportedMediaType('File must be valid type');
-					}
-				}
-
-				const fileSizeLimit: number = file['isVideo'] ? 17180000000 : 5243000;
-
-				if(typeof(request['headers']['content-length']) === 'string') {
-					if(Number.parseInt(request['headers']['content-length'], 10) <= fileSizeLimit) {
-						file['inputPath'] = join(file['basePath'], 'input.' + file['type']);
-
-						return new Promise<void>(function (resolve: ResolveFunction, reject: RejectFunction): void {
-							const writeStream: WriteStream = createWriteStream(file['inputPath']).once('close', resolve).once('error', reject);
-							let readFileSize: number = 0;
-
-							multipartFile['file'].on('data', function (chunk: Buffer) {
-								if(!multipartFile['file']['truncated']) {
-									readFileSize += chunk['byteLength'];
-
-									if(readFileSize > fileSizeLimit) {
-										reply.send(new PayloadTooLarge('File must not exceed size limit'))
-										.then(function () {
-											writeStream.close(function () {
-												request['raw'].destroy();
-
-												return;
-											});
-
-											return;
-										}, reject);
-									}
-								}
-
-								return;
-							}).once('error', reject).pipe(writeStream).once('error', reject);
+							reject(new Unauthorized('User must be verified'));
 
 							return;
-						});
-					} else {
-						throw new PayloadTooLarge('File must not exceed size limit');
-					}
-				} else {
-					throw new BadRequest('Header[\'Content-Length\'] must be exist');
-				}
-			} else {
-				throw new BadRequest('File must be exist');
-			}
-		} else {
-			throw new Error('Reuqest destroyed');
-		}
-	})
-	.then(function (): Promise<Buffer> {
-		if(!request['raw']['destroyed']) {
-			return open(file['inputPath'])
-			.then(function (fileHandle: FileHandle): Promise<Buffer> {
-				return new Promise<Buffer>(function (resolve: ResolveFunction<Buffer>, reject: RejectFunction): void {
-					const buffer: Buffer = Buffer.alloc(24);
-
-					read(fileHandle['fd'], buffer, 0, 24, 0, function (error: Error | null): void {
-						if(error === null) {
-							fileHandle.close()
-							.then(function (): void {
-								resolve(buffer);
-							})
-							.catch(reject);
-						} else {
-							reject(error);
 						}
+					}
+					case 'video/mp4': {
+						if(request['user']['isVerified']) {
+							type = 'mp4';
+							isVideo = true;
+		
+							break;
+						} else {
+							reject(new Unauthorized('User must be verified'));
+
+							return;
+						}
+					}
+		
+					case 'image/png': {
+						type = 'png';
+
+						break;
+					}
+					case 'image/jpeg': {
+						type = 'jpg';
+
+						break;
+					}
+		
+					default: {
+						reject(new UnsupportedMediaType('File must be valid type'));
 
 						return;
-					});
-
-					return;
-				});
-			});
-		} else {
-			throw new Error('Reuqest destroyed');
-		}
-	})
-	.then(function (partialBuffer: Buffer): Promise<string> {
-		if(!request['raw']['destroyed']) {
-			if(isValidType(partialBuffer, file['type'])) {
-				return new Promise<string>(function (resolve: ResolveFunction<string>, reject: RejectFunction): void {
-					const hash: Hash = createHash('sha512').setEncoding('hex');
-
-					createReadStream(file['inputPath']).pipe(hash)
-					.once('error', reject);
-
-					hash.once('finish', function (): void {
-						resolve(hash.read());
-					})
-					.once('error', reject);
-				});
-			} else {
-				throw new UnsupportedMediaType('File must be valid type');
-			}
-		} else {
-			throw new Error('Reuqest destroyed');
-		}
-	})
-	.then(function (fileHash: string): Promise<Omit<Media, 'userId' | 'isDeleted'> & {
-		mediaVideos: MediaVideo[];
-	} | null> {
-		if(!request['raw']['destroyed']) {
-			file['hash'] = fileHash;
-
-			return prisma['media'].findUnique({
-				select: {
-					id: true,
-					hash: true,
-					type: true,
-					size: true,
-					width: true,
-					height: true,
-					aspectRatio: true,
-					isVideo: true,
-					createdAt: true,
-					mediaVideos: true,
-					mediaVideoMetadata: true
-				},
-				where: {
-					hash: fileHash
+					}
 				}
-			});
-		} else {
-			throw new Error('Reuqest destroyed');
-		}
+
+				const byteLimit: number = isVideo ? 17180000000 : 5243000;
+				//const byteLimit: number = isVideo ? 1 : 5243000;
+				
+				if(Number.parseInt(request['headers']['content-length'] as string, 10) <= byteLimit) {
+					const writeStream: WriteStream = createWriteStream(join(tempPath, 'input.' + type)).once('close', function (): void {
+						resolve({
+							path: tempPath,
+							type: type,
+							hash: hash.digest('hex'),
+							isVideo: isVideo
+						});
+	
+						return;
+					}).once('error', function (): void {
+						rm(tempPath, {
+							force: true,
+							recursive: true
+						})
+						.then(reject)
+						.catch(reject);
+	
+						return;
+					});
+	
+					stream.on('data', function (chunk: Buffer): void {
+						if(totalByteLength <= byteLimit) {
+							totalByteLength += chunk['byteLength'];
+	
+							hash.update(chunk);
+	
+							if(!isHeaderChecked) {
+								if(isValidType(chunk, type)) {
+									isHeaderChecked = true;
+								} else {
+									reply.send(new UnsupportedMediaType('File must be valid type'))
+									.then(function (): void {console.log('-a')
+										writeStream.close(function (): void {
+											request['raw'].destroy();
+		
+											return;
+										});
+		
+										return;
+									}, reject);
+								}	
+							}
+						} else {
+							reply.send(new PayloadTooLarge('File must not exceed size limit'))
+							.then(function (): void {
+								writeStream.close(function (): void {
+									request['raw'].destroy();
+	
+									return;
+								});
+	
+								return;
+							}, reject);
+						}
+						
+						return;
+					}).once('error', reject).pipe(writeStream).once('error', reject);	
+				} else {
+					reject(new PayloadTooLarge('File must not exceed size limit'));
+				}
+				
+				return;
+			}));
+
+			return;
+		});
 	})
-	.then(function (media: Omit<Media, 'userId' | 'isDeleted'> & {
-		mediaVideos: MediaVideo[];
-	} | null): Promise<void> {
-		if(!request['raw']['destroyed']) {
+	.then(function (file: File) {
+		let media: Prisma.MediaUncheckedCreateInput;
+
+		return prisma['media'].findUnique({
+			select: {
+				id: true,
+				hash: true,
+				type: true,
+				size: true,
+				width: true,
+				height: true,
+				aspectRatio: true,
+				isVideo: true,
+				createdAt: true,
+				mediaVideos: true,
+				mediaVideoMetadata: true
+			},
+			where: {
+				hash: file['hash']
+			}
+		})
+		.then(function (media: Omit<Media, 'userId' | 'isDeleted'> & {
+			mediaVideos: MediaVideo[];
+		} | null): Promise<void> {
 			if(media === null) {
 				return execute('ffmpeg -v quiet -i input.' + file['type'] + ' -vf "scale=\'if(gte(iw,1270)*gte(ih,720),min(1270,iw),iw)\':\'if(gte(iw,720)*gte(ih,1280),min(1280,ih),ih)\'" -c:v ' + (file['isVideo'] ? 'h264_qsv -r 30 -map 0:v:0 -map 0:a:0 -c:a aac -q 17 -preset veryslow -f ssegment -segment_list index.m3u8 %d.ts' : 'libwebp -quality 100 -preset photo ' + file['hash'] + '.webp'), {
-					basePath: file['basePath']
+					basePath: file['path']
 				});
 			} else {
-				// @ts-expect-error
+				// @ts-ignore :: im to lazy
 				file['hash'] = undefined;
-
+				
 				throw media;
 			}
-		} else {
-			throw new Error('Reuqest destroyed');
-		}
-	})
-	.then(function (): Promise<void> {
-		if(!request['raw']['destroyed']) {
-			return rm(file['inputPath'], {
+		})
+		.then(function (): Promise<void> {
+			return rm(join(file['path'], 'input.' + file['type']), {
 				force: true
 			});
-		} else {
-			throw new Error('Reuqest destroyed');
-		}
-	})
-	.then(function (): Promise<string[]> | string[] {
-		if(!request['raw']['destroyed']) {
-			return readdir(file['basePath']);
-		} else {
-			throw new Error('Reuqest destroyed');
-		}
-	})
-	.then(function (paths: string[]): Promise<ServiceOutputTypes> {
-		if(!request['raw']['destroyed']) {
+		})
+		.then(function (): Promise<string[]> {
+			return readdir(file['path']);
+		})
+		.then(function (paths: string[]): Promise<ServiceOutputTypes> {
 			if(paths['length'] === 1) {
 				return getMetadata(paths[0], {
-					basePath: file['basePath']
+					basePath: file['path']
 				})
 				.then(function (metadata: Metadata<'image'>) {
 					media = {
@@ -233,7 +206,7 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 						isVideo: false
 					};
 
-					return putObject(join('images', paths[0]), createReadStream(join(file['basePath'], paths[0])), 'image/webp');
+					return putObject(join('images', paths[0]), createReadStream(join(file['path'], paths[0])), 'image/webp');
 				});
 			} else {
 				const metadataPromises: Promise<Metadata<'video'>>[] = [];
@@ -245,13 +218,13 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 					if(paths[i].endsWith('ts')) {
 						metadataPromises.push(getMetadata(paths[i], {
 							isVideo: true,
-							basePath: file['basePath']
+							basePath: file['path']
 						}));
 					} else {
 						mime = 'application/x-mpegURL';
 					}
 
-					putObjectPromises.push(putObject(join('videos', file['hash'], paths[i]), createReadStream(join(file['basePath'], paths[i])), mime));
+					putObjectPromises.push(putObject(join('videos', file['hash'], paths[i]), createReadStream(join(file['path'], paths[i])), mime));
 				}
 
 				return Promise.all(metadataPromises)
@@ -306,21 +279,17 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 					});
 				});
 			}
-		} else {
-			throw new Error('Reuqest destroyed');
-		}
-	})
-	.then(function (): Promise<void> {
-		return rm(file['basePath'], {
-			force: true,
-			recursive: true
-		});
-	})
-	.then(function (): Promise<Omit<Media, 'userId' | 'isDeleted'> & {
-		mediaVideos: MediaVideo[];
-		mediaVideoMetadata: MediaVideoMetadata | null;
-	} | null> {
-		if(!request['raw']['destroyed']) {
+		})
+		.then(function (): Promise<void> {
+			return rm(file['path'], {
+				force: true,
+				recursive: true
+			});
+		})
+		.then(function (): Promise<Omit<Media, 'userId' | 'isDeleted'> & {
+			mediaVideos: MediaVideo[];
+			mediaVideoMetadata: MediaVideoMetadata | null;
+		} | null> {
 			return prisma['media'].create({
 				select: {
 					id: true,
@@ -337,62 +306,52 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 				},
 				data: media
 			});
-		} else {
-			throw new Error('Reuqest destroyed');
-		}
-	})
-	.then(reply.status(201).send.bind(reply))
-	.catch(function (error: any): void {
-		rm(file['basePath'], {
-			force: true,
-			recursive: true
 		})
-		.then(function (): Promise<string[]> | string[] {
-			if(typeof(file['hash']) === 'string') {
-				return file['isVideo'] ? getObjectKeys('vidoes/' + file['hash'] + '/') : ['images/' + file['hash'] + '.webp'];
-			} else {
-				return [];
-			}
-		})
-		.then(function (objectKeys: string[]): Promise<ServiceOutputTypes> | undefined {
-			if(objectKeys['length'] !== 0) {
-				return deleteObjects(objectKeys);
-			} else {
-				return;
-			}
-		})
-		.then(function (): Promise<Prisma.BatchPayload> | undefined {
-			if(typeof(file['hash']) === 'string') {
+		.catch(function (error: Error): Promise<Omit<Media, 'userId' | 'isDeleted'> & {
+			mediaVideos: MediaVideo[];
+		}> {
+			return rm(file['path'], {
+				force: true,
+				recursive: true
+			})
+			.then(function (): Promise<string[]> | string[] {
+				if(typeof(file['hash']) === 'string') {
+					return file['isVideo'] ? getObjectKeys('vidoes/' + file['hash'] + '/') : ['images/' + file['hash'] + '.webp'];
+				} else {
+					throw error;
+				}
+			})
+			.then(function (objectKeys: string[]): Promise<ServiceOutputTypes> | undefined {
+				if(objectKeys['length'] !== 0) {
+					return deleteObjects(objectKeys);
+				} else {
+					throw error;
+				}
+			})
+			.then(function (): Promise<Prisma.BatchPayload> {
 				return prisma['media'].deleteMany({
 					where: {
 						hash: file['hash']
 					}
 				});
-			} else {
-				return;
-			}
-		})
-		.then(function (): void {
-			if(!request['raw']['destroyed']) {
-				reply.send(error);
-			} else {
-				request['log'].error(error);
-			}
-
-			return;
-		})
-		.catch(function (error: Error) {
-			if(!request['raw']['destroyed']) {
-				reply.send(error);
-			} else {
-				request['log'].error(error);
-			}
-
-			return;
+			})
+			.then(function (): Omit<Media, 'userId' | 'isDeleted'> & {
+				mediaVideos: MediaVideo[];
+			} {
+				throw error;
+			});
 		});
+	})
+	.then(reply.status(201).send.bind(reply))
+	.catch(function (error: Error): void {
+		//if(!reply['sent']) {
+			//console.log(error)
+			reply.send(error);
+		//}
 
 		return;
 	});
+
 
 	return;
 }

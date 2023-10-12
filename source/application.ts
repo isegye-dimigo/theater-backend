@@ -1,4 +1,3 @@
-import fastifyMultipart from '@fastify/multipart';
 import '@library/environment';
 import '@library/schedule';
 import fastify from 'fastify';
@@ -27,14 +26,6 @@ fastifyInstance.setReplySerializer(serializeHandler);
 fastifyInstance.addHook('preHandler', headerHandler);
 fastifyInstance.addHook('onRequest', rateLimitHandler);
 
-fastifyInstance.register(fastifyMultipart, {
-	throwFileSizeLimit: true,
-	limits: {
-		files: 1,
-		fileSize: 17180000000
-	}
-});
-
 rootModule.register(fastifyInstance);
 
 fastifyInstance.listen({
@@ -62,4 +53,4 @@ fastifyInstance.listen({
 
 	return;
 })
-.catch(fastifyInstance['log'].fatal);
+.catch(fastifyInstance['log'].fatal.bind(fastifyInstance['log']));
