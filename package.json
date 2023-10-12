@@ -5,7 +5,7 @@
 	"main": "distribution/application.js",
 	"scripts": {
 		"build": "tsc --project tsconfig.json",
-		"start": "node --require=tsconfig-paths/register distribution/application.js --max_old_space_size=8192",
+		"start": "node --require=tsconfig-paths/register distribution/application.js --max_old_space_size=4096",
 		"dev": "ts-node-dev --rs --require=tsconfig-paths/register --files source/application.ts",
 		"test": "ts-node-dev --rs --require=tsconfig-paths/register --files source/test.ts",
 		"prisma": "prisma"
