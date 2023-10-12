@@ -18,13 +18,12 @@ export default function (request: FastifyRequest<{
 				index: 'movie',
 				size: request['query']['page[size]'],
 				from: request['query']['page[size]'] * request['query']['page[index]'],
-				//min_score: 1,
 				_source: false,
-				"min_score": 1,
-				"query": {
-						"multi_match": {
-								"query": request['query']['query'],
-								"fields": ["title", "title.nori^0.9", "title.ngram^0.7", "description^0.5", "description.nori^0.45", "description.ngram^0.35"]
+				min_score: 1,
+				query: {
+						multi_match: {
+								query: request['query']['query'],
+								fields: ['title', 'title.nori^0.9', 'title.ngram^0.7', 'description^0.5', 'description.nori^0.45', 'description.ngram^0.35']
 						}
 				}
 			})

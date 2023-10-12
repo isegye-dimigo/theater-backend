@@ -1,6 +1,6 @@
 import { prisma, redis } from '@library/database';
 import { BadRequest } from '@library/httpError';
-import { Media, MediaVideoMetadata, Movie, MovieStatistic, User } from '@prisma/client';
+import { Media, MediaVideoMetadata, Movie, MovieStatistic, Prisma, User } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 // TODO: Send user if liked or starred on movie
@@ -11,7 +11,7 @@ export default function (request: FastifyRequest<{
 	};
 }>, reply: FastifyReply): void {
 	prisma['movie'].findUnique({
-		select: {
+		select: Object.assign({
 			id: true,
 			user: {
 				select: {
@@ -58,7 +58,18 @@ export default function (request: FastifyRequest<{
 				}
 			},
 			createdAt: true
-		},
+		} as const, typeof(request['user']) === 'object' ? {
+			movieLikes: {
+				where: {
+					userId: request['user']['id']
+				}
+			},
+			movieStars: {
+				where: {
+					userId: request['user']['id']
+				}
+			}
+		} as const : undefined),
 		where: {
 			id: request['params']['movieId'],
 			isDeleted: false
@@ -69,7 +80,6 @@ export default function (request: FastifyRequest<{
 		videoMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'> & {
 			mediaVideoMetadata: Pick<MediaVideoMetadata, 'id' | 'duration' | 'frameRate'> | null;
 		};
-		
 		movieStatistics: Pick<MovieStatistic, 'viewCount' | 'commentCount' | 'likeCount' | 'starAverage'>[];
 	} | null): void {
 		if(movie !== null) {

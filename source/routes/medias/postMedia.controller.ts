@@ -26,7 +26,6 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 			.on('file', function (fieldName: string, stream: BusboyFileStream, fileName: string, transferEncoding: string, mimeType: string) {
 				let isVideo: boolean = false;
 				const hash: Hash = createHash('sha512').setEncoding('hex');
-				//let header: Buffer;
 				let isHeaderChecked: boolean = false;
 				let totalByteLength: number = 0;
 				let type: File['type'];
@@ -75,8 +74,7 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 					}
 				}
 
-				const byteLimit: number = isVideo ? 17180000000 : 5243000;
-				//const byteLimit: number = isVideo ? 1 : 5243000;
+				const byteLimit: number = isVideo ? 21470000000 : 5243000;
 				
 				if(Number.parseInt(request['headers']['content-length'] as string, 10) <= byteLimit) {
 					const writeStream: WriteStream = createWriteStream(join(tempPath, 'input.' + type)).once('close', function (): void {
@@ -344,10 +342,9 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 	})
 	.then(reply.status(201).send.bind(reply))
 	.catch(function (error: Error): void {
-		//if(!reply['sent']) {
-			//console.log(error)
+		if(!reply['sent']) {
 			reply.send(error);
-		//}
+		}
 
 		return;
 	});
