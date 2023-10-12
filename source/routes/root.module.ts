@@ -3,12 +3,13 @@ import getRootController from './getRoot.controller';
 import getRobotsTxtController from './getRobotsTxt.controller';
 import postAndGetCoffeeController from './postAndGetCoffee.controller';
 import wellKnownModule from './.well-known/wellKnown.module';
+import adminModule from './admin/admin.module';
 import authModule from './auth/auth.module';
+import categoriesModule from './categories/categories.module';
 import usersModule from './users/users.module';
 import mediasModule from './medias/medias.module';
 import moviesModule from './movies/movies.module';
 import reportsModule from './reports/reports.module';
-import adminModule from './admin/admin.module';
 
 export default new Module({
 	routers: [{
@@ -28,6 +29,6 @@ export default new Module({
 		url: 'coffee',
 		handler: postAndGetCoffeeController,
 	}],
-	modules: [adminModule, wellKnownModule, authModule, mediasModule, moviesModule, reportsModule, usersModule],
+	modules: [wellKnownModule, adminModule, authModule, categoriesModule, mediasModule, moviesModule, reportsModule, usersModule],
 	prefix: ''
 });
