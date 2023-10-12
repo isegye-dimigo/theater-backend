@@ -3,7 +3,7 @@ import { Report } from '@prisma/client';
 import schema from 'fluent-json-schema';
 import commonSchema from '@schemas/common';
 import userSchema from '@schemas/user';
-import { reportTypes } from '@library/utility';
+import { reportTypes } from '@library/constant';
 
 const reportSchema: Schema<keyof Report> = new Schema<keyof Report>({
 	id: commonSchema.get('positiveInteger'),

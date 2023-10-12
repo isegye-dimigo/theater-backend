@@ -2,6 +2,7 @@ import { FastifyBaseLogger, FastifyInstance as _FastifyInstance, FastifySchema, 
 import { IncomingMessage, Server, ServerResponse } from 'http';
 import Module from '@library/module';
 import { JSONSchema } from 'fluent-json-schema';
+import { fileSignatures } from '@library/constant';
 
 type RecursiveRecord<T extends string | number | symbol, S> = {
 	[key in T]: S | RecursiveRecord<T, S>
@@ -46,12 +47,12 @@ export interface PageQuery {
 	'page[order]': 'desc' | 'asc';
 }
 
-export interface FileSignature {
-	offsetByte: number;
-	buffer: Buffer;
+export interface File {
+	path: string;
+	type: keyof typeof fileSignatures;
+	isVideo: boolean;
+	hash: string;
 }
-
-export type FileType = 'mp4' | 'jpg' | 'png';
 
 export type Metadata<T extends 'video' | 'image'> = T extends 'video' ? {
 	video: {
