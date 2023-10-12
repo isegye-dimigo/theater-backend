@@ -1,4 +1,5 @@
 import Module from '@library/module';
+import adminCategoriesModule from './adminCategories/adminCategories.module';
 import adminMoviesModule from './adminMovies/adminMovies.module';
 import adminReportsModule from './adminReports/adminReports.module';
 import adminUsersModule from './adminUsers/adminUsers.module';
@@ -13,5 +14,5 @@ export default new Module({
 		preValidation: adminHandler
 	}],
 	prefix: 'admin',
-	modules: [adminMoviesModule, adminReportsModule, adminUsersModule]
+	modules: [adminCategoriesModule, adminMoviesModule, adminReportsModule, adminUsersModule]
 });

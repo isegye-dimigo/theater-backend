@@ -1,8 +1,8 @@
 import Module from '@library/module';
-import getAdminReportsController from './getAdminReports.controller';
 import adminHandler from '@handlers/admin';
-import pageSchema from '@schemas/page';
+import getAdminReportsController from './getAdminReports.controller';
 import deleteAdminReportController from './deleteAdminReport.controller';
+import pageSchema from '@schemas/page';
 import reportSchema from '@schemas/report';
 
 export default new Module({

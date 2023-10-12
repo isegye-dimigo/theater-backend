@@ -1,8 +1,8 @@
 import Module from '@library/module';
-import getAdminMovieCommentsController from './getAdminMovieComments.controller';
 import adminHandler from '@handlers/admin';
-import movieSchema from '@schemas/movie';
+import getAdminMovieCommentsController from './getAdminMovieComments.controller';
 import deleteAdminMovieCommentController from './deleteAdminMovieComment.controller';
+import movieSchema from '@schemas/movie';
 import movieCommentSchema from '@schemas/movieComment';
 
 export default new Module({
