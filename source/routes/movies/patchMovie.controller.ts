@@ -1,48 +1,72 @@
-import { prisma } from '@library/database';
+import { prisma, redis } from '@library/database';
 import { BadRequest, NotFound, Unauthorized } from '@library/httpError';
-import { Media, MediaVideoMetadata, Movie, User } from '@prisma/client';
+import { Category, Media, MediaVideoMetadata, Movie, User } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 export default function (request: FastifyRequest<{
 	Params: {
 		movieId: Movie['id'];
 	};
-	Body: Partial<Pick<Movie, 'title' | 'description' | 'imageMediaId'>>;
+	Body: Partial<Pick<Movie, 'title' | 'description' | 'imageMediaId' | 'categoryId'>>;
 }>, reply: FastifyReply): void {
 	if(request['user']['isVerified']) {
 		if(Object.keys(request['body'])['length'] !== 0) {
-			const isImageMediaIdDefined: boolean = typeof(request['body']['imageMediaId']) === 'number';
-
 			prisma['movie'].findUnique({
 				select: {
-					userId: true,
-					imageMedia: isImageMediaIdDefined ? {
-						select: {
-							isVideo: true
-						}
-					} : undefined
+					userId: true
 				},
 				where: {
 					id: request['params']['movieId'],
-					isDeleted: false
+					isDeleted: true
 				}
 			})
-			.then(function (movie: Pick<Movie, 'userId'> & {
-				imageMedia?: Pick<Media, 'isVideo'> | null;
-			} | null): Promise<void> | void {
+			.then(function (movie: Pick<Movie, 'userId'> | null): Promise<void[]> {
 				if(movie !== null) {
 					if(movie['userId'] === request['user']['id']) {
-						if(typeof(request['body']['imageMediaId']) === 'number') {
-							if(typeof(movie['imageMedia']) !== 'undefined' && movie['imageMedia'] !== null) {
-								if(movie['imageMedia']['isVideo']) {
-									throw new BadRequest('Body[\'imageMediaId\'] must not be video');
-								}
-							} else {
-								throw new BadRequest('Body[\'imageMediaId\'] must be valid')
-							}
-						}
+						const validations: Promise<void>[] = [];
 
-						return;
+						if(typeof(request['body']['imageMediaId']) === 'number') {
+							validations.push(prisma['media'].findUnique({
+								select: {
+									isVideo: true
+								},
+								where: {
+									id: request['body']['imageMediaId'],
+									isDeleted: false
+								}
+							})
+							.then(function (media: Pick<Media, 'isVideo'> | null): void {
+								if(media !== null) {
+									if(!media['isVideo']) {
+										return;
+									} else {
+										throw new BadRequest('Body[\'imageMediaId\'] must not be video');
+									}
+								} else {
+									throw new BadRequest('Body[\'imageMediaId\'] must be valid');
+								}
+							}));
+						}
+		
+						if(typeof(request['body']['categoryId']) === 'number') {
+							validations.push(prisma['category'].findUnique({
+								select: {
+									id: true
+								},
+								where: {
+									id: request['body']['categoryId']
+								}
+							})
+							.then(function (category: Pick<Category, 'id'> | null): void {
+								if(category !== null) {
+									return;
+								} else {
+									throw new BadRequest('Body[\'categoryId\'] must be valid');
+								}
+							}));
+						}
+		
+						return Promise.all(validations);
 					} else {
 						throw new Unauthorized('User must be same');
 					}
@@ -54,7 +78,7 @@ export default function (request: FastifyRequest<{
 				user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'>;
 				imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'>;
 				videoMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'> & {
-					mediaVideoMetadata: Pick<MediaVideoMetadata, 'duration' | 'frameRate'> | null;
+					mediaVideoMetadata: Pick<MediaVideoMetadata, 'id' | 'duration' | 'frameRate'> | null;
 				};
 			}> {
 				return prisma['movie'].update({
@@ -88,6 +112,7 @@ export default function (request: FastifyRequest<{
 								isVideo: true,
 								mediaVideoMetadata: {
 									select: {
+										id: true,
 										duration: true,
 										frameRate: true
 									}
@@ -106,7 +131,25 @@ export default function (request: FastifyRequest<{
 					}
 				});
 			})
-			.then(reply.send.bind(reply))
+			.then(function (movie: Pick<Movie, 'id' | 'title' | 'description'> & {
+				user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'>;
+				imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'>;
+				videoMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'> & {
+					mediaVideoMetadata: Pick<MediaVideoMetadata, 'id' | 'duration' | 'frameRate'> | null;
+				};
+			}): void {
+				reply.send(movie);
+
+				if(typeof(request['body']['title']) === 'string' || typeof(request['body']['description']) === 'string') {
+					redis.set('movieIndex:update:' + request['params']['movieId'], JSON.stringify({
+						title: request['body']['title'],
+						description: request['body']['description']
+					}))
+					.catch(request['log'].error);
+				}
+
+				return;
+			})
 			.catch(reply.send.bind(reply));
 		} else {
 			reply.send(new BadRequest('Body must have more than one key'));

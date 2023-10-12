@@ -4,6 +4,7 @@ import schema from 'fluent-json-schema';
 import commonSchema from '@schemas/common';
 import mediaSchema from '@schemas/media';
 import userSchema from '@schemas/user';
+import categorySchema from '@schemas/category';
 
 const movieSchema: Schema<keyof Movie> = new Schema<keyof Movie>({
 	id: commonSchema.get('positiveInteger'),
@@ -12,6 +13,7 @@ const movieSchema: Schema<keyof Movie> = new Schema<keyof Movie>({
 	description: schema.string().minLength(1).maxLength(4096),
 	videoMediaId: mediaSchema.get('id'),
 	imageMediaId: mediaSchema.get('id'),
+	categoryId: categorySchema.get('id'),
 	isDeleted: schema.boolean(),
 	createdAt: commonSchema.get('datetime')
 });

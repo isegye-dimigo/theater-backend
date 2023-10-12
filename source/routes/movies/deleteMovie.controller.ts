@@ -1,4 +1,4 @@
-import { prisma } from '@library/database';
+import { prisma, redis } from '@library/database';
 import { NotFound, Unauthorized } from '@library/httpError';
 import { Movie, Prisma } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
@@ -20,7 +20,6 @@ export default function (request: FastifyRequest<{
 	.then(function (movie: Pick<Movie, 'userId'> | null): Promise<Prisma.BatchPayload[]> {
 		if(movie !== null) {
 			if(request['user']['id'] === movie['userId']) {
-
 				return prisma.$transaction([prisma['movie'].updateMany({
 					data: {
 						isDeleted: true
@@ -53,6 +52,9 @@ export default function (request: FastifyRequest<{
 	.then(function (results: Prisma.BatchPayload[]): void {
 		if(results[0]['count'] === 1) {
 			reply.status(204).send();
+
+			redis.set('movieIndex:delete:' + request['params']['movieId'], 'null')
+			.catch(request['log'].error);
 
 			return;
 		} else {

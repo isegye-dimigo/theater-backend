@@ -32,10 +32,17 @@ export default function (request: FastifyRequest<{
 					isVideo: true,
 					mediaVideoMetadata: {
 						select: {
+							id: true,
 							duration: true,
 							frameRate: true
 						}
 					}
+				}
+			},
+			category: {
+				select: {
+					id: true,
+					title: true
 				}
 			},
 			movieStatistics: {
@@ -60,8 +67,9 @@ export default function (request: FastifyRequest<{
 	.then(function (movie: Pick<Movie, 'id' | 'title' | 'description' | 'createdAt'> & {
 		user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'>;
 		videoMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'> & {
-			mediaVideoMetadata: Pick<MediaVideoMetadata, 'duration' | 'frameRate'> | null;
+			mediaVideoMetadata: Pick<MediaVideoMetadata, 'id' | 'duration' | 'frameRate'> | null;
 		};
+		
 		movieStatistics: Pick<MovieStatistic, 'viewCount' | 'commentCount' | 'likeCount' | 'starAverage'>[];
 	} | null): void {
 		if(movie !== null) {

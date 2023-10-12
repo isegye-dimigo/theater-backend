@@ -21,7 +21,8 @@ export default new Module({
 				title: movieSchema.get('title').required(),
 				description: movieSchema.get('description').required(),
 				videoMediaId: movieSchema.get('videoMediaId').required(),
-				imageMediaId: movieSchema.get('imageMediaId').required()
+				imageMediaId: movieSchema.get('imageMediaId').required(),
+				categoryId: movieSchema.get('categoryId').required()
 			}
 		},
 		isAuthNeeded: true
@@ -34,7 +35,9 @@ export default new Module({
 				'page[index]': pageSchema.get('page[index]'),
 				'page[size]': pageSchema.get('page[size]'),
 				'page[order]': pageSchema.get('page[order]'),
-				'page[orderBy]': pageSchema['defaultSchema'].string().enum(['likeCount', 'viewCount', 'starAverage', 'id']).default('id')
+				'page[orderBy]': pageSchema['defaultSchema'].string().enum(['likeCount', 'viewCount', 'starAverage', 'id']).default('id'),
+				query: movieSchema.get('title'),
+				categoryId: movieSchema.get('categoryId')
 			}
 		}
 	}, {
@@ -48,7 +51,8 @@ export default new Module({
 			body: {
 				title: movieSchema.get('title'),
 				description: movieSchema.get('description'),
-				imageMediaId: movieSchema.get('imageMediaId')
+				imageMediaId: movieSchema.get('imageMediaId'),
+				categoryId: movieSchema.get('categoryId')
 			}
 		},
 		isAuthNeeded: true
