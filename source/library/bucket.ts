@@ -2,12 +2,17 @@ import { DeleteObjectsCommand, ListObjectsV2Command, ListObjectsV2CommandOutput,
 import { Readable } from 'stream';
 
 const s3Client: S3Client = new S3Client({
-	region: 'ap-northeast-2'
+	region: 'auto',
+	endpoint: process['env']['STORAGE_ENDPOINT'],
+	credentials: {
+		accessKeyId: process['env']['STORAGE_ACCESS_KEY_ID'],
+		secretAccessKey: process['env']['STORAGE_SECRET_ACCESS_KEY']
+	}
 });
 
 export function putObject(path: string, body: Buffer | Readable, mime: string): Promise<ServiceOutputTypes> {
 	return s3Client.send(new PutObjectCommand({
-		Bucket: process['env']['AWS_BUCKET_NAME'],
+		Bucket: process['env']['STORAGE_BUCKET_NAME'],
 		Key: path,
 		Body: body,
 		ContentType: mime
@@ -25,7 +30,7 @@ export function deleteObjects(paths: string[]): Promise<ServiceOutputTypes> {
 		}
 
 		return s3Client.send(new DeleteObjectsCommand({
-			Bucket: process['env']['AWS_BUCKET_NAME'],
+			Bucket: process['env']['STORAGE_BUCKET_NAME'],
 			Delete: {
 				Objects: objects
 			}
@@ -37,7 +42,7 @@ export function deleteObjects(paths: string[]): Promise<ServiceOutputTypes> {
 
 export function getObjectKeys(path: string): Promise<string[]> {
 	return s3Client.send(new ListObjectsV2Command({
-		Bucket: process['env']['AWS_BUCKET_NAME'],
+		Bucket: process['env']['STORAGE_BUCKET_NAME'],
 		Prefix: path
 	}))
 	.then(function (list: ListObjectsV2CommandOutput): string[] {
