@@ -43,6 +43,7 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 							return;
 						}
 					}
+					
 					case 'video/mp4': {
 						if(request['user']['isVerified']) {
 							type = 'mp4';
@@ -144,7 +145,10 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 			return;
 		});
 	})
-	.then(function (file: File) {
+	.then(function (file: File): Promise<Omit<Media, 'userId' | 'isDeleted'> & {
+		mediaVideos: MediaVideo[];
+		mediaVideoMetadata: MediaVideoMetadata | null;
+	}> {
 		let media: Prisma.MediaUncheckedCreateInput;
 
 		return prisma['media'].findUnique({
@@ -167,6 +171,7 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 		})
 		.then(function (media: Omit<Media, 'userId' | 'isDeleted'> & {
 			mediaVideos: MediaVideo[];
+			mediaVideoMetadata: MediaVideoMetadata | null;
 		} | null): Promise<void> {
 			if(media === null) {
 				return execute('ffmpeg -v quiet -i input.' + file['type'] + ' -vf "scale=\'if(gte(iw,ih),min(1280,iw),-1)\':\'if(lt(iw,ih),min(1280,ih),-1)\'" -c:v ' + (file['isVideo'] ? 'h264_qsv -r 30 -map 0:v:0 -map 0:a:0 -c:a aac -q 17 -preset veryslow -f ssegment -segment_list index.m3u8 %d.ts' : 'libwebp -quality 100 -preset photo ' + file['hash'] + '.webp'), {
@@ -287,7 +292,7 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 		.then(function (): Promise<Omit<Media, 'userId' | 'isDeleted'> & {
 			mediaVideos: MediaVideo[];
 			mediaVideoMetadata: MediaVideoMetadata | null;
-		} | null> {
+		}> {
 			return prisma['media'].create({
 				select: {
 					id: true,
@@ -307,6 +312,7 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 		})
 		.catch(function (error: Error): Promise<Omit<Media, 'userId' | 'isDeleted'> & {
 			mediaVideos: MediaVideo[];
+			mediaVideoMetadata: MediaVideoMetadata | null;
 		}> {
 			return rm(file['path'], {
 				force: true,
@@ -335,6 +341,7 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 			})
 			.then(function (): Omit<Media, 'userId' | 'isDeleted'> & {
 				mediaVideos: MediaVideo[];
+				mediaVideoMetadata: MediaVideoMetadata | null;
 			} {
 				throw error;
 			});
