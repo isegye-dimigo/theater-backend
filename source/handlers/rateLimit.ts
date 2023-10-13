@@ -6,7 +6,7 @@ const rateLimit: number = Number.parseInt(process['env']['RATE_LIMIT'], 10);
 
 export default function rateLimitHandler(request: FastifyRequest, reply: FastifyReply, done: DoneFuncWithErrOrRes): void {
 	const key: string = 'rateLimit:' + request['ip'];
-	
+
 	redis.incr(key)
 	.then(function (requestCount: number): void {
 		if(requestCount === 1) {

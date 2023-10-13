@@ -43,7 +43,7 @@ export default function (request: FastifyRequest<{
 		if(movie !== null) {
 			if(request['user']['id'] === movie['userId']) {
 				reply.send(movie['movieStatistics']);
-	
+
 				return;
 			} else {
 				throw new Unauthorized('User must be same');

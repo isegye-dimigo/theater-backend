@@ -30,7 +30,7 @@ export default function (request: FastifyRequest<{
 			.then(function (result: SearchResponse): void {
 				if(result['hits']['hits']['length'] !== 0) {
 					let condition: string = '';
-	
+
 					for(let i: number = 0; i < result['hits']['hits']['length']; i++) {
 						condition += result['hits']['hits'][i]['_id'] + ',';
 					}
@@ -73,27 +73,27 @@ export default function (request: FastifyRequest<{
 				switch(request['query']['page[orderBy]']) {
 					case 'viewCount': {
 						condition = 'movie_statistic.view_count';
-		
+
 						break;
 					}
 					case 'commentCount': {
 						condition = 'movie_statistic.comment_count';
-		
+
 						break;
 					}
 					case 'starAverage': {
 						condition = 'movie_statistic.star_average';
-		
+
 						break;
 					}
 				}
-		
+
 				condition +=  ' ' + request['query']['page[order]'] + ', movie.id DESC';
 			}
 
 			resolve(condition + ' LIMIT ' + request['query']['page[size]'] + ' OFFSET ' + request['query']['page[size]'] * request['query']['page[index]']);
 		}
-		
+
 		return;
 	})
 	.then(function (condition: string): Promise<({

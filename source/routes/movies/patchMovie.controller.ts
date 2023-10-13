@@ -47,7 +47,7 @@ export default function (request: FastifyRequest<{
 								}
 							}));
 						}
-		
+
 						if(typeof(request['body']['categoryId']) === 'number') {
 							validations.push(prisma['category'].findUnique({
 								select: {
@@ -65,7 +65,7 @@ export default function (request: FastifyRequest<{
 								}
 							}));
 						}
-		
+
 						return Promise.all(validations);
 					} else {
 						throw new Unauthorized('User must be same');

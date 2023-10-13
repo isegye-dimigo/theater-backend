@@ -28,7 +28,7 @@ global.setInterval(function (): void {
 	.then(function (results: (string | null)[]): Promise<[number, number]> | [number, number] {
 		if(results['length'] !== 0) {
 			let query: string = '';
-			
+
 			for(let i: number = 0; i < results['length']; i++) {
 				if(results[i] !== null) {
 					query += 'UPDATE movie_statistic, current_movie_statistic SET movie_statistic.view_count = movie_statistic.view_count + ' + results[i] + ' WHERE current_movie_statistic.movie_id = ' + movieIds[i] + ' AND movie_statistic.id = current_movie_statistic.id;';
@@ -97,7 +97,7 @@ global.setInterval(function (): void {
 	.then(function (results: (string | null)[]): Promise<[number, BulkResponse]> | [number, BulkResponse] {
 		if(results['length'] !== 0) {
 			const operations: (BulkOperationContainer | Partial<Pick<Movie, 'title' | 'description'>> | BulkUpdateAction<Pick<Movie, 'title' | 'description'>, Partial<Pick<Movie, 'title' | 'description'>>>)[] = [];
-		
+
 			for(let i: number = 0; i < movies['length']; i++) {
 				if(results[i] !== null) {
 					operations.push({
@@ -105,24 +105,24 @@ global.setInterval(function (): void {
 							_id: movies[i]['id'].toString(10)
 						}
 					});
-	
+
 					switch(movies[i]['state']) {
 						case 'create': {
 							operations.push(JSON.parse(results[i] as string));
-							
+
 							break;
 						}
 						case 'update': {
 							operations.push({
 								doc: JSON.parse(results[i] as string)
 							});
-							
+
 							break;
 						}
 					}
 				}
 			}
-	
+
 			return Promise.all([redis.unlink(keys), elasticsearch.bulk({
 				index: 'movie',
 				_source: false,
@@ -139,7 +139,7 @@ global.setInterval(function (): void {
 	.then(function (reuslts: [number, BulkResponse]) {
 		if(!reuslts[1]['errors']) {
 			logger.debug(reuslts[0] + ' views have been unlinked, and ' + reuslts[1]['items']['length'] + ' indexes have been updated (' + (Date.now() - startTime) + 'ms)');
-			
+
 			return;
 		} else {
 			throw new Error('Elasticsearch');

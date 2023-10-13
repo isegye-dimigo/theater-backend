@@ -28,13 +28,13 @@ export default function (request: FastifyRequest<{
 	.then(function (result: Prisma.BatchPayload): void {
 		if(result['count'] === 1) {
 			reply.send(201).send(null);
-			
+
 			return;
 		} else {
 			throw new Conflict('Body[\'title\'] must be unique');
 		}
 	})
 	.catch(reply.send.bind(reply));
-	
+
 	return;
 }

@@ -29,13 +29,13 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 				let isHeaderChecked: boolean = false;
 				let totalByteLength: number = 0;
 				let type: File['type'];
-				
+
 				switch(mimeType) {
 					case 'video/x-msvideo': {
 						if(request['user']['isVerified']) {
 							type = 'avi';
 							isVideo = true;
-							
+
 							break;
 						} else {
 							reject(new Unauthorized('User must be verified'));
@@ -43,12 +43,12 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 							return;
 						}
 					}
-					
+
 					case 'video/mp4': {
 						if(request['user']['isVerified']) {
 							type = 'mp4';
 							isVideo = true;
-		
+
 							break;
 						} else {
 							reject(new Unauthorized('User must be verified'));
@@ -56,7 +56,7 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 							return;
 						}
 					}
-		
+
 					case 'image/png': {
 						type = 'png';
 
@@ -67,7 +67,7 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 
 						break;
 					}
-		
+
 					default: {
 						reject(new UnsupportedMediaType('File must be valid type'));
 
@@ -76,7 +76,7 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 				}
 
 				const byteLimit: number = isVideo ? 21470000000 : 5243000;
-				
+
 				if(Number.parseInt(request['headers']['content-length'] as string, 10) <= byteLimit) {
 					const writeStream: WriteStream = createWriteStream(join(tempPath, 'input.' + type)).once('close', function (): void {
 						resolve({
@@ -85,7 +85,7 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 							hash: hash.digest('hex'),
 							isVideo: isVideo
 						});
-	
+
 						return;
 					}).once('error', function (): void {
 						rm(tempPath, {
@@ -94,16 +94,16 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 						})
 						.then(reject)
 						.catch(reject);
-	
+
 						return;
 					});
-	
+
 					stream.on('data', function (chunk: Buffer): void {
 						if(totalByteLength <= byteLimit) {
 							totalByteLength += chunk['byteLength'];
-	
+
 							hash.update(chunk);
-	
+
 							if(!isHeaderChecked) {
 								if(isValidType(chunk, type)) {
 									isHeaderChecked = true;
@@ -112,33 +112,33 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 									.then(function (): void {console.log('-a')
 										writeStream.close(function (): void {
 											request['raw'].destroy();
-		
+
 											return;
 										});
-		
+
 										return;
 									}, reject);
-								}	
+								}
 							}
 						} else {
 							reply.send(new PayloadTooLarge('File must not exceed size limit'))
 							.then(function (): void {
 								writeStream.close(function (): void {
 									request['raw'].destroy();
-	
+
 									return;
 								});
-	
+
 								return;
 							}, reject);
 						}
-						
+
 						return;
-					}).once('error', reject).pipe(writeStream).once('error', reject);	
+					}).once('error', reject).pipe(writeStream).once('error', reject);
 				} else {
 					reject(new PayloadTooLarge('File must not exceed size limit'));
 				}
-				
+
 				return;
 			}));
 
@@ -180,7 +180,7 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 			} else {
 				// @ts-ignore :: im to lazy
 				file['hash'] = undefined;
-				
+
 				throw media;
 			}
 		})
