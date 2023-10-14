@@ -120,6 +120,8 @@ export default function (request: FastifyRequest<{
 	.then(function (reportTargets: unknown[]): void {
 		for(let i: number = 0; i < reports['length']; i++) {
 			reports[i]['target'] = reportTargets[i];
+			// @ts-expect-error
+			reports[i]['targetId'] = undefined;
 		}
 
 		reply.send(reports);

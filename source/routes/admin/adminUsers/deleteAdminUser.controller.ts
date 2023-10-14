@@ -1,5 +1,5 @@
 import { prisma } from '@library/database';
-import { BadRequest, NotFound } from '@library/httpError';
+import { NotFound } from '@library/httpError';
 import { Prisma, User } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
