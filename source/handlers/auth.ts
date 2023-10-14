@@ -8,9 +8,15 @@ export default function authHandler(request: FastifyRequest, reply: FastifyReply
 
 		if(jsonWebToken.isValid()) {
 			request['user'] = {
-				id: Number.parseInt(jsonWebToken['payload']['uid'], 10),
-				handle: jsonWebToken['payload']['hdl'],
-				isVerified: jsonWebToken['payload']['vrf']
+				id: (jsonWebToken['payload'] as {
+					uid: number;
+				})['uid'],
+				handle: (jsonWebToken['payload'] as {
+					hdl: string;
+				})['hdl'],
+				isVerified: (jsonWebToken['payload'] as {
+					vrf: boolean;
+				})['vrf']
 			};
 
 			done();

@@ -20,7 +20,9 @@ export default function (request: FastifyRequest<{
 			isVerified: true
 		},
 		where: {
-			id: jsonWebToken['payload']['id'],
+			id: (jsonWebToken['payload'] as {
+				uid: number;
+			})['uid'],
 			isDeleted: false
 		}
 	})

@@ -6,7 +6,9 @@ export default function adminHandler(request: FastifyRequest, reply: FastifyRepl
 	if(typeof(request['headers']['authorization']) === 'string' && request['headers']['authorization'].startsWith('Bearer ')) {
 		const jsonWebToken: JsonWebToken = new JsonWebToken(request['headers']['authorization'].slice(7), process['env']['JSON_WEB_TOKEN_SECRET']);
 
-		if(jsonWebToken.isValid() && jsonWebToken['payload']['uid'] === 0) {
+		if(jsonWebToken.isValid() && (jsonWebToken['payload'] as {
+			uid?: number;
+		})['uid'] === 0) {
 			done();
 
 			return;
