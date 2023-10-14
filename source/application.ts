@@ -1,6 +1,6 @@
 import '@library/environment';
 import '@library/schedule';
-import fastify, { FastifyRequest } from 'fastify';
+import fastify from 'fastify';
 import { FastifyInstance } from '@library/type';
 import { logger } from '@library/logger';
 import errorHandler from '@handlers/error';
@@ -8,9 +8,9 @@ import headerHandler from '@handlers/header';
 import notFoundHandler from '@handlers/notFound';
 import serializeHandler from '@handlers/serialize';
 import rateLimitHandler from '@handlers/rateLimit';
+import multipartContentTypeParser from '@handlers/multipartContentTypeParser';
 import rootModule from './routes/root.module';
 import JsonWebToken from '@library/jsonWebToken';
-import contentTypeParser from '@handlers/contentTypeParser';
 
 const fastifyInstance: FastifyInstance = fastify({
 	trustProxy: true,
@@ -26,7 +26,7 @@ fastifyInstance.setErrorHandler(errorHandler);
 fastifyInstance.setReplySerializer(serializeHandler);
 fastifyInstance.addHook('preHandler', headerHandler);
 fastifyInstance.addHook('onRequest', rateLimitHandler);
-fastifyInstance.addContentTypeParser('multipart/form-data', contentTypeParser);
+fastifyInstance.addContentTypeParser('multipart/form-data', multipartContentTypeParser);
 
 rootModule.register(fastifyInstance);
 
