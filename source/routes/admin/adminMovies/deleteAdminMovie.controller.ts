@@ -23,7 +23,8 @@ export default function (request: FastifyRequest<{
 					isDeleted: true
 				},
 				where: {
-					id: request['params']['movieId']
+					id: request['params']['movieId'],
+					isDeleted: false
 				}
 			});
 		} else {

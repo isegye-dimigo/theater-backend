@@ -27,7 +27,7 @@ export default function (request: FastifyRequest<{
 	})
 	.then(function (result: Prisma.BatchPayload): void {
 		if(result['count'] === 1) {
-			reply.send(201).send(null);
+			reply.status(201).send(null);
 
 			return;
 		} else {

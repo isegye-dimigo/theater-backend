@@ -24,7 +24,8 @@ export default function (request: FastifyRequest<{
 					isDeleted: true
 				},
 				where: {
-					id: request['params']['reportId']
+					id: request['params']['reportId'],
+					isDeleted: false
 				}
 			});
 		} else {

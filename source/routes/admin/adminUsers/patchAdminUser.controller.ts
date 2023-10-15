@@ -23,6 +23,10 @@ export default function (request: FastifyRequest<{
 			return prisma['user'].updateMany({
 				data: {
 					isVerified: request['body']['isVerified']
+				},
+				where: {
+					id: request['params']['userId'],
+					isDeleted: false
 				}
 			})
 		} else {
