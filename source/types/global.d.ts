@@ -1,4 +1,4 @@
-import { REQUIRED_ENVIRONMENT_VARIABLE_NAMES } from '@library/environment';
+import { REQUIRED_ENVIRONMENT_VARIABLE_NAMES } from '@library/constant';
 import { LogLevel } from 'fastify';
 
 declare global {
