@@ -25,8 +25,6 @@ export default class JsonWebToken {
 					this.deepFreeze(target[keys[i]]);
 				}
 			}
-		} else {
-			throw new Error('Target must be valid');
 		}
 
 		return;
