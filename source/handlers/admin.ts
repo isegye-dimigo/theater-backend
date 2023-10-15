@@ -15,7 +15,7 @@ export default function adminHandler(request: FastifyRequest, reply: FastifyRepl
 
 		if(jsonWebToken.isValid() && (jsonWebToken['payload'] as {
 			uid?: number;
-		})['uid'] === 0	) {
+		})['uid'] === 0) {
 			done();
 
 			return;
