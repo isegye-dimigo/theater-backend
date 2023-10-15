@@ -1,9 +1,7 @@
 import { prisma, redis } from '@library/database';
 import { BadRequest } from '@library/httpError';
-import { Media, MediaVideoMetadata, Movie, MovieStatistic, Prisma, User } from '@prisma/client';
+import { Media, MediaVideoMetadata, Movie, MovieLike, MovieStar, MovieStatistic, User } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
-
-// TODO: Send user if liked or starred on movie
 
 export default function (request: FastifyRequest<{
 	Params: {
@@ -80,6 +78,8 @@ export default function (request: FastifyRequest<{
 		videoMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'> & {
 			mediaVideoMetadata: Pick<MediaVideoMetadata, 'id' | 'duration' | 'frameRate'> | null;
 		};
+		movieLikes?: MovieLike[];
+		movieStars?: MovieStar[];
 		movieStatistics: Pick<MovieStatistic, 'viewCount' | 'commentCount' | 'likeCount' | 'starAverage'>[];
 	} | null): void {
 		if(movie !== null) {
