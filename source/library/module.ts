@@ -46,22 +46,15 @@ export default class Module {
 			}
 
 			const url: string = join(fastifyInstance['prefix'], this['options']['prefix'], this['options']['routers'][i]['url']);
-			switch(this['options']['routers'][i]['method']) {
-				case 'POST':
-				case 'PATCH':
-				case 'DELETE': {
-					if(!Module['registeredUrl'].has(url)) {
-						Module['registeredUrl'].add(url);
+			
+			if(!Module['registeredUrl'].has(url)) {
+				Module['registeredUrl'].add(url);
 
-						fastifyInstance.route({
-							method: 'OPTIONS',
-							url: url,
-							handler: optionsHandler
-						});
-					}
-
-					break;
-				}
+				fastifyInstance.route({
+					method: 'OPTIONS',
+					url: url,
+					handler: optionsHandler
+				});
 			}
 
 			if(this['options']['routers'][i]['isAuthNeeded'] === true) {
