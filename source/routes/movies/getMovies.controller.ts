@@ -129,7 +129,7 @@ export default function (request: FastifyRequest<{
 		})[] = [];
 
 		for(let i: number = 0; i < rawMovies['length']; i++) {
-			const plainDescription: string = rawMovies[i]['description'].replace(/(\n|\s)+/g, ' ').trim().slice(0, 128);
+			const plainDescription: string = rawMovies[i]['description'].replace(/(\n|\s)+/g, ' ').trim();
 
 			movies.push({
 				id: Number(rawMovies[i]['id']),
