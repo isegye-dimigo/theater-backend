@@ -1,5 +1,5 @@
 import { Movie, MovieStatistic } from '@prisma/client';
-import { elasticsearch, getKeys, prisma, redis } from '@library/database';
+import { elasticsearch, getKeys, redis } from '@library/database';
 import { logger } from '@library/logger';
 import { BulkResponse, BulkUpdateAction } from '@elastic/elasticsearch/lib/api/types';
 import { BulkOperationContainer } from '@elastic/elasticsearch/lib/api/types';
@@ -38,7 +38,7 @@ global.setInterval(function (): void {
 			if(query['length'] !== 0) {
 				return Promise.all([redis.unlink(keys), pool.getConnection()
 				.then(function (connection: PoolConnection): Promise<number> {
-					return connection.execute('START TRANSACTION WITH CONSISTENT SNAPSHOT;' + query + 'COMMIT')
+					return connection.execute(query)
 					.then(function (resultCount: number): Promise<number> {
 						return connection.release()
 						.then(function (): number {
@@ -46,10 +46,7 @@ global.setInterval(function (): void {
 						});
 					})
 					.catch(function (error: Error): Promise<number> {
-						return connection.execute('ROLLBACK')
-						.then(function (): Promise<void> {
-							return connection.release();
-						})
+						return connection.release()
 						.then(function (): number {
 							throw error;
 						});
