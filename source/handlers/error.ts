@@ -1,4 +1,6 @@
+import { JsendResponse } from '@library/type';
 import { FastifyError, FastifyRequest, FastifyReply } from 'fastify';
+import headerHandler from '@handlers/header';
 
 export default function (error: FastifyError, request: FastifyRequest, reply: FastifyReply): void {
 	if(typeof(error['validation']) === 'object') {
@@ -19,18 +21,40 @@ export default function (error: FastifyError, request: FastifyRequest, reply: Fa
 		}
 	}
 
-	reply.status(error['statusCode'] as number).header('Access-Control-Allow-Origin', '*').send(isClientError ? {
-		status: 'fail',
-		data: Object.assign({
-			title: error['message']
-		}, isStackAvailable ? {
-			body: error['stack']
-		} : undefined)
-	} : {
-		status: 'error',
-		code: error['statusCode'],
-		message: error['message'] + (isStackAvailable ? '; ' + error['stack'] : '')
+	let response: JsendResponse;
+
+	if(isClientError) {
+		response = {
+			status: 'fail',
+			data: {
+				title: error['message']
+			}
+		};
+
+		if(isStackAvailable) {
+			response['data']['body'] = error['stack'];
+		}
+	} else {
+		response = {
+			status: 'error',
+			code: error['statusCode'],
+			message: error['message']
+		};
+
+		if(isStackAvailable) {
+			response['message'] += '; ' + error['stack'];
+		}
+	}
+
+	headerHandler(request, reply, function (error?: Error | null) {
+		if(typeof(error) === 'object' && error !== null) {
+			request['log'].error(error);
+		}
+
+		return;
 	});
+
+	reply.status(error['statusCode'] as number).send(response);
 
 	return;
 }
