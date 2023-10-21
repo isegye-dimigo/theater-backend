@@ -1,11 +1,8 @@
-import { Movie, MovieStatistic } from '@prisma/client';
-import { elasticsearch, getKeys, redis } from '@library/database';
+import { Movie, MovieStatistic, Prisma } from '@prisma/client';
+import { elasticsearch, getKeys, prisma, redis } from '@library/database';
 import { logger } from '@library/logger';
 import { BulkResponse, BulkUpdateAction } from '@elastic/elasticsearch/lib/api/types';
 import { BulkOperationContainer } from '@elastic/elasticsearch/lib/api/types';
-import { createPool, Pool, PoolConnection } from 'mariadb';
-
-const pool: Pool = createPool('mariadb' + process['env']['DATABASE_URL'].slice(5));
 
 global.setInterval(function (): void {
 	const startTime: number = Date.now();
@@ -27,30 +24,24 @@ global.setInterval(function (): void {
 	})
 	.then(function (results: (string | null)[]): Promise<[number, number]> | [number, number] {
 		if(results['length'] !== 0) {
-			let query: string = '';
+			const promises: Prisma.PrismaPromise<number>[] = [];
 
 			for(let i: number = 0; i < results['length']; i++) {
 				if(results[i] !== null) {
-					query += 'UPDATE movie_statistic, current_movie_statistic SET movie_statistic.view_count = movie_statistic.view_count + ' + results[i] + ' WHERE current_movie_statistic.movie_id = ' + movieIds[i] + ' AND movie_statistic.id = current_movie_statistic.id;';
+					promises.push(prisma.$executeRawUnsafe('UPDATE movie_statistic, current_movie_statistic SET movie_statistic.view_count = movie_statistic.view_count + ' + results[i] + ' WHERE current_movie_statistic.movie_id = ' + movieIds[i] + ' AND movie_statistic.id = current_movie_statistic.id;'));
 				}
 			}
 
-			if(query['length'] !== 0) {
-				return Promise.all([redis.unlink(keys), pool.getConnection()
-				.then(function (connection: PoolConnection): Promise<number> {
-					return connection.execute(query)
-					.then(function (resultCount: number): Promise<number> {
-						return connection.release()
-						.then(function (): number {
-							return resultCount;
-						});
-					})
-					.catch(function (error: Error): Promise<number> {
-						return connection.release()
-						.then(function (): number {
-							throw error;
-						});
-					});
+			if(promises['length'] !== 0) {
+				return Promise.all([redis.unlink(keys), prisma.$transaction(promises)
+				.then(function (resultCounts: number[]): number {
+					let resultCount: number = 0;
+	
+					for(let i: number = 0; i < resultCounts['length']; i++) {
+						resultCount += resultCounts[i];
+					}
+	
+					return resultCount;
 				})]);
 			}
 		}
@@ -91,7 +82,7 @@ global.setInterval(function (): void {
 			return [];
 		}
 	})
-	.then(function (results: (string | null)[]): Promise<[number, BulkResponse]> | [number, BulkResponse] {
+	.then(function (results: (string | null)[]): Promise<[number, number]> | [number, number] {
 		if(results['length'] !== 0) {
 			const operations: (BulkOperationContainer | Partial<Pick<Movie, 'title' | 'description'>> | BulkUpdateAction<Pick<Movie, 'title' | 'description'>, Partial<Pick<Movie, 'title' | 'description'>>>)[] = [];
 
@@ -124,23 +115,22 @@ global.setInterval(function (): void {
 				index: 'movie',
 				_source: false,
 				operations: operations
+			})
+			.then(function (bulkResponse: BulkResponse): number {
+				if(!bulkResponse['errors']) {
+					return bulkResponse['items']['length'];
+				} else {
+					throw new Error('Elasticsearch');
+				}
 			})]);
 		} else {
-			return [0, {
-				errors: false,
-				items: [],
-				took: 0
-			}];
+			return [0, 0];
 		}
 	})
-	.then(function (reuslts: [number, BulkResponse]) {
-		if(!reuslts[1]['errors']) {
-			logger.debug(reuslts[0] + ' views have been unlinked, and ' + reuslts[1]['items']['length'] + ' indexes have been updated (' + (Date.now() - startTime) + 'ms)');
-
-			return;
-		} else {
-			throw new Error('Elasticsearch');
-		}
+	.then(function (reuslts: [number, number]) {
+		logger.debug(reuslts[0] + ' views have been unlinked, and ' + reuslts[1] + ' indexes have been updated (' + (Date.now() - startTime) + 'ms)');
+		
+		return;
 	})
 	.catch(logger.error.bind(logger));
 
