@@ -14,9 +14,9 @@ export default new Module({
 		handler: postUsersController,
 		schema: {
 			body: {
-				email: userSchema.get('email').required(),
-				password: userSchema.get('password').required(),
-				name: userSchema.get('name').required()
+				email: userSchema['email'].required(),
+				password: userSchema['password'].required(),
+				name: userSchema['name'].required()
 			}
 		}
 	}, {
@@ -25,17 +25,17 @@ export default new Module({
 		handler: patchUserController,
 		schema: {
 			params: {
-				userHandle: userSchema.get('handle').required()
+				userHandle: userSchema['handle'].required()
 			},
 			body: {
-				email: userSchema.get('email'),
-				password: userSchema.get('password'),
-				handle: userSchema.get('handle'),
-				name: userSchema.get('name'),
-				description: userSchema.get('description'),
-				profileMediaId: userSchema.get('profileMediaId'),
-				bannerMediaId: userSchema.get('bannerMediaId'),
-				currentPassword: userSchema.get('password').required()
+				email: userSchema['email'],
+				password: userSchema['password'],
+				handle: userSchema['handle'],
+				name: userSchema['name'],
+				description: userSchema['description'],
+				profileMediaId: userSchema['profileMediaId'],
+				bannerMediaId: userSchema['bannerMediaId'],
+				currentPassword: userSchema['password'].required()
 			}
 		}
 	}, {
@@ -44,7 +44,7 @@ export default new Module({
 		handler: getUserController,
 		schema: {
 			params: {
-				userHandle: userSchema.get('handle').required()
+				userHandle: userSchema['handle'].required()
 			}
 		}
 	}, {
@@ -53,7 +53,7 @@ export default new Module({
 		handler: deleteUserController,
 		schema: {
 			params: {
-				userHandle: userSchema.get('handle').required()
+				userHandle: userSchema['handle'].required()
 			}
 		},
 		isAuthNeeded: true

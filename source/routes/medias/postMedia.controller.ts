@@ -4,7 +4,7 @@ import { execute, getMetadata, isValidType } from '@library/utility';
 import { join } from 'path/posix';
 import { WriteStream, createReadStream, createWriteStream } from 'fs';
 import { prisma } from '@library/database';
-import { Media, MediaVideo, MediaVideoMetadata, Prisma } from '@prisma/client';
+import { Media, MediaPart, MediaVideo, Prisma } from '@prisma/client';
 import { File, Metadata, RejectFunction, ResolveFunction } from '@library/type';
 import { deleteObjects, getObjectKeys, putObject } from '@library/bucket';
 import { ServiceOutputTypes } from '@aws-sdk/client-s3';
@@ -146,8 +146,8 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 		});
 	})
 	.then(function (file: File): Promise<Omit<Media, 'userId' | 'isDeleted'> & {
-		mediaVideos: MediaVideo[];
-		mediaVideoMetadata: MediaVideoMetadata | null;
+		mediaParts: Omit<MediaPart, 'mediaId'>[];
+		mediaVideo: Omit<MediaVideo, 'mediaId'> | null;
 	}> {
 		let media: Prisma.MediaUncheckedCreateInput;
 
@@ -160,18 +160,35 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 				width: true,
 				height: true,
 				aspectRatio: true,
-				isVideo: true,
 				createdAt: true,
-				mediaVideos: true,
-				mediaVideoMetadata: true
+				mediaParts: {
+					select: {
+						id: true,
+						index: true,
+						size: true,
+						duration: true,
+						videoBitRate: true,
+						audioBitRate: true
+					}
+				},
+				mediaVideo: {
+					select: {
+						id: true,
+						duration: true,
+						frameRate: true,
+						bitRate: true,
+						sampleRate: true,
+						channelCount: true
+					}
+				}
 			},
 			where: {
 				hash: file['hash']
 			}
 		})
 		.then(function (media: Omit<Media, 'userId' | 'isDeleted'> & {
-			mediaVideos: MediaVideo[];
-			mediaVideoMetadata: MediaVideoMetadata | null;
+			mediaParts: Omit<MediaPart, 'mediaId'>[];
+			mediaVideo: Omit<MediaVideo, 'mediaId'> | null;
 		} | null): Promise<void> {
 			if(media === null) {
 				return execute('ffmpeg -v quiet -i input.' + file['type'] + ' -vf "scale=\'if(gte(iw,ih),min(1280,iw),-1)\':\'if(lt(iw,ih),min(1280,ih),-1)\'" -c:v ' + (file['isVideo'] ? 'h264_qsv -c:a aac -map 0:v:0 -map 0:a:0 -r 30 -q 17 -preset veryslow -f ssegment -segment_list index.m3u8 %d.ts' : 'libwebp -quality 100 -preset photo ' + file['hash'] + '.webp'), {
@@ -205,8 +222,7 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 						size: metadata['size'],
 						width: metadata['video']['width'],
 						height: metadata['video']['height'],
-						aspectRatio: metadata['video']['aspectRatio'],
-						isVideo: false
+						aspectRatio: metadata['video']['aspectRatio']
 					};
 
 					return putObject(join('images', paths[0]), createReadStream(join(file['path'], paths[0])), 'image/webp');
@@ -240,13 +256,12 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 						width: metadatas[0]['video']['width'],
 						height: metadatas[0]['video']['height'],
 						aspectRatio: metadatas[0]['video']['aspectRatio'],
-						isVideo: true,
-						mediaVideos: {
+						mediaParts: {
 							createMany: {
 								data: []
 							}
 						},
-						mediaVideoMetadata: {
+						mediaVideo: {
 							create: {
 								duration: 0,
 								frameRate: 0,
@@ -258,7 +273,7 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 					};
 
 					for(let i: number = 0; i < metadatas['length']; i++) {
-						((media['mediaVideos'] as Required<Prisma.MediaVideoUncheckedCreateNestedManyWithoutMediaInput>)['createMany']['data'] as Prisma.MediaVideoCreateManyMediaInput[]).push({
+						((media['mediaParts'] as Required<Prisma.MediaPartUncheckedCreateNestedManyWithoutMediaInput>)['createMany']['data'] as Prisma.MediaPartCreateManyMediaInput[]).push({
 							index: metadatas[i]['index'],
 							size: metadatas[i]['size'],
 							duration: metadatas[i]['duration'],
@@ -267,13 +282,13 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 						});
 
 						media['size'] += metadatas[i]['size'];
-						(media['mediaVideoMetadata'] as Required<Prisma.MediaVideoMetadataUncheckedCreateNestedOneWithoutMediaInput>)['create']['duration'] += metadatas[i]['duration'];
-						(media['mediaVideoMetadata'] as Required<Prisma.MediaVideoMetadataUncheckedCreateNestedOneWithoutMediaInput>)['create']['frameRate'] += metadatas[i]['video']['frameRate'];
-						(media['mediaVideoMetadata'] as Required<Prisma.MediaVideoMetadataUncheckedCreateNestedOneWithoutMediaInput>)['create']['bitRate'] += metadatas[i]['bitRate'];
+						(media['mediaVideo'] as Required<Prisma.MediaVideoUncheckedCreateNestedOneWithoutMediaInput>)['create']['duration'] += metadatas[i]['duration'];
+						(media['mediaVideo'] as Required<Prisma.MediaVideoUncheckedCreateNestedOneWithoutMediaInput>)['create']['frameRate'] += metadatas[i]['video']['frameRate'];
+						(media['mediaVideo'] as Required<Prisma.MediaVideoUncheckedCreateNestedOneWithoutMediaInput>)['create']['bitRate'] += metadatas[i]['bitRate'];
 					}
 
-					(media['mediaVideoMetadata'] as Required<Prisma.MediaVideoMetadataUncheckedCreateNestedOneWithoutMediaInput>)['create']['frameRate'] /= metadatas['length'];
-					(media['mediaVideoMetadata'] as Required<Prisma.MediaVideoMetadataUncheckedCreateNestedOneWithoutMediaInput>)['create']['bitRate'] /= metadatas['length'];
+					(media['mediaVideo'] as Required<Prisma.MediaVideoUncheckedCreateNestedOneWithoutMediaInput>)['create']['frameRate'] /= metadatas['length'];
+					(media['mediaVideo'] as Required<Prisma.MediaVideoUncheckedCreateNestedOneWithoutMediaInput>)['create']['bitRate'] /= metadatas['length'];
 
 					return putObjectPromises.reduce(function (previousPromise, currentPromise): Promise<ServiceOutputTypes> {
 						return previousPromise.then(function (): Promise<ServiceOutputTypes> {
@@ -290,8 +305,8 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 			});
 		})
 		.then(function (): Promise<Omit<Media, 'userId' | 'isDeleted'> & {
-			mediaVideos: MediaVideo[];
-			mediaVideoMetadata: MediaVideoMetadata | null;
+			mediaParts: Omit<MediaPart, 'mediaId'>[];
+			mediaVideo: Omit<MediaVideo, 'mediaId'> | null;
 		}> {
 			return prisma['media'].create({
 				select: {
@@ -302,17 +317,34 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 					width: true,
 					height: true,
 					aspectRatio: true,
-					isVideo: true,
 					createdAt: true,
-					mediaVideos: true,
-					mediaVideoMetadata: true
+					mediaParts: {
+						select: {
+							id: true,
+							index: true,
+							size: true,
+							duration: true,
+							videoBitRate: true,
+							audioBitRate: true
+						}
+					},
+					mediaVideo: {
+						select: {
+							id: true,
+							duration: true,
+							frameRate: true,
+							bitRate: true,
+							sampleRate: true,
+							channelCount: true
+						}
+					}
 				},
 				data: media
 			});
 		})
 		.catch(function (error: Error): Promise<Omit<Media, 'userId' | 'isDeleted'> & {
-			mediaVideos: MediaVideo[];
-			mediaVideoMetadata: MediaVideoMetadata | null;
+			mediaParts: Omit<MediaPart, 'mediaId'>[];
+			mediaVideo: Omit<MediaVideo, 'mediaId'> | null;
 		}> {
 			return rm(file['path'], {
 				force: true,
@@ -340,8 +372,8 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 				});
 			})
 			.then(function (): Omit<Media, 'userId' | 'isDeleted'> & {
-				mediaVideos: MediaVideo[];
-				mediaVideoMetadata: MediaVideoMetadata | null;
+				mediaParts: Omit<MediaPart, 'mediaId'>[];
+				mediaVideo: Omit<MediaVideo, 'mediaId'> | null;
 			} {
 				throw error;
 			});

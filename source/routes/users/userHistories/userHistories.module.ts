@@ -2,8 +2,8 @@ import Module from '@library/module';
 import getUserHistoriesController from './getUserHistories.controller';
 import pageSchema from '@schemas/page';
 import userSchema from '@schemas/user';
+import userHistorySchema from '@schemas/userHistory';
 import postUserHistoriesController from './postUserHistories.controller';
-import movieSchema from '@schemas/movie';
 
 export default new Module({
 	routers: [{
@@ -12,10 +12,11 @@ export default new Module({
 		handler: postUserHistoriesController,
 		schema: {
 			params: {
-				userHandle: userSchema.get('handle').required()
+				userHandle: userSchema['handle'].required()
 			},
 			body: {
-				movieId: movieSchema.get('id').required()
+				movieId: userHistorySchema['id'].required(),
+				duration: userHistorySchema['duration'].required()
 			}
 		},
 		isAuthNeeded: true
@@ -25,12 +26,12 @@ export default new Module({
 		handler: getUserHistoriesController,
 		schema: {
 			params: {
-				userHandle: userSchema.get('handle').required()
+				userHandle: userSchema['handle'].required()
 			},
 			querystring: {
-				'page[index]': pageSchema.get('page[index]'),
-				'page[size]': pageSchema.get('page[size]'),
-				'page[order]': pageSchema.get('page[order]')
+				'page[index]': pageSchema['page[index]'],
+				'page[size]': pageSchema['page[size]'],
+				'page[order]': pageSchema['page[order]']
 			}
 		},
 		isAuthNeeded: true

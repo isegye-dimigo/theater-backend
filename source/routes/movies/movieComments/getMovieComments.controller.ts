@@ -26,8 +26,7 @@ export default function (request: FastifyRequest<{
 									hash: true,
 									id: true,
 									width: true,
-									height: true,
-									isVideo: true
+									height: true
 								}
 							}
 						}
@@ -58,7 +57,7 @@ export default function (request: FastifyRequest<{
 	.then(function (movie: {
 		movieComments: (Pick<MovieComment, 'id' | 'time' | 'content' | 'createdAt'> & {
 			user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'> & {
-				profileMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'> | null;
+				profileMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'> | null;
 			};
 		})[];
 	} | null): void {

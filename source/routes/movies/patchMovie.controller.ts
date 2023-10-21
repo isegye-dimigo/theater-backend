@@ -1,6 +1,6 @@
 import { prisma, redis } from '@library/database';
 import { BadRequest, NotFound, Unauthorized } from '@library/httpError';
-import { Category, Media, MediaVideoMetadata, Movie, User } from '@prisma/client';
+import { Category, Media, MediaVideo, Movie, User } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 export default function (request: FastifyRequest<{
@@ -28,16 +28,22 @@ export default function (request: FastifyRequest<{
 						if(typeof(request['body']['imageMediaId']) === 'number') {
 							validations.push(prisma['media'].findUnique({
 								select: {
-									isVideo: true
+									mediaVideo: {
+										select: {
+											id: true
+										}
+									}
 								},
 								where: {
 									id: request['body']['imageMediaId'],
 									isDeleted: false
 								}
 							})
-							.then(function (media: Pick<Media, 'isVideo'> | null): void {
+							.then(function (media: {
+								mediaVideo: Pick<MediaVideo, 'id'> | null;
+							} | null): void {
 								if(media !== null) {
-									if(!media['isVideo']) {
+									if(media['mediaVideo'] !== null) {
 										return;
 									} else {
 										throw new BadRequest('Body[\'imageMediaId\'] must not be video');
@@ -76,9 +82,9 @@ export default function (request: FastifyRequest<{
 			})
 			.then(function (): Promise<Pick<Movie, 'id' | 'title' | 'description'> & {
 				user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'>;
-				imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'>;
-				videoMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'> & {
-					mediaVideoMetadata: Pick<MediaVideoMetadata, 'id' | 'duration' | 'frameRate'> | null;
+				imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'>;
+				videoMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'> & {
+					mediaVideo: Pick<MediaVideo, 'id' | 'duration' | 'frameRate'> | null;
 				};
 			}> {
 				return prisma['movie'].update({
@@ -99,8 +105,7 @@ export default function (request: FastifyRequest<{
 								id: true,
 								hash: true,
 								width: true,
-								height: true,
-								isVideo: true
+								height: true
 							}
 						},
 						videoMedia: {
@@ -109,8 +114,7 @@ export default function (request: FastifyRequest<{
 								hash: true,
 								width: true,
 								height: true,
-								isVideo: true,
-								mediaVideoMetadata: {
+								mediaVideo: {
 									select: {
 										id: true,
 										duration: true,
@@ -133,9 +137,9 @@ export default function (request: FastifyRequest<{
 			})
 			.then(function (movie: Pick<Movie, 'id' | 'title' | 'description'> & {
 				user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'>;
-				imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'>;
-				videoMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'> & {
-					mediaVideoMetadata: Pick<MediaVideoMetadata, 'id' | 'duration' | 'frameRate'> | null;
+				imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'>;
+				videoMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'> & {
+					mediaVideo: Pick<MediaVideo, 'id' | 'duration' | 'frameRate'> | null;
 				};
 			}): void {
 				reply.send(movie);

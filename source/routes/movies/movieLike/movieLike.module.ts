@@ -10,7 +10,7 @@ export default new Module({
 		handler: postMovieLikeController,
 		schema: {
 			params: {
-				movieId: movieSchema.get('id').required()
+				movieId: movieSchema['id'].required()
 			}
 		},
 		isAuthNeeded: true
@@ -20,7 +20,7 @@ export default new Module({
 		handler: deleteMovieLikeController,
 		schema: {
 			params: {
-				movieId: movieSchema.get('id').required()
+				movieId: movieSchema['id'].required()
 			}
 		},
 		isAuthNeeded: true

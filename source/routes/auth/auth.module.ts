@@ -18,7 +18,7 @@ export default new Module({
 		handler: getEmailController,
 		schema: {
 			querystring: {
-				token: userVerificationSchema.get('token').required()
+				token: userVerificationSchema['token'].required()
 			}
 		}
 	}, {
@@ -27,8 +27,8 @@ export default new Module({
 		handler: postLoginController,
 		schema: {
 			body: {
-				email: userSchema.get('email').required(),
-				password: userSchema.get('password').required()
+				email: userSchema['email'].required(),
+				password: userSchema['password'].required()
 			}
 		}
 	}, {
@@ -37,7 +37,7 @@ export default new Module({
 		handler: postTokenController,
 		schema: {
 			body: {
-				refreshToken: commonSchema.get('jsonWebToken').required()
+				refreshToken: commonSchema['jsonWebToken'].required()
 			}
 		}
 	}],

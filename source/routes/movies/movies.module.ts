@@ -10,6 +10,7 @@ import getMovieController from './getMovie.controller';
 import deleteMovieController from './deleteMovie.controller';
 import movieSchema from '@schemas/movie';
 import pageSchema from '@schemas/page';
+import commonSchema from '@schemas/common';
 
 export default new Module({
 	routers: [{
@@ -18,11 +19,11 @@ export default new Module({
 		handler: postMoviesController,
 		schema: {
 			body: {
-				title: movieSchema.get('title').required(),
-				description: movieSchema.get('description').required(),
-				videoMediaId: movieSchema.get('videoMediaId').required(),
-				imageMediaId: movieSchema.get('imageMediaId').required(),
-				categoryId: movieSchema.get('categoryId').required()
+				title: movieSchema['title'].required(),
+				description: movieSchema['description'].required(),
+				videoMediaId: movieSchema['videoMediaId'].required(),
+				imageMediaId: movieSchema['imageMediaId'].required(),
+				categoryId: movieSchema['categoryId'].required()
 			}
 		},
 		isAuthNeeded: true
@@ -32,12 +33,12 @@ export default new Module({
 		handler: getMoviesController,
 		schema: {
 			querystring: {
-				'page[index]': pageSchema.get('page[index]'),
-				'page[size]': pageSchema.get('page[size]'),
-				'page[order]': pageSchema.get('page[order]'),
-				'page[orderBy]': pageSchema['defaultSchema'].string().enum(['likeCount', 'viewCount', 'starAverage', 'id']).default('id'),
-				query: movieSchema.get('title'),
-				categoryId: movieSchema.get('categoryId')
+				'page[index]': pageSchema['page[index]'],
+				'page[size]': pageSchema['page[size]'],
+				'page[order]': pageSchema['page[order]'],
+				'page[orderBy]': commonSchema['default'].string().enum(['likeCount', 'viewCount', 'starAverage', 'id']).default('id'),
+				query: movieSchema['title'],
+				categoryId: movieSchema['categoryId']
 			}
 		}
 	}, {
@@ -46,13 +47,13 @@ export default new Module({
 		handler: patchMovieController,
 		schema: {
 			params: {
-				movieId: movieSchema.get('id').required()
+				movieId: movieSchema['id'].required()
 			},
 			body: {
-				title: movieSchema.get('title'),
-				description: movieSchema.get('description'),
-				imageMediaId: movieSchema.get('imageMediaId'),
-				categoryId: movieSchema.get('categoryId')
+				title: movieSchema['title'],
+				description: movieSchema['description'],
+				imageMediaId: movieSchema['imageMediaId'],
+				categoryId: movieSchema['categoryId']
 			}
 		},
 		isAuthNeeded: true
@@ -62,7 +63,7 @@ export default new Module({
 		handler: getMovieController,
 		schema: {
 			params: {
-				movieId: movieSchema.get('id').required()
+				movieId: movieSchema['id'].required()
 			}
 		}
 	}, {
@@ -71,7 +72,7 @@ export default new Module({
 		handler: deleteMovieController,
 		schema: {
 			params: {
-				movieId: movieSchema.get('id').required()
+				movieId: movieSchema['id'].required()
 			}
 		},
 		isAuthNeeded: true

@@ -1,15 +1,13 @@
 import { prisma } from '@library/database';
 import { BadRequest, NotFound, Unauthorized } from '@library/httpError';
-import { Movie, Prisma, User } from '@prisma/client';
+import { MediaVideo, Prisma, User, UserHistory } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 export default function (request: FastifyRequest<{
 	Params: {
 		userHandle: User['handle'];
 	};
-	Body: {
-		movieId: Movie['id'];
-	};
+	Body: Pick<UserHistory, 'movieId' | 'duration'>;
 }>, reply: FastifyReply): void {
 	Promise.all([prisma['user'].findUnique({
 		select: {
@@ -21,23 +19,40 @@ export default function (request: FastifyRequest<{
 		}
 	}), prisma['movie'].findUnique({
 		select: {
-			id: true
+			videoMedia: {
+				select: {
+					mediaVideo: {
+						select: {
+							duration: true
+						}
+					}
+				}
+			}
 		},
 		where: {
 			id: request['body']['movieId'],
 			isDeleted: false
 		}
 	})])
-	.then(function (results: [Pick<User, 'id'> | null, Pick<Movie, 'id'> | null]): Promise<Prisma.BatchPayload> {
+	.then(function (results: [Pick<User, 'id'> | null, {
+		videoMedia: {
+			mediaVideo: Pick<MediaVideo, 'duration'> | null;
+		}
+	} | null]): Promise<Prisma.BatchPayload> {
 		if(results[0] !== null) {
 			if(request['user']['id'] === results[0]['id']) {
 				if(results[1] !== null) {
-					return prisma['userHistory'].createMany({
-						data: {
-							userId: results[0]['id'],
-							movieId: request['body']['movieId']
-						}
-					});
+					if(results[1]['videoMedia']['mediaVideo'] !== null && request['body']['duration'] <= results[1]['videoMedia']['mediaVideo']['duration']) {
+						return prisma['userHistory'].createMany({
+							data: {
+								userId: results[0]['id'],
+								movieId: request['body']['movieId'],
+								duration: request['body']['duration']
+							}
+						});
+					} else {
+						throw new BadRequest('Body[\'duration\'] must be valid');
+					}
 				} else {
 					throw new BadRequest('Body[\'movieId\'] must be valid');
 				}

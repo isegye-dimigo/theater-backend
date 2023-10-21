@@ -11,7 +11,7 @@ export default new Module({
 		preValidation: adminHandler,
 		schema: {
 			body: {
-				title: categorySchema.get('title').required()
+				title: categorySchema['title'].required()
 			}
 		}
 	}],

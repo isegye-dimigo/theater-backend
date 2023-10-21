@@ -1,7 +1,7 @@
 import { prisma } from '@library/database';
 import { BadRequest, Conflict, NotFound, Unauthorized } from '@library/httpError';
 import { getEncryptedPassword } from '@library/utility';
-import { Media, User } from '@prisma/client';
+import { Media, MediaVideo, User } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 export default function (request: FastifyRequest<{
@@ -84,22 +84,17 @@ export default function (request: FastifyRequest<{
 				}
 
 				if(typeof(request['body']['profileMediaId']) === 'number') {
-					validations.push(prisma['media'].findUnique({
+					validations.push(prisma['mediaVideo'].findUnique({
 						select: {
-							isVideo: true
+							id: true
 						},
 						where: {
-							id: request['body']['profileMediaId'],
-							isDeleted: false
+							id: request['body']['profileMediaId']
 						}
 					})
-					.then(function (media: Pick<Media, 'isVideo'> | null): void {
-						if(media !== null) {
-							if(!media['isVideo']) {
-								return;
-							} else {
-								throw new BadRequest('Body[\'profileMediaId\'] must not be video');
-							}
+					.then(function (mediaVideo: Pick<MediaVideo, 'id'> | null): void {
+						if(mediaVideo !== null) {
+							return;
 						} else {
 							throw new BadRequest('Body[\'profileMediaId\'] must be valid');
 						}
@@ -107,22 +102,17 @@ export default function (request: FastifyRequest<{
 				}
 
 				if(typeof(request['body']['bannerMediaId']) === 'number') {
-					validations.push(prisma['media'].findUnique({
+					validations.push(prisma['mediaVideo'].findUnique({
 						select: {
-							isVideo: true
+							id: true
 						},
 						where: {
-							id: request['body']['bannerMediaId'],
-							isDeleted: false
+							id: request['body']['bannerMediaId']
 						}
 					})
-					.then(function (media: Pick<Media, 'isVideo'> | null): void {
-						if(media !== null) {
-							if(!media['isVideo']) {
-								return;
-							} else {
-								throw new BadRequest('Body[\'bannerMediaId\'] must not be video');
-							}
+					.then(function (mediaVideo: Pick<MediaVideo, 'id'> | null): void {
+						if(mediaVideo !== null) {
+							return;
 						} else {
 							throw new BadRequest('Body[\'bannerMediaId\'] must be valid');
 						}
@@ -134,7 +124,7 @@ export default function (request: FastifyRequest<{
 				throw new Unauthorized('Body[\'currentPassword\'] must be valid');
 			}
 		})
-		.then(function (): Promise<Pick<User, 'id' | 'handle' | 'name' | 'description' | 'isVerified' | 'createdAt'> & Record<'profileMedia' | 'bannerMedia', Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'> | null>> {
+		.then(function (): Promise<Pick<User, 'id' | 'handle' | 'name' | 'description' | 'isVerified' | 'createdAt'> & Record<'profileMedia' | 'bannerMedia', Pick<Media, 'id' | 'hash' | 'width' | 'height'> | null>> {
 			return prisma['user'].update({
 				select: {
 					id: true,
@@ -147,8 +137,7 @@ export default function (request: FastifyRequest<{
 							id: true,
 							hash: true,
 							width: true,
-							height: true,
-							isVideo: true
+							height: true
 						}
 					},
 					bannerMedia: {
@@ -156,8 +145,7 @@ export default function (request: FastifyRequest<{
 							id: true,
 							hash: true,
 							width: true,
-							height: true,
-							isVideo: true
+							height: true
 						}
 					},
 					createdAt: true

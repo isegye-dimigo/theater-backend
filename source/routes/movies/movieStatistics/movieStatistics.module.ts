@@ -12,12 +12,12 @@ export default new Module({
 		handler: getMovieStatisticsController,
 		schema: {
 			params: {
-				movieId: movieSchema.get('id').required()
+				movieId: movieSchema['id'].required()
 			},
 			querystring: {
-				'page[index]': pageSchema.get('page[index]'),
-				'page[size]': pageSchema.get('page[size]'),
-				'page[order]': pageSchema.get('page[order]')
+				'page[index]': pageSchema['page[index]'],
+				'page[size]': pageSchema['page[size]'],
+				'page[order]': pageSchema['page[order]']
 			}
 		},
 		isAuthNeeded: true
@@ -27,8 +27,8 @@ export default new Module({
 		handler: getMovieStatisticController,
 		schema: {
 			params: {
-				movieId: movieSchema.get('id').required(),
-				movieStatisticId: movieStatisticSchema.get('id').required()
+				movieId: movieSchema['id'].required(),
+				movieStatisticId: movieStatisticSchema['id'].required()
 			}
 		},
 		isAuthNeeded: true

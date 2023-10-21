@@ -1,12 +1,14 @@
 import { FastifyBaseLogger, FastifyInstance as _FastifyInstance, FastifySchema, FastifyTypeProvider, HTTPMethods, RouteHandlerMethod, RouteOptions as _RouteOptions } from 'fastify';
 import { IncomingMessage, Server, ServerResponse } from 'http';
 import Module from '@library/module';
-import { JSONSchema } from 'fluent-json-schema';
+import { ArraySchema, BooleanSchema, IntegerSchema, JSONSchema, NumberSchema, ObjectSchema, StringSchema } from 'fluent-json-schema';
 import { fileSignatures } from '@library/constant';
 
 type RecursiveRecord<T extends string | number | symbol, S> = {
 	[key in T]: S | RecursiveRecord<T, S>
 };
+
+export type Schema<T extends {}> = Record<keyof T, ObjectSchema | StringSchema | NumberSchema | ArraySchema | IntegerSchema | BooleanSchema>;
 
 export type SchemaKey = 'body' | 'querystring' | 'params' | 'headers';
 

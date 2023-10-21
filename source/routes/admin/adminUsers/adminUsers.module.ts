@@ -12,10 +12,10 @@ export default new Module({
 		preValidation: adminHandler,
 		schema: {
 			params: {
-				userId: userSchema.get('id').required()
+				userId: userSchema['id'].required()
 			},
 			body: {
-				isVerified: userSchema.get('isVerified').required()
+				isVerified: userSchema['isVerified'].required()
 			}
 		}
 	}, {
@@ -25,7 +25,7 @@ export default new Module({
 		preValidation: adminHandler,
 		schema: {
 			params: {
-				userId: userSchema.get('id').required()
+				userId: userSchema['id'].required()
 			}
 		}
 	}],

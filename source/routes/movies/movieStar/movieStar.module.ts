@@ -11,10 +11,10 @@ export default new Module({
 		handler: postMovieStarController,
 		schema: {
 			params: {
-				movieId: movieSchema.get('id').required()
+				movieId: movieSchema['id'].required()
 			},
 			body: {
-				value: movieStarSchema.get('value').required()
+				value: movieStarSchema['value'].required()
 			}
 		},
 		isAuthNeeded: true
@@ -24,7 +24,7 @@ export default new Module({
 		handler: deleteMovieStarController,
 		schema: {
 			params: {
-				movieId: movieSchema.get('id').required()
+				movieId: movieSchema['id'].required()
 			}
 		},
 		isAuthNeeded: true

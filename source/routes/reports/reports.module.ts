@@ -11,8 +11,8 @@ export default new Module({
 		handler: postReportsController,
 		schema: {
 			body: {
-				type: reportSchema.get('type').required(),
-				targetId: reportSchema.get('targetId').required()
+				type: reportSchema['type'].required(),
+				targetId: reportSchema['targetId'].required()
 			}
 		},
 		isAuthNeeded: true
@@ -22,9 +22,9 @@ export default new Module({
 		handler: getReportsController,
 		schema: {
 			querystring: {
-				'page[index]': pageSchema.get('page[index]'),
-				'page[size]': pageSchema.get('page[size]'),
-				'page[order]': pageSchema.get('page[order]')
+				'page[index]': pageSchema['page[index]'],
+				'page[size]': pageSchema['page[size]'],
+				'page[order]': pageSchema['page[order]']
 			}
 		}
 	}],

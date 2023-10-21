@@ -17,30 +17,30 @@ model Category {
 }
 
 model Media {
-  id                 Int                 @id @default(autoincrement()) @db.UnsignedInt
-  hash               String              @unique(map: "UNIQUE INDEX(hash)") @db.VarChar(128)
-  userId             Int                 @map("user_id") @db.UnsignedInt
-  type               String              @db.VarChar(3)
-  size               Int                 @db.UnsignedInt
-  width              Int                 @db.UnsignedInt
-  height             Int                 @db.UnsignedInt
-  aspectRatio        String              @map("aspect_ratio") @db.VarChar(16)
-  isVideo            Boolean             @map("is_video") @db.Bit(1)
-  isDeleted          Boolean             @default(dbgenerated("(b'0')")) @map("is_deleted") @db.Bit(1)
-  createdAt          DateTime            @default(now()) @map("created_at") @db.DateTime(0)
-  user               User                @relation("FOREIGN KEY(media.user_id,user.id)", fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FOREIGN KEY(media.user_id,user.id)")
-  mediaVideos        MediaVideo[]
-  mediaVideoMetadata MediaVideoMetadata?
-  imageMovie         Movie?              @relation("FOREIGN KEY(movie.image_media_id,media.id)")
-  videoMovie         Movie?              @relation("FOREIGN KEY(movie.video_media_id,media.id)")
-  bannerUser         User?               @relation("FOREIGN KEY(user.banner_media_id,media.id)")
-  profileUser        User?               @relation("FOREIGN KEY(user.profile_media_id,media.id)")
+  id           Int         @id @default(autoincrement()) @db.UnsignedInt
+  hash         String      @unique(map: "UNIQUE INDEX(hash)") @db.VarChar(128)
+  userId       Int         @map("user_id") @db.UnsignedInt
+  type         String      @db.VarChar(3)
+  size         Int         @db.UnsignedInt
+  width        Int         @db.UnsignedInt
+  height       Int         @db.UnsignedInt
+  aspectRatio  String      @map("aspect_ratio") @db.VarChar(16)
+  isDeleted    Boolean     @default(dbgenerated("(b'0')")) @map("is_deleted") @db.Bit(1)
+  createdAt    DateTime    @default(now()) @map("created_at") @db.DateTime(0)
+  user         User        @relation("FOREIGN KEY(media.user_id,user.id)", fields: [userId], references: [id], map: "FOREIGN KEY(media.user_id,user.id)")
+  mediaParts   MediaPart[]
+  mediaVideo   MediaVideo?
+  bannerUsers  User[]      @relation("FOREIGN KEY(user.banner_media_id,media.id)")
+  profileUsers User[]      @relation("FOREIGN KEY(user.profile_media_id,media.id)")
+  imageMovie   Movie[]     @relation("FOREIGN KEY(movie.image_media_id,media.id)")
+  videoMovie   Movie?      @relation("FOREIGN KEY(movie.video_media_id,media.id)")
+  series       Series[]
 
   @@index([userId], map: "FOREIGN KEY(media.user_id,user.id)")
   @@map("media")
 }
 
-model MediaVideo {
+model MediaPart {
   id           Int   @id @default(autoincrement()) @db.UnsignedInt
   mediaId      Int   @map("media_id") @db.UnsignedInt
   index        Int   @db.UnsignedInt
@@ -48,13 +48,13 @@ model MediaVideo {
   duration     Float
   videoBitRate Int   @map("video_bit_rate") @db.UnsignedInt
   audioBitRate Int   @map("audio_bit_rate") @db.UnsignedInt
-  media        Media @relation(fields: [mediaId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "FOREIGN KEY(media_video.media_id,media.id)")
+  media        Media @relation(fields: [mediaId], references: [id], onDelete: Cascade, map: "FOREIGN KEY(media_part.media_id,media.id)")
 
   @@unique([mediaId, index], map: "UNIQUE INDEX(media_id,index)")
-  @@map("media_video")
+  @@map("media_part")
 }
 
-model MediaVideoMetadata {
+model MediaVideo {
   id           Int   @id @default(autoincrement()) @db.UnsignedInt
   mediaId      Int   @unique(map: "UNIQUE INDEX(media_id)") @map("media_id") @db.UnsignedInt
   duration     Float
@@ -62,33 +62,35 @@ model MediaVideoMetadata {
   bitRate      Int   @map("bit_rate") @db.UnsignedInt
   sampleRate   Int   @map("sample_rate") @db.UnsignedInt
   channelCount Int   @map("channel_count") @db.UnsignedTinyInt
-  media        Media @relation(fields: [mediaId], references: [id], onDelete: Cascade, map: "FOREIGN KEY(media_video_metadata.media_id,media.id)")
+  media        Media @relation(fields: [mediaId], references: [id], onDelete: Cascade, map: "FOREIGN KEY(media_video.media_id,media.id)")
 
-  @@map("media_video_metadata")
+  @@map("media_video")
 }
 
 model Movie {
   id              Int              @id @default(autoincrement()) @db.UnsignedInt
   userId          Int              @map("user_id") @db.UnsignedInt
   title           String           @db.VarChar(128)
-  description     String           @db.VarChar(4096)
+  description     String?          @db.VarChar(4096)
+  imageMediaId    Int              @map("image_media_id") @db.UnsignedInt
   videoMediaId    Int              @unique(map: "UNIQUE INDEX(video_media_id)") @map("video_media_id") @db.UnsignedInt
-  imageMediaId    Int              @unique(map: "UNIQUE INDEX(image_media_id)") @map("image_media_id") @db.UnsignedInt
   categoryId      Int              @map("category_id") @db.UnsignedInt
   isDeleted       Boolean          @default(dbgenerated("(b'0')")) @map("is_deleted") @db.Bit(1)
   createdAt       DateTime         @default(now()) @map("created_at") @db.DateTime(0)
-  user            User             @relation(fields: [userId], references: [id], onUpdate: Restrict, map: "movie.user_id,user.id")
-  videoMedia      Media            @relation("FOREIGN KEY(movie.video_media_id,media.id)", fields: [videoMediaId], references: [id], onUpdate: Restrict, map: "FOREIGN KEY(movie.video_media_id,media.id)")
-  imageMedia      Media            @relation("FOREIGN KEY(movie.image_media_id,media.id)", fields: [imageMediaId], references: [id], onUpdate: Restrict, map: "FOREIGN KEY(movie.image_media_id,media.id)")
-  category        Category         @relation(fields: [categoryId], references: [id], onDelete: Cascade, map: "FOREIGN KEY(movie.category_id,category.id)")
+  category        Category         @relation(fields: [categoryId], references: [id], map: "FOREIGN KEY(movie.category_id,category.id)")
+  imageMedia      Media            @relation("FOREIGN KEY(movie.image_media_id,media.id)", fields: [imageMediaId], references: [id], map: "FOREIGN KEY(movie.image_media_id,media.id)")
+  user            User             @relation(fields: [userId], references: [id], map: "movie.user_id,user.id")
+  videoMedia      Media            @relation("FOREIGN KEY(movie.video_media_id,media.id)", fields: [videoMediaId], references: [id], map: "FOREIGN KEY(movie.video_media_id,media.id)")
   movieComments   MovieComment[]
   movieLikes      MovieLike[]
   movieStars      MovieStar[]
   movieStatistics MovieStatistic[]
+  seriesMovie     SeriesMovie?
   userHistories   UserHistory[]
 
   @@index([userId], map: "FOREIGN KEY(movie.user_id,user.id)")
   @@index([categoryId], map: "FOREIGN KEY(movie.category_id,category.id)")
+  @@index([imageMediaId], map: "FOREIGN KEY(movie.image_media_id,media.id)")
   @@map("movie")
 }
 
@@ -96,12 +98,12 @@ model MovieComment {
   id        Int      @id @default(autoincrement()) @db.UnsignedInt
   movieId   Int      @map("movie_id") @db.UnsignedInt
   userId    Int      @map("user_id") @db.UnsignedInt
-  time      Int      @db.UnsignedInt
+  time      Float
   content   String   @db.VarChar(128)
   isDeleted Boolean  @default(dbgenerated("(b'0')")) @map("is_deleted") @db.Bit(1)
   createdAt DateTime @default(now()) @map("created_at") @db.DateTime(0)
-  movie     Movie    @relation(fields: [movieId], references: [id], onUpdate: Restrict, map: "FOREIGN KEY(movie_comment.movie_id,movie.id)")
-  user      User     @relation(fields: [userId], references: [id], onUpdate: Restrict, map: "FOREIGN KEY(movie_comment.user_id,user.id)")
+  movie     Movie    @relation(fields: [movieId], references: [id], map: "FOREIGN KEY(movie_comment.movie_id,movie.id)")
+  user      User     @relation(fields: [userId], references: [id], map: "FOREIGN KEY(movie_comment.user_id,user.id)")
 
   @@index([movieId], map: "FOREIGN KEY(movie_comment.movie_id,movie.id)")
   @@index([userId], map: "FOREIGN KEY(movie_comment.user_id,user.id)")
@@ -113,8 +115,8 @@ model MovieLike {
   movieId   Int      @map("movie_id") @db.UnsignedInt
   userId    Int      @map("user_id") @db.UnsignedInt
   createdAt DateTime @default(now()) @map("created_at") @db.DateTime(0)
-  media     Movie    @relation(fields: [movieId], references: [id], onUpdate: Restrict, map: "FOREIGN KEY(movie_like.movie_id,movie.id)")
-  user      User     @relation(fields: [userId], references: [id], onUpdate: Restrict, map: "FOREIGN KEY(movie_like.user_id,user.id)")
+  media     Movie    @relation(fields: [movieId], references: [id], onDelete: Cascade, map: "FOREIGN KEY(movie_like.movie_id,movie.id)")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "FOREIGN KEY(movie_like.user_id,user.id)")
 
   @@unique([movieId, userId], map: "UNIQUE INDEX(movie_id,user_id)")
   @@index([userId], map: "FOREIGN KEY(movie_like.user_id,user.id)")
@@ -125,7 +127,7 @@ model MovieStar {
   id        Int      @id @default(autoincrement()) @db.UnsignedInt
   userId    Int      @map("user_id") @db.UnsignedInt
   movieId   Int      @map("movie_id") @db.UnsignedInt
-  value     Int      @db.UnsignedTinyInt
+  value     Boolean
   createdAt DateTime @default(now()) @map("created_at") @db.DateTime(0)
   movie     Movie    @relation(fields: [movieId], references: [id], onDelete: Cascade, map: "FOREIGN KEY(movie_star.movie_id,movie.id)")
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "FOREIGN KEY(movie_star.user_id,user.id)")
@@ -156,10 +158,38 @@ model Report {
   targetId  Int      @map("target_id") @db.UnsignedInt
   isDeleted Boolean  @default(dbgenerated("(b'0')")) @map("is_deleted") @db.Bit(1)
   createdAt DateTime @default(now()) @map("created_at") @db.DateTime(0)
-  user      User     @relation("FOREIGN KEY(report.user_id,user.id)", fields: [userId], references: [id], onUpdate: Restrict, map: "FOREIGN KEY(report.user_id,user.id)")
+  user      User     @relation("FOREIGN KEY(report.user_id,user.id)", fields: [userId], references: [id], map: "FOREIGN KEY(report.user_id,user.id)")
 
   @@index([userId], map: "FOREIGN KEY(report.user_id,user.id)")
   @@map("report")
+}
+
+model Series {
+  id           Int           @id @db.UnsignedInt
+  userId       Int           @map("user_id") @db.UnsignedInt
+  mediaId      Int           @map("media_id") @db.UnsignedInt
+  title        String        @db.VarChar(128)
+  description  String?       @db.VarChar(4096)
+  createdAt    DateTime      @default(now()) @map("created_at") @db.DateTime(0)
+  media        Media         @relation(fields: [mediaId], references: [id], map: "FOREIGN KEY(series.media_id,media.id)")
+  user         User          @relation(fields: [userId], references: [id], map: "FOREIGN KEY(series.user_id,user.id)")
+  seriesMovies SeriesMovie[]
+
+  @@index([mediaId], map: "FOREIGN KEY(series.media_id,media.id)")
+  @@index([userId], map: "FOREIGN KEY(series.user_id,user.id)")
+  @@map("series")
+}
+
+model SeriesMovie {
+  id       Int     @id @default(autoincrement()) @db.UnsignedInt
+  seriesId Int     @map("series_id") @db.UnsignedInt
+  movieId  Int     @unique(map: "movie_id") @map("movie_id") @db.UnsignedInt
+  subtitle String? @db.VarChar(128)
+  movie    Movie   @relation(fields: [movieId], references: [id], map: "FOREIGN KEY(series_movie.movie_id,movie.id)")
+  series   Series  @relation(fields: [seriesId], references: [id], map: "FOREIGN KEY(series_movie.series_id,series.id)")
+
+  @@index([seriesId], map: "FOREIGN KEY(series_movie.series_id,series.id)")
+  @@map("series_movie")
 }
 
 model User {
@@ -168,9 +198,9 @@ model User {
   password       String         @db.VarChar(128)
   handle         String         @unique(map: "UNIQUE INDEX(handle)") @db.VarChar(32)
   name           String         @db.VarChar(64)
-  description    String?        @db.VarChar(1024)
-  profileMediaId Int?           @unique(map: "UNIQUE INDEX(profile_media_id)") @map("profile_media_id") @db.UnsignedInt
-  bannerMediaId  Int?           @unique(map: "UNIQUE INDEX(banner_media_id)") @map("banner_media_id") @db.UnsignedInt
+  description    String?        @db.VarChar(2048)
+  profileMediaId Int?           @map("profile_media_id") @db.UnsignedInt
+  bannerMediaId  Int?           @map("banner_media_id") @db.UnsignedInt
   isVerified     Boolean        @default(dbgenerated("(b'0')")) @map("is_verified") @db.Bit(1)
   isDeleted      Boolean        @default(dbgenerated("(b'0')")) @map("is_deleted") @db.Bit(1)
   createdAt      DateTime       @default(now()) @map("created_at") @db.DateTime(0)
@@ -180,10 +210,13 @@ model User {
   movieLikes     MovieLike[]
   movieStars     MovieStar[]
   reports        Report[]       @relation("FOREIGN KEY(report.user_id,user.id)")
-  bannerMedia    Media?         @relation("FOREIGN KEY(user.banner_media_id,media.id)", fields: [bannerMediaId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "FOREIGN KEY(user.banner_media_id,media.id)")
-  profileMedia   Media?         @relation("FOREIGN KEY(user.profile_media_id,media.id)", fields: [profileMediaId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "FOREIGN KEY(user.profile_media_id,media.id)")
+  series         Series[]
+  bannerMedia    Media?         @relation("FOREIGN KEY(user.banner_media_id,media.id)", fields: [bannerMediaId], references: [id], onDelete: Restrict, map: "FOREIGN KEY(user.banner_media_id,media.id)")
+  profileMedia   Media?         @relation("FOREIGN KEY(user.profile_media_id,media.id)", fields: [profileMediaId], references: [id], onDelete: Restrict, map: "FOREIGN KEY(user.profile_media_id,media.id)")
   userHistories  UserHistory[]
 
+  @@index([bannerMediaId], map: "FOREIGN KEY(user.banner_media_id,media.id)")
+  @@index([profileMediaId], map: "FOREIGN KEY(user.profile_media_id,media.id)")
   @@map("user")
 }
 
@@ -191,9 +224,10 @@ model UserHistory {
   id        Int      @id @default(autoincrement()) @db.UnsignedInt
   userId    Int      @map("user_id") @db.UnsignedInt
   movieId   Int      @map("movie_id") @db.UnsignedInt
+  duration  Float
   createdAt DateTime @default(now()) @map("created_at") @db.DateTime(0)
-  movie     Movie    @relation(fields: [movieId], references: [id], onUpdate: Restrict, map: "FOREIGN KEY(user_history.movie_id,movie.id)")
-  user      User     @relation(fields: [userId], references: [id], onUpdate: Restrict, map: "FOREIGN KEY(user_history.user_id,user.id)")
+  movie     Movie    @relation(fields: [movieId], references: [id], map: "FOREIGN KEY(user_history.movie_id,movie.id)")
+  user      User     @relation(fields: [userId], references: [id], map: "FOREIGN KEY(user_history.user_id,user.id)")
 
   @@index([movieId], map: "FOREIGN KEY(user_history.movie_id,movie.id)")
   @@index([userId], map: "FOREIGN KEY(user_history.user_id,user.id)")

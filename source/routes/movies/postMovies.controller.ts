@@ -1,6 +1,6 @@
 import { prisma, redis } from '@library/database';
 import { BadRequest, Unauthorized } from '@library/httpError';
-import { Category, Media, MediaVideoMetadata, Movie, User } from '@prisma/client';
+import { Category, Media, MediaVideo, Movie, User } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 export default function (request: FastifyRequest<{
@@ -12,12 +12,13 @@ export default function (request: FastifyRequest<{
 				videoMovie: {
 					select: {
 						id: true
-					},
-					where: {
-						isDeleted: false
 					}
 				},
-				isVideo: true
+				mediaVideo: {
+					select: {
+						id: true
+					}
+				}
 			},
 			where: {
 				id: request['body']['videoMediaId'],
@@ -25,15 +26,11 @@ export default function (request: FastifyRequest<{
 			}
 		}), prisma['media'].findUnique({
 			select: {
-				imageMovie: {
+				mediaVideo: {
 					select: {
 						id: true
-					},
-					where: {
-						isDeleted: false
 					}
-				},
-				isVideo: true
+				}
 			},
 			where: {
 				id: request['body']['imageMediaId'],
@@ -47,22 +44,61 @@ export default function (request: FastifyRequest<{
 				id: request['body']['categoryId']
 			}
 		})])
-		.then(function (results: [Pick<Media, 'isVideo'> & {
+
+		Promise.all([prisma['media'].findUnique({
+			select: {
+				videoMovie: {
+					select: {
+						id: true
+					}
+				},
+				mediaVideo: {
+					select: {
+						id: true
+					}
+				}
+			},
+			where: {
+				id: request['body']['videoMediaId'],
+				isDeleted: false
+			}
+		}), prisma['media'].findUnique({
+			select: {
+				mediaVideo: {
+					select: {
+						id: true
+					}
+				}
+			},
+			where: {
+				id: request['body']['imageMediaId'],
+				isDeleted: false
+			}
+		}), prisma['category'].findUnique({
+			select: {
+				id: true
+			},
+			where: {
+				id: request['body']['categoryId']
+			}
+		})])
+		.then(function (results: [{
 			videoMovie: Pick<Movie, 'id'> | null;
-		} | null, Pick<Media, 'isVideo'> & {
-			imageMovie: Pick<Movie, 'id'> | null;
+			mediaVideo: Pick<MediaVideo, 'id'> | null;
+		} | null, {
+			mediaVideo: Pick<MediaVideo, 'id'> | null;
 		} | null, Pick<Category, 'id'> | null]): Promise<Pick<Movie, 'id' | 'title' | 'description'> & {
 			user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'>;
-			imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'>;
-			videoMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'> & {
-				mediaVideoMetadata: Pick<MediaVideoMetadata, 'id' | 'duration' | 'frameRate'> | null;
+			imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'>;
+			videoMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'> & {
+				mediaVideo: Pick<MediaVideo, 'id' | 'duration' | 'frameRate'> | null;
 			};
 			category: Category;
 		}> {
 			if(results[0] !== null) {
-				if(results[0]['isVideo']) {
+				if(results[0]['mediaVideo'] !== null) {
 					if(results[1] !== null) {
-						if(!results[1]['isVideo']) {
+						if(results[1]['mediaVideo'] === null) {
 							if(results[2] !== null) {
 								return prisma['movie'].create({
 									select: {
@@ -82,8 +118,7 @@ export default function (request: FastifyRequest<{
 												id: true,
 												hash: true,
 												width: true,
-												height: true,
-												isVideo: true
+												height: true
 											}
 										},
 										videoMedia: {
@@ -92,8 +127,7 @@ export default function (request: FastifyRequest<{
 												hash: true,
 												width: true,
 												height: true,
-												isVideo: true,
-												mediaVideoMetadata: {
+												mediaVideo: {
 													select: {
 														id: true,
 														duration: true,
@@ -146,9 +180,9 @@ export default function (request: FastifyRequest<{
 		})
 		.then(function (movie: Pick<Movie, 'id' | 'title' | 'description'> & {
 			user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'>;
-			imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'>;
-			videoMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'> & {
-				mediaVideoMetadata: Pick<MediaVideoMetadata, 'id' | 'duration' | 'frameRate'> | null;
+			imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'>;
+			videoMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'> & {
+				mediaVideo: Pick<MediaVideo, 'id' | 'duration' | 'frameRate'> | null;
 			};
 		}): void {
 			reply.status(201).send(movie);

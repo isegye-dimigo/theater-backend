@@ -1,8 +1,9 @@
 
-import { RejectFunction, ResolveFunction, Metadata, File } from '@library/type';
+import { RejectFunction, ResolveFunction, Metadata, File, RouteOptions, SchemaKey } from '@library/type';
 import { fileSignatures } from '@library/constant';
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
 import { pbkdf2 } from 'crypto';
+import schema, { NullSchema, ObjectSchema } from 'fluent-json-schema';
 
 export function getEpoch(): number {
 	return Math.trunc(Date.now() / 1000);
@@ -20,6 +21,26 @@ export function getEncryptedPassword(password: string, salt: string): Promise<st
 
 		return;
 	});
+}
+
+export function getObjectSchema(object: Required<Required<RouteOptions>['schema']>[SchemaKey]): ObjectSchema | NullSchema {
+	const keys: string[] = Object.getOwnPropertyNames(object);
+
+	let resultSchema: ObjectSchema = schema.object().additionalProperties(false);
+
+	if(object['$isRequired'] === true) {
+		resultSchema = resultSchema.required();
+	}
+
+	for(let i: number = 0; i < keys['length']; i++) {
+		// @ts-expect-error
+		if(keys[i] !== '$isRequired' && typeof(object[keys[i]]) === 'object') {
+			// @ts-expect-error
+			resultSchema = resultSchema.prop(keys[i], Object.hasOwn(object[keys[i]], 'isFluentJSONSchema') ? object[keys[i]] : getObjectSchema(object[keys[i]]));
+		}
+	}
+
+	return resultSchema.readOnly(true);
 }
 
 export function execute(command: string, options?: {
@@ -199,5 +220,3 @@ export function getGreatestCommonDivisor(a: number, b: number): number {
 export function getMailContent(name: string, token: string): string {
 	return '<body style="margin:100px auto;width:540px;border-top:4px solid #5d63bd;padding:0 4px"><header style="margin:32px 0"><h1 style="margin:0;font-size:28px;color:#141c2f">이세계</h1><h2 style="margin:0;font-size:16px;font-weight:400;padding:0 2px">메일 인증 안내</h2></header><main style="margin:64px 0;font-size:16px"><p style="line-height:30px"><b>' + name + '</b>님, 이세계에 오신 것을 환영합니다.<br>아래 버튼을 눌러 회원가입을 완료해주세요.</p><a href="https://api.isegye.kr/auth/email?token=' + token + '" style="margin:48px 0;display:block;width:210px;height:48px;text-align:center;line-height:48px;text-decoration:none;color:#fff;background:#5d63bd">메일 인증</a></main><footer style="margin:64px 0;border-top:1px solid #ddd;color:#555;font-size:12px;padding:16px 2px 0"><p style="margin:0">만약 버튼이 정상적으로 클릭되지 않는다면, 아래 링크로 접속해 주세요.</p><a href="https://api.isegye.kr/auth/email?token=' + token + '">https://api.isegye.kr/auth/email?token=' + token + '</a></footer></body>';
 }
-
-

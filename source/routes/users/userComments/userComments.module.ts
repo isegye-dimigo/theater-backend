@@ -10,12 +10,12 @@ export default new Module({
 		handler: getUserCommentsController,
 		schema: {
 			params: {
-				userHandle: userSchema.get('handle').required()
+				userHandle: userSchema['handle'].required()
 			},
 			querystring: {
-				'page[index]': pageSchema.get('page[index]'),
-				'page[size]': pageSchema.get('page[size]'),
-				'page[order]': pageSchema.get('page[order]')
+				'page[index]': pageSchema['page[index]'],
+				'page[size]': pageSchema['page[size]'],
+				'page[order]': pageSchema['page[order]']
 			}
 		},
 		isAuthNeeded: true

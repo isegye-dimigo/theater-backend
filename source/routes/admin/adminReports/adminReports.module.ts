@@ -13,9 +13,9 @@ export default new Module({
 		preValidation: adminHandler,
 		schema: {
 			querystring: {
-				'page[index]': pageSchema.get('page[index]'),
-				'page[size]': pageSchema.get('page[size]'),
-				'page[order]': pageSchema.get('page[order]')
+				'page[index]': pageSchema['page[index]'],
+				'page[size]': pageSchema['page[size]'],
+				'page[order]': pageSchema['page[order]']
 			}
 		}
 	}, {
@@ -25,7 +25,7 @@ export default new Module({
 		preValidation: adminHandler,
 		schema: {
 			params: {
-				reportId: reportSchema.get('id').required()
+				reportId: reportSchema['id'].required()
 			}
 		}
 	}],

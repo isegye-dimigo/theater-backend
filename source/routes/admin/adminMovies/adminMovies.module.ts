@@ -12,7 +12,7 @@ export default new Module({
 		preValidation: adminHandler,
 		schema: {
 			params: {
-				movieId: movieSchema.get('id').required()
+				movieId: movieSchema['id'].required()
 			}
 		}
 	}],

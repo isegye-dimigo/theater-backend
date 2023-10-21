@@ -10,10 +10,10 @@ export default new Module({
 		handler: getCategoriesController,
 		schema: {
 			querystring: {
-				'page[index]': pageSchema.get('page[index]'),
-				'page[size]': pageSchema.get('page[size]'),
-				'page[order]': pageSchema.get('page[order]'),
-				title: categorySchema.get('title')
+				'page[index]': pageSchema['page[index]'],
+				'page[size]': pageSchema['page[size]'],
+				'page[order]': pageSchema['page[order]'],
+				title: categorySchema['title']
 			}
 		}
 	}],

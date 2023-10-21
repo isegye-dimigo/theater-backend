@@ -1,7 +1,7 @@
 import { prisma } from '@library/database';
 import { NotFound, Unauthorized } from '@library/httpError';
 import { PageQuery } from '@library/type';
-import { Media, MediaVideoMetadata, Movie, MovieComment, MovieStatistic, User } from '@prisma/client';
+import { Media, MediaVideo, Movie, MovieComment, User } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 export default function (request: FastifyRequest<{
@@ -23,10 +23,9 @@ export default function (request: FastifyRequest<{
 		movie: Pick<Movie, 'id' | 'title'> & {
 			user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'>;
 			videoMedia: {
-				mediaVideoMetadata: Pick<MediaVideoMetadata, 'duration'> | null;
+				mediaVideo: Pick<MediaVideo, 'duration'> | null;
 			};
-			imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'>;
-			movieStatistics: Pick<MovieStatistic, 'viewCount'>[];
+			imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'>;
 		};
 	})[]> {
 		if(user !== null) {
@@ -48,7 +47,7 @@ export default function (request: FastifyRequest<{
 								title: true,
 								videoMedia: {
 									select: {
-										mediaVideoMetadata: {
+										mediaVideo: {
 											select: {
 												duration: true
 											}
@@ -60,17 +59,7 @@ export default function (request: FastifyRequest<{
 										id: true,
 										hash: true,
 										width: true,
-										height: true,
-										isVideo: true
-									}
-								},
-								movieStatistics: {
-									select: {
-										viewCount: true
-									},
-									take: 1,
-									orderBy: {
-										id: 'desc'
+										height: true
 									}
 								}
 							}

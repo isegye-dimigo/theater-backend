@@ -18,6 +18,9 @@ const fastifyInstance: FastifyInstance = fastify({
 	logger: logger
 });
 
+// TODO: Rollback and make playlist
+// TODO: Get playlistId on /movies
+
 fastifyInstance['server']['requestTimeout'] = 0;
 fastifyInstance['server']['headersTimeout'] = 0;
 

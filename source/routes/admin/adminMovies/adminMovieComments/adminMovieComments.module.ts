@@ -12,8 +12,8 @@ export default new Module({
 		preValidation: adminHandler,
 		schema: {
 			params: {
-				movieId: movieSchema.get('id').required(),
-				movieCommentId: movieCommentSchema.get('id').required()
+				movieId: movieSchema['id'].required(),
+				movieCommentId: movieCommentSchema['id'].required()
 			}
 		}
 	}],

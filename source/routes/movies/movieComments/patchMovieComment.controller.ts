@@ -17,7 +17,7 @@ export default function (request: FastifyRequest<{
 			select: {
 				videoMedia: isTimeDefined ? {
 					select: {
-						mediaVideoMetadata: {
+						mediaVideo: {
 							select: {
 								duration: true
 							}
@@ -49,7 +49,7 @@ export default function (request: FastifyRequest<{
 			movieComments: Pick<MovieComment, 'userId'>[];
 		} | null): Promise<Pick<MovieComment, 'id' | 'time' | 'content' | 'createdAt'> & {
 			user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'> & {
-				profileMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'> | null;
+				profileMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'> | null;
 			};
 		}> {
 			if(movie !== null) {
@@ -70,8 +70,7 @@ export default function (request: FastifyRequest<{
 													hash: true,
 													id: true,
 													width: true,
-													height: true,
-													isVideo: true
+													height: true
 												}
 											}
 										}

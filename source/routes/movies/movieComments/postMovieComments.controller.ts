@@ -1,6 +1,6 @@
 import { prisma } from '@library/database';
 import { BadRequest, NotFound } from '@library/httpError';
-import { Media, MediaVideoMetadata, Movie, MovieComment, User } from '@prisma/client';
+import { Media, MediaVideo, Movie, MovieComment, User } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 export default function (request: FastifyRequest<{
@@ -13,7 +13,7 @@ export default function (request: FastifyRequest<{
 		select: {
 			videoMedia: {
 				select: {
-					mediaVideoMetadata: {
+					mediaVideo: {
 						select: {
 							duration: true
 						}
@@ -28,15 +28,15 @@ export default function (request: FastifyRequest<{
 	})
 	.then(function (movie: {
 		videoMedia: {
-			mediaVideoMetadata: Pick<MediaVideoMetadata, 'duration'> | null;
+			mediaVideo: Pick<MediaVideo, 'duration'> | null;
 		};
 	} | null): Promise<Pick<MovieComment, 'id' | 'time' | 'content' | 'createdAt'> & {
 		user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'> & {
-			profileMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height' | 'isVideo'> | null;
+			profileMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'> | null;
 		};
 	}> {
 		if(movie !== null) {
-			if(movie['videoMedia']['mediaVideoMetadata'] !== null && request['body']['time'] <= movie['videoMedia']['mediaVideoMetadata']['duration']) {
+			if(movie['videoMedia']['mediaVideo'] !== null && request['body']['time'] <= movie['videoMedia']['mediaVideo']['duration']) {
 				return prisma['movieComment'].create({
 					data: {
 						movieId: request['params']['movieId'],
@@ -57,8 +57,7 @@ export default function (request: FastifyRequest<{
 										hash: true,
 										id: true,
 										width: true,
-										height: true,
-										isVideo: true
+										height: true
 									}
 								}
 							}

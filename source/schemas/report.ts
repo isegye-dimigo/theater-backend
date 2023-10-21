@@ -1,17 +1,14 @@
-import { Schema } from '@library/schema';
+import { Schema } from '@library/type';
 import { Report } from '@prisma/client';
-import schema from 'fluent-json-schema';
 import commonSchema from '@schemas/common';
 import userSchema from '@schemas/user';
 import { reportTypes } from '@library/constant';
 
-const reportSchema: Schema<keyof Report> = new Schema<keyof Report>({
-	id: commonSchema.get('positiveInteger'),
-	userId: userSchema.get('id'),
-	type: schema.integer().enum(Object.keys(reportTypes)),
-	targetId: commonSchema.get('positiveInteger'),
-	isDeleted: schema.boolean(),
-	createdAt: commonSchema.get('datetime')
-});
-
-export default reportSchema;
+export default {
+	id: commonSchema['positiveInteger'],
+	userId: userSchema['id'],
+	type: commonSchema['default'].integer().enum(Object.keys(reportTypes)),
+	targetId: commonSchema['positiveInteger'],
+	isDeleted: commonSchema['boolean'],
+	createdAt: commonSchema['datetime']
+} satisfies Schema<Report>;

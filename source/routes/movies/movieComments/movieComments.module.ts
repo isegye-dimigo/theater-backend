@@ -14,11 +14,11 @@ export default new Module({
 		handler: postMovieCommentsController,
 		schema: {
 			params: {
-				movieId: movieSchema.get('id').required()
+				movieId: movieSchema['id'].required()
 			},
 			body: {
-				time: movieCommentSchema.get('time').required(),
-				content: movieCommentSchema.get('content').required()
+				time: movieCommentSchema['time'].required(),
+				content: movieCommentSchema['content'].required()
 			}
 		},
 		isAuthNeeded: true
@@ -28,12 +28,12 @@ export default new Module({
 		handler: getMovieCommentsController,
 		schema: {
 			params: {
-				movieId: movieSchema.get('id').required()
+				movieId: movieSchema['id'].required()
 			},
 			querystring: {
-				'page[index]': pageSchema.get('page[index]'),
-				'page[size]': pageSchema.get('page[size]'),
-				'page[order]': pageSchema.get('page[order]')
+				'page[index]': pageSchema['page[index]'],
+				'page[size]': pageSchema['page[size]'],
+				'page[order]': pageSchema['page[order]']
 			}
 		}
 	}, {
@@ -42,11 +42,11 @@ export default new Module({
 		handler: patchMovieCommentController,
 		schema: {
 			params: {
-				movieId: movieSchema.get('id').required(),
-				movieCommentId: movieCommentSchema.get('id').required()
+				movieId: movieSchema['id'].required(),
+				movieCommentId: movieCommentSchema['id'].required()
 			},
 			body: {
-				content: movieCommentSchema.get('content')
+				content: movieCommentSchema['content']
 			}
 		},
 		isAuthNeeded: true
@@ -56,8 +56,8 @@ export default new Module({
 		handler: deleteMovieCommentController,
 		schema: {
 			params: {
-				movieId: movieSchema.get('id').required(),
-				movieCommentId: movieCommentSchema.get('id').required()
+				movieId: movieSchema['id'].required(),
+				movieCommentId: movieCommentSchema['id'].required()
 			}
 		},
 		isAuthNeeded: true
