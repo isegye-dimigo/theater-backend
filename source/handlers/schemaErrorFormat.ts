@@ -1,6 +1,6 @@
 import { FastifySchemaValidationError } from 'fastify/types/schema';
 
-export default function schemaErrorFormatHandler(errors: FastifySchemaValidationError[], dataVariableName: string): Error {
+export default function (errors: FastifySchemaValidationError[], dataVariableName: string): Error {
 	const instancePaths: string[] = errors[0]['instancePath'].slice(1).split('.');
 
 	dataVariableName = String.fromCharCode(dataVariableName.charCodeAt(0) - 32) + dataVariableName.slice(1);

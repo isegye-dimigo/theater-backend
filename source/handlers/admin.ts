@@ -1,7 +1,7 @@
 import JsonWebToken from '@library/jsonWebToken';
 import { DoneFuncWithErrOrRes, FastifyRequest, FastifyReply } from 'fastify';
 
-export default function adminHandler(request: FastifyRequest, reply: FastifyReply, done: DoneFuncWithErrOrRes): void {
+export default function (request: FastifyRequest, reply: FastifyReply, done: DoneFuncWithErrOrRes): void {
 	if(typeof(request['headers']['authorization']) === 'string' && request['headers']['authorization'].startsWith('Bearer ')) {
 		let jsonWebToken: JsonWebToken;
 

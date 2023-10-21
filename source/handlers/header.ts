@@ -1,6 +1,6 @@
 import { DoneFuncWithErrOrRes, FastifyRequest, FastifyReply } from 'fastify';
 
-export default function headerHandler(request: FastifyRequest, reply: FastifyReply, done: DoneFuncWithErrOrRes): void {
+export default function (request: FastifyRequest, reply: FastifyReply, done: DoneFuncWithErrOrRes): void {
 	reply.headers({
 		'Content-Security-Policy': "default-src 'self';base-uri 'self';block-all-mixed-content;font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
 		'Cross-Origin-Opener-Policy': 'same-origin',

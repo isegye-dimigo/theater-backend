@@ -1,4 +1,4 @@
-export default function serializeHandler(payload: unknown, statusCode: number): string {
+export default function (payload: unknown, statusCode: number): string {
 	payload ??= null;
 
 	return JSON.stringify(statusCode < 300 ? {
