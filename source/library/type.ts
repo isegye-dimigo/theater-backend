@@ -26,17 +26,18 @@ export interface ModuleOptions {
 }
 
 export type JsendResponse = {
-	status: 'success'
-	data: RecursiveRecord<string, any> | null
+	status: 'success';
+	data: RecursiveRecord<string, any> | null;
 } | {
-	status: 'error'
-	message: string
+	status: 'error';
+	code?: number;
+	message: string;
 } | {
-	status: 'fail'
+	status: 'fail';
 	data: {
-		title: string
-		body?: string
-	}
+		title: string;
+		body?: string;
+	};
 };
 
 export type ResolveFunction<T = void> = (value: T) => void;
@@ -64,13 +65,11 @@ export type Metadata<T extends 'video' | 'image'> = T extends 'video' ? {
 		frameRate: number;
 		bitRate: number;
 	};
-
 	audio: {
 		channelCount: number;
 		sampleRate: number;
 		bitRate: number;
 	};
-
 	index: number;
 	duration: number;
 	size: number;
@@ -81,7 +80,6 @@ export type Metadata<T extends 'video' | 'image'> = T extends 'video' ? {
 		height: number;
 		aspectRatio: string;
 	};
-
 	size: number;
 };
 
