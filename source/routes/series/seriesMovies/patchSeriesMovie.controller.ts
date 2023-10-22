@@ -47,7 +47,7 @@ export default function (request: FastifyRequest<{
 											where: {
 												id: request['params']['seriesMovieId']
 											}
-										}), prisma.$executeRawUnsafe('UPDATE series_movie SET `index` = `index` ' + (isIndexBigger ? '-' : '+') + ' 1 WHERE series_id = ' + request['params']['seriesId'] + ' AND `index` ' + (isIndexBigger ? '>' : '<') + '= ' + request['body']['index'] + ' AND `index` ' + (isIndexBigger ? '<' : '>') + results[1]['index'] + ' ORDER BY `index` ' + (isIndexBigger ? 'DESC' : 'ASC')), prisma.$executeRaw`INSERT INTO series_movie (id, series_id, movie_id, \`index\`, subtitle) VALUES (${request['params']['seriesMovieId']}, ${request['params']['seriesId']}, ${results[1]['movieId']}, ${request['body']['index']}, ${results[1]['subtitle']})`);
+										}), prisma.$executeRawUnsafe('UPDATE series_movie SET `index` = `index` ' + (isIndexBigger ? '+' : '-') + ' 1 WHERE series_id = ' + request['params']['seriesId'] + ' AND `index` ' + (isIndexBigger ? '>' : '<') + '= ' + request['body']['index'] + ' AND `index` ' + (isIndexBigger ? '<' : '>') + ' ' + results[1]['index'] + ' ORDER BY `index` ' + (isIndexBigger ? 'DESC' : 'ASC')), prisma.$executeRaw`INSERT INTO series_movie (id, series_id, movie_id, \`index\`, subtitle) VALUES (${request['params']['seriesMovieId']}, ${request['params']['seriesId']}, ${results[1]['movieId']}, ${request['body']['index']}, ${results[1]['subtitle']})`);
 									}
 								} else {
 									throw new BadRequest('Body[\'index\'] must be valid');

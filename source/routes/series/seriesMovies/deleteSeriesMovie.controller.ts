@@ -32,7 +32,7 @@ export default function (request: FastifyRequest<{
 						where: {
 							id: request['params']['seriesMovieId']
 						}
-					}), prisma.$executeRaw`UPDATE series_movie SET \`index\` = \`index\` - 1 WHERE series_id = ${request['params']['seriesId']} AND \`index\` > ${results[1]['index']}`]);
+					}), prisma.$executeRaw`UPDATE series_movie SET \`index\` = \`index\` - 1 WHERE series_id = ${request['params']['seriesId']} AND \`index\` > ${results[1]['index']} ORDER BY \`index\` ASC`]);
 				} else {
 					throw new NotFound('Parameter[\'movieId\'] must be valid');
 				}
