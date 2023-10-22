@@ -1,11 +1,11 @@
 import { prisma } from '@library/database';
 import { NotFound } from '@library/httpError';
-import { Movie, MovieLike, Prisma } from '@prisma/client';
+import { MovieLike, Prisma } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 export default function (request: FastifyRequest<{
 	Params: {
-		movieId: Movie['id'];
+		movieId: MovieLike['movieId'];
 	}
 }>, reply: FastifyReply): void {
 	prisma['movie'].findUnique({

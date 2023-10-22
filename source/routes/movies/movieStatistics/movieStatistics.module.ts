@@ -1,7 +1,6 @@
 import Module from '@library/module';
 import getMovieStatisticsController from './getMovieStatistics.controller';
 import getMovieStatisticController from './getMovieStatistic.controller';
-import movieSchema from '@schemas/movie';
 import movieStatisticSchema from '@schemas/movieStatistic';
 import pageSchema from '@schemas/page';
 
@@ -12,7 +11,7 @@ export default new Module({
 		handler: getMovieStatisticsController,
 		schema: {
 			params: {
-				movieId: movieSchema['id'].required()
+				movieId: movieStatisticSchema['movieId'].required()
 			},
 			querystring: {
 				'page[index]': pageSchema['page[index]'],
@@ -27,7 +26,7 @@ export default new Module({
 		handler: getMovieStatisticController,
 		schema: {
 			params: {
-				movieId: movieSchema['id'].required(),
+				movieId: movieStatisticSchema['movieId'].required(),
 				movieStatisticId: movieStatisticSchema['id'].required()
 			}
 		},

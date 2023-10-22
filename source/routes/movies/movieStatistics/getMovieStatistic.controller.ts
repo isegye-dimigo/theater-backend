@@ -6,7 +6,7 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 
 export default function (request: FastifyRequest<{
 	Params: {
-		movieId: Movie['id'];
+		movieId: MovieStatistic['movieId'];
 		movieStatisticId: MovieStatistic['id'];
 	};
 	Querystring: PageQuery;

@@ -1,11 +1,11 @@
 import { prisma } from '@library/database';
 import { BadRequest, NotFound, Unauthorized } from '@library/httpError';
-import { Media, Movie, MovieComment, User } from '@prisma/client';
+import { Media, MovieComment, User } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 export default function (request: FastifyRequest<{
 	Params: {
-		movieId: Movie['id'];
+		movieId: MovieComment['movieId'];
 		movieCommentId: MovieComment['id'];
 	};
 	Body: Partial<Pick<MovieComment, 'time' | 'content'>>;
@@ -54,7 +54,7 @@ export default function (request: FastifyRequest<{
 		}> {
 			if(movie !== null) {
 				if(movie['movieComments']['length'] === 1) {
-					if(movie['movieComments'][1]['userId'] === request['user']['id']) {
+					if(movie['movieComments'][0]['userId'] === request['user']['id']) {
 						if(!isTimeDefined || typeof(movie['videoMedia']) !== 'undefined' && movie['videoMedia'] !== null && movie['videoMedia']['mediaVideoMetadata'] !== null && request['body']['time'] as number < movie['videoMedia']['mediaVideoMetadata']['duration']) {
 							return prisma['movieComment'].update({
 								select: {

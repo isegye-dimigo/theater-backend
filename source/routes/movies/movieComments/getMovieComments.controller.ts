@@ -1,12 +1,12 @@
 import { prisma } from '@library/database';
 import { NotFound } from '@library/httpError';
 import { PageQuery } from '@library/type';
-import { Media, Movie, MovieComment, User } from '@prisma/client';
+import { Media, MovieComment, User } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 export default function (request: FastifyRequest<{
 	Params: {
-		movieId: Movie['id'];
+		movieId: MovieComment['movieId'];
 	};
 	Querystring: PageQuery;
 }>, reply: FastifyReply): void {

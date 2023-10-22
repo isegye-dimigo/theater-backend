@@ -1,5 +1,4 @@
 import Module from '@library/module';
-import movieSchema from '@schemas/movie';
 import movieStarSchema from '@schemas/movieStar';
 import postMovieStarController from './postMovieStar.controller';
 import deleteMovieStarController from './deleteMovieStar.controller';
@@ -11,7 +10,7 @@ export default new Module({
 		handler: postMovieStarController,
 		schema: {
 			params: {
-				movieId: movieSchema['id'].required()
+				movieId: movieStarSchema['movieId'].required()
 			},
 			body: {
 				value: movieStarSchema['value'].required()
@@ -24,7 +23,7 @@ export default new Module({
 		handler: deleteMovieStarController,
 		schema: {
 			params: {
-				movieId: movieSchema['id'].required()
+				movieId: movieStarSchema['movieId'].required()
 			}
 		},
 		isAuthNeeded: true

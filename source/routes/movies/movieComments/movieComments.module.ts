@@ -1,8 +1,7 @@
 import Module from '@library/module';
 import getMovieCommentsController from './getMovieComments.controller';
-import pageSchema from '@schemas/page';
 import postMovieCommentsController from './postMovieComments.controller';
-import movieSchema from '@schemas/movie';
+import pageSchema from '@schemas/page';
 import movieCommentSchema from '@schemas/movieComment';
 import deleteMovieCommentController from './deleteMovieComment.controller';
 import patchMovieCommentController from './patchMovieComment.controller';
@@ -14,7 +13,7 @@ export default new Module({
 		handler: postMovieCommentsController,
 		schema: {
 			params: {
-				movieId: movieSchema['id'].required()
+				movieId: movieCommentSchema['movieId'].required()
 			},
 			body: {
 				time: movieCommentSchema['time'].required(),
@@ -28,7 +27,7 @@ export default new Module({
 		handler: getMovieCommentsController,
 		schema: {
 			params: {
-				movieId: movieSchema['id'].required()
+				movieId: movieCommentSchema['movieId'].required()
 			},
 			querystring: {
 				'page[index]': pageSchema['page[index]'],
@@ -42,7 +41,7 @@ export default new Module({
 		handler: patchMovieCommentController,
 		schema: {
 			params: {
-				movieId: movieSchema['id'].required(),
+				movieId: movieCommentSchema['movieId'].required(),
 				movieCommentId: movieCommentSchema['id'].required()
 			},
 			body: {
@@ -56,7 +55,7 @@ export default new Module({
 		handler: deleteMovieCommentController,
 		schema: {
 			params: {
-				movieId: movieSchema['id'].required(),
+				movieId: movieCommentSchema['movieId'].required(),
 				movieCommentId: movieCommentSchema['id'].required()
 			}
 		},

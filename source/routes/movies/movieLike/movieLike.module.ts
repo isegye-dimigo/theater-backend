@@ -1,7 +1,7 @@
 import Module from '@library/module';
 import postMovieLikeController from './postMovieLike.controller';
-import movieSchema from '@schemas/movie';
 import deleteMovieLikeController from './deleteMovieLike.controller';
+import movieLikeSchema from '@schemas/movieLike';
 
 export default new Module({
 	routers: [{
@@ -10,7 +10,7 @@ export default new Module({
 		handler: postMovieLikeController,
 		schema: {
 			params: {
-				movieId: movieSchema['id'].required()
+				movieId: movieLikeSchema['movieId'].required()
 			}
 		},
 		isAuthNeeded: true
@@ -20,7 +20,7 @@ export default new Module({
 		handler: deleteMovieLikeController,
 		schema: {
 			params: {
-				movieId: movieSchema['id'].required()
+				movieId: movieLikeSchema['movieId'].required()
 			}
 		},
 		isAuthNeeded: true

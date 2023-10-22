@@ -1,11 +1,11 @@
 import { prisma } from '@library/database';
 import { NotFound, Unauthorized } from '@library/httpError';
-import { Movie, MovieComment, Prisma } from '@prisma/client';
+import { MovieComment, Prisma } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 export default function (request: FastifyRequest<{
 	Params: {
-		movieId: Movie['id'];
+		movieId: MovieComment['movieId'];
 		movieCommentId: MovieComment['id'];
 	};
 }>, reply: FastifyReply): void {
