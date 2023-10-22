@@ -11,7 +11,8 @@ export default {
 	description: schema.oneOf([schema.string().minLength(1).maxLength(4096), schema.null()]),
 	email: schema.string().format('email'),
 	boolean: schema.boolean(),
+	null: schema.null(),
 	default: schema
-} satisfies Schema<Record<'positiveInteger' | 'positiveFloat' | 'sha512Hex' | 'datetime' | 'jsonWebToken' | 'title' | 'description' | 'email' | 'boolean', void>> & {
+} satisfies Schema<Record<'positiveInteger' | 'positiveFloat' | 'sha512Hex' | 'datetime' | 'jsonWebToken' | 'title' | 'description' | 'email' | 'boolean' | 'null', void>> & {
 	default: schema
 };

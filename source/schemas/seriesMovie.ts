@@ -9,5 +9,5 @@ export default {
 	seriesId: seriesSchema['id'],
 	movieId: movieSchema['id'],
 	index: commonSchema['default'].integer().minimum(0),
-	subtitle: commonSchema['title']
+	subtitle: commonSchema['default'].oneOf([commonSchema['title'], commonSchema['null']])
 } satisfies Schema<SeriesMovie>;
