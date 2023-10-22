@@ -10,6 +10,7 @@ import usersModule from './users/users.module';
 import mediasModule from './medias/medias.module';
 import moviesModule from './movies/movies.module';
 import reportsModule from './reports/reports.module';
+import seriesModule from './series/series.module';
 
 export default new Module({
 	routers: [{
@@ -29,6 +30,6 @@ export default new Module({
 		url: 'coffee',
 		handler: postAndGetCoffeeController,
 	}],
-	modules: [wellKnownModule, adminModule, authModule, categoriesModule, mediasModule, moviesModule, reportsModule, usersModule],
+	modules: [wellKnownModule, adminModule, authModule, categoriesModule, mediasModule, moviesModule, reportsModule, seriesModule, usersModule],
 	prefix: ''
 });
