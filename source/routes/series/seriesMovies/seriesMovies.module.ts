@@ -9,7 +9,6 @@ export default new Module({
 		method: 'POST',
 		url: '',
 		handler: postSeriesMoviesController,
-		isAuthNeeded: true,
 		schema: {
 			params: {
 				seriesId: seriesMovieSchema['seriesId'].required()
@@ -18,12 +17,12 @@ export default new Module({
 				movieId: seriesMovieSchema['movieId'].required(),
 				subtitle: seriesMovieSchema['subtitle'].default(null)
 			}
-		}
+		},
+		isAuthNeeded: true
 	}, {
 		method: 'PATCH',
 		url: ':seriesMovieId',
 		handler: patchSeriesMovieController,
-		isAuthNeeded: true,
 		schema: {
 			params: {
 				seriesId: seriesMovieSchema['seriesId'].required(),
@@ -33,18 +32,19 @@ export default new Module({
 				index: seriesMovieSchema['index'],
 				subtitle: seriesMovieSchema['subtitle']
 			}
-		}
+		},
+		isAuthNeeded: true
 	}, {
 		method: 'DELETE',
 		url: ':seriesMovieId',
 		handler: deleteSeriesMovieController,
-		isAuthNeeded: true,
 		schema: {
 			params: {
 				seriesId: seriesMovieSchema['seriesId'].required(),
 				seriesMovieId: seriesMovieSchema['id'].required()
 			}
-		}
+		},
+		isAuthNeeded: true
 	}],
 	prefix: ':seriesId/movies',
 	modules: []
