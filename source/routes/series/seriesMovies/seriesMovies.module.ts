@@ -21,13 +21,13 @@ export default new Module({
 		}
 	}, {
 		method: 'PATCH',
-		url: ':movieId',
+		url: ':seriesMovieId',
 		handler: patchSeriesMovieController,
 		isAuthNeeded: true,
 		schema: {
 			params: {
 				seriesId: seriesMovieSchema['seriesId'].required(),
-				movieId: seriesMovieSchema['movieId'].required()
+				seriesMovieId: seriesMovieSchema['id'].required()
 			},
 			body: {
 				index: seriesMovieSchema['index'],
@@ -36,13 +36,13 @@ export default new Module({
 		}
 	}, {
 		method: 'DELETE',
-		url: ':movieId',
+		url: ':seriesMovieId',
 		handler: deleteSeriesMovieController,
 		isAuthNeeded: true,
 		schema: {
 			params: {
 				seriesId: seriesMovieSchema['seriesId'].required(),
-				movieId: seriesMovieSchema['movieId'].required()
+				seriesMovieId: seriesMovieSchema['id'].required()
 			}
 		}
 	}],
