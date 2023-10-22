@@ -30,12 +30,8 @@ export default function (request: FastifyRequest<{
 			where: {
 				id: request['params']['seriesMovieId']
 			}
-		}), isIndexDefined ? prisma.$queryRaw<{
-			index: number;
-		}[]>`SELECT MAX(\`index\`) AS \`index\` FROM series_movie WHERE series_id = ${request['params']['seriesId']}` : undefined])
-		.then(function (results: [Pick<Series, 'userId'> | null, Pick<SeriesMovie, 'movieId' | 'index' | 'subtitle'> | null, {
-			index: number;
-		}[] | undefined]): Promise<(number | Prisma.BatchPayload)[]> {
+		}), isIndexDefined ? prisma.$queryRaw<Pick<SeriesMovie, 'index'>[]>`SELECT MAX(\`index\`) AS \`index\` FROM series_movie WHERE series_id = ${request['params']['seriesId']}` : undefined])
+		.then(function (results: [Pick<Series, 'userId'> | null, Pick<SeriesMovie, 'movieId' | 'index' | 'subtitle'> | null, Pick<SeriesMovie, 'index'>[] | undefined]): Promise<(number | Prisma.BatchPayload)[]> {
 			if(results[0] !== null) {
 				if(results[0]['userId'] === request['user']['id']) {
 					if(results[1] !== null) {
