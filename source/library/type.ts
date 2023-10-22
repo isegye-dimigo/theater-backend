@@ -93,7 +93,7 @@ export type RawSeries = {
 export type RawSeriesMovie = {
 	movie_created_at: Date;
 	movie_user_is_verified: boolean;
-} & Record<'id' | 'series_id' | 'movie_id' | 'movie_user_id' | 'movie_image_media_id', BigInt> & Record<'subtitle' | 'movie_title' | 'movie_description' | 'movie_user_handle' | 'movie_user_name' | 'movie_image_media_hash', string> & Record<'index' | 'movie_image_media_width' | 'movie_image_media_height', number>;
+} & Record<'id' | 'series_id' | 'movie_id' | 'movie_user_id' | 'movie_image_media_id', BigInt> & Record<'subtitle' | 'movie_title' | 'movie_user_handle' | 'movie_user_name' | 'movie_image_media_hash', string> & Record<'index' | 'movie_image_media_width' | 'movie_image_media_height', number>;
 
 export type RawMovie = {
 	created_at: Date;
