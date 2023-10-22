@@ -8,5 +8,6 @@ export default {
 	id: commonSchema['positiveInteger'],
 	seriesId: seriesSchema['id'],
 	movieId: movieSchema['id'],
+	index: commonSchema['default'].integer().minimum(0),
 	subtitle: commonSchema['title']
 } satisfies Schema<SeriesMovie>;
