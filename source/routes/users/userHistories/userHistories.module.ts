@@ -1,9 +1,10 @@
 import Module from '@library/module';
-import getUserHistoriesController from './getUserHistories.controller';
 import pageSchema from '@schemas/page';
 import userSchema from '@schemas/user';
 import userHistorySchema from '@schemas/userHistory';
 import postUserHistoriesController from './postUserHistories.controller';
+import getUserHistoriesController from './getUserHistories.controller';
+import deleteUserHistoriesController from './deleteUserHistories.controller';
 
 export default new Module({
 	routers: [{
@@ -32,6 +33,16 @@ export default new Module({
 				'page[index]': pageSchema['page[index]'],
 				'page[size]': pageSchema['page[size]'],
 				'page[order]': pageSchema['page[order]']
+			}
+		},
+		isAuthNeeded: true
+	}, {
+		method: 'DELETE',
+		url: '',
+		handler: deleteUserHistoriesController,
+		schema: {
+			params: {
+				userHandle: userSchema['handle'].required()
 			}
 		},
 		isAuthNeeded: true
