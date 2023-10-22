@@ -6,12 +6,6 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 export default function (request: FastifyRequest<{
 	Querystring: PageQuery;
 }>, reply: FastifyReply): void {
-	const reportTargets: Prisma.PrismaPromise<unknown>[] = [];
-	let reports: (Pick<Report, 'id' | 'type' | 'targetId'> & {
-		user: Pick<User, 'email' | 'handle' | 'name'>;
-		target?: unknown;
-	})[];
-
 	prisma['report'].findMany({
 		select: {
 			id: true,
@@ -34,13 +28,14 @@ export default function (request: FastifyRequest<{
 			id: request['query']['page[order]'] === 'asc' ? 'asc' : 'desc'
 		}
 	})
-	.then(function (_reports: (Pick<Report, 'id' | 'type' | 'targetId'> & {
+	.then(function (reports: (Pick<Report, 'id' | 'type'> & Partial<Pick<Report, 'targetId'>> & {
 		user: Pick<User, 'email' | 'handle' | 'name'>;
+		target?: unknown;
 	})[]): Promise<unknown[]> {
-		reports = _reports;
+		const targetPromises: Prisma.PrismaPromise<unknown>[] = [];
 
-		for(let i: number = 0; i < _reports['length']; i++) {
-			switch(_reports[i]['type']) {
+		for(let i: number = 0; i < reports['length']; i++) {
+			switch(reports[i]['type']) {
 				case 0:
 				case 1:
 				case 2:
@@ -50,14 +45,14 @@ export default function (request: FastifyRequest<{
 				case 6:
 				case 7:
 				case 8: {
-					reportTargets.push(prisma['user'].findUnique({
+					targetPromises.push(prisma['user'].findUnique({
 						select: {
 							id: true,
 							handle: true,
 							name: true
 						},
 						where: {
-							id: _reports[i]['targetId'],
+							id: reports[i]['targetId'],
 							isDeleted: false
 						}
 					}));
@@ -73,13 +68,13 @@ export default function (request: FastifyRequest<{
 				case 15:
 				case 16:
 				case 17: {
-					reportTargets.push(prisma['movie'].findUnique({
+					targetPromises.push(prisma['movie'].findUnique({
 						select: {
 							id: true,
 							title: true
 						},
 						where: {
-							id: _reports[i]['targetId'],
+							id: reports[i]['targetId'],
 							isDeleted: false
 						}
 					}));
@@ -95,14 +90,14 @@ export default function (request: FastifyRequest<{
 				case 25:
 				case 26:
 				case 27: {
-					reportTargets.push(prisma['movieComment'].findUnique({
+					targetPromises.push(prisma['movieComment'].findUnique({
 						select: {
 							id: true,
 							movieId: true,
 							content: true
 						},
 						where: {
-							id: _reports[i]['targetId'],
+							id: reports[i]['targetId'],
 							isDeleted: false,
 							movie: {
 								isDeleted: false
@@ -115,19 +110,20 @@ export default function (request: FastifyRequest<{
 			}
 		}
 
-		return Promise.all(reportTargets);
-	})
-	.then(function (reportTargets: unknown[]): void {
-		for(let i: number = 0; i < reports['length']; i++) {
-			reports[i]['target'] = reportTargets[i];
-			// @ts-expect-error
-			reports[i]['targetId'] = undefined;
-		}
+		return Promise.all(targetPromises)
+		.then(function (results: unknown[]): (Pick<Report, 'id' | 'type'> & Partial<Pick<Report, 'targetId'>> & {
+			user: Pick<User, 'email' | 'handle' | 'name'>;
+			target?: unknown;
+		})[] {
+			for(let i: number = 0; i < reports['length']; i++) {
+				reports[i]['target'] = results[i];
+				reports[i]['targetId'] = undefined;
+			}
 
-		reply.send(reports);
-
-		return;
+			return reports;
+		});
 	})
+	.then(reply.send.bind(reply))
 	.catch(reply.send.bind(reply));
 
 	return;
