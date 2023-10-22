@@ -1,12 +1,12 @@
 import { prisma } from '@library/database';
 import { NotFound, Unauthorized } from '@library/httpError';
-import { Series, SeriesMovie } from '@prisma/client';
+import { Prisma, Series, SeriesMovie } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 export default function (request: FastifyRequest<{
 	Params: {
 		seriesId: SeriesMovie['seriesId'];
-		movieId: SeriesMovie['movieId'];
+		seriesMovieId: SeriesMovie['id'];
 	};
 }>, reply: FastifyReply): void {
 	Promise.all([prisma['series'].findUnique({
@@ -21,21 +21,18 @@ export default function (request: FastifyRequest<{
 			index: true
 		},
 		where: {
-			seriesId: request['params']['seriesId'],
-			movieId: request['params']['movieId']
+			id: request['params']['seriesMovieId']
 		}
 	})])
-	.then(function (results: [Pick<Series, 'userId'> | null, Pick<SeriesMovie, 'index'> | null]): Promise<[number, number]> {
+	.then(function (results: [Pick<Series, 'userId'> | null, Pick<SeriesMovie, 'index'> | null]): Promise<[Prisma.BatchPayload, number]> {
 		if(results[0] !== null) {
 			if(results[0]['userId'] === request['user']['id']) {
 				if(results[1] !== null) {
-					return prisma.$transaction([prisma.$executeRawUnsafe(`
-						DELETE FROM series_movie
-						WHERE series_id = ` + request['params']['seriesId'] + ` AND movie_id = ` + request['params']['movieId']
-					), prisma.$executeRawUnsafe(`
-						UPDATE series_movie 
-						SET \`index\` = \`index\` - 1 
-						WHERE series_id = ` + request['params']['seriesId'] + ` AND \'index\' > ` + results[1]['index'])]);
+					return prisma.$transaction([prisma['seriesMovie'].deleteMany({
+						where: {
+							id: request['params']['seriesMovieId']
+						}
+					}), prisma.$executeRaw`UPDATE series_movie SET \`index\` = \`index\` - 1 WHERE series_id = ${request['params']['seriesId']} AND \`index\` > ${results[1]['index']}`]);
 				} else {
 					throw new NotFound('Parameter[\'movieId\'] must be valid');
 				}
@@ -46,8 +43,8 @@ export default function (request: FastifyRequest<{
 			throw new NotFound('Parameter[\'seriesId\'] must be valid');
 		}
 	})
-	.then(function (resultCounts: [number, number]): void {
-		if(resultCounts[0] === 1) {
+	.then(function (resultCounts: [Prisma.BatchPayload, number]): void {
+		if(resultCounts[0]['count'] === 1) {
 			reply.status(204).send();
 
 			return;

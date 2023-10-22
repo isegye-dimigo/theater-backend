@@ -1,4 +1,3 @@
-import { JsendResponse } from '@library/type';
 import { FastifyError, FastifyRequest, FastifyReply } from 'fastify';
 import headerHandler from '@handlers/header';
 
@@ -21,31 +20,6 @@ export default function (error: FastifyError, request: FastifyRequest, reply: Fa
 		}
 	}
 
-	let response: JsendResponse;
-
-	if(isClientError) {
-		response = {
-			status: 'fail',
-			data: {
-				title: error['message']
-			}
-		};
-
-		if(isStackAvailable) {
-			response['data']['body'] = error['stack'];
-		}
-	} else {
-		response = {
-			status: 'error',
-			code: error['statusCode'],
-			message: error['message']
-		};
-
-		if(isStackAvailable) {
-			response['message'] += '; ' + error['stack'];
-		}
-	}
-
 	headerHandler(request, reply, function (error?: Error | null) {
 		if(typeof(error) === 'object' && error !== null) {
 			request['log'].error(error);
@@ -54,7 +28,18 @@ export default function (error: FastifyError, request: FastifyRequest, reply: Fa
 		return;
 	});
 
-	reply.status(error['statusCode'] as number).send(response);
+	reply.status(error['statusCode'] as number).send(isClientError ? {
+		status: 'fail',
+		data: Object.assign({
+			title: error['message']
+		}, isStackAvailable ? {
+			body: error['stack']
+		} : undefined)
+	} : {
+		status: 'error',
+		code: error['statusCode'],
+		message: error['message'] + (isStackAvailable ? '; ' + error['stack'] : '')
+	});
 
 	return;
 }

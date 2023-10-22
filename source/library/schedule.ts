@@ -24,16 +24,16 @@ global.setInterval(function (): void {
 	})
 	.then(function (results: (string | null)[]): Promise<[number, number]> | [number, number] {
 		if(results['length'] !== 0) {
-			const promises: Prisma.PrismaPromise<number>[] = [];
+			const updatePromises: Prisma.PrismaPromise<number>[] = [];
 
 			for(let i: number = 0; i < results['length']; i++) {
 				if(results[i] !== null) {
-					promises.push(prisma.$executeRawUnsafe('UPDATE movie_statistic, current_movie_statistic SET movie_statistic.view_count = movie_statistic.view_count + ' + results[i] + ' WHERE current_movie_statistic.movie_id = ' + movieIds[i] + ' AND movie_statistic.id = current_movie_statistic.id;'));
+					updatePromises.push(prisma.$executeRawUnsafe('UPDATE movie_statistic, current_movie_statistic SET movie_statistic.view_count = movie_statistic.view_count + ' + results[i] + ' WHERE current_movie_statistic.movie_id = ' + movieIds[i] + ' AND movie_statistic.id = current_movie_statistic.id;'));
 				}
 			}
 
-			if(promises['length'] !== 0) {
-				return Promise.all([redis.unlink(keys), prisma.$transaction(promises)
+			if(updatePromises['length'] !== 0) {
+				return Promise.all([redis.unlink(keys), prisma.$transaction(updatePromises)
 				.then(function (resultCounts: number[]): number {
 					let resultCount: number = 0;
 	

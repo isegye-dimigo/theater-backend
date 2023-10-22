@@ -23,10 +23,10 @@ export default function (request: FastifyRequest<{
 			.then(function (movie: Pick<Movie, 'userId'> | null): Promise<void[]> {
 				if(movie !== null) {
 					if(movie['userId'] === request['user']['id']) {
-						const validations: Promise<void>[] = [];
+						const validationPromises: Promise<void>[] = [];
 
 						if(typeof(request['body']['imageMediaId']) === 'number') {
-							validations.push(prisma['media'].findUnique({
+							validationPromises.push(prisma['media'].findUnique({
 								select: {
 									mediaVideo: {
 										select: {
@@ -55,7 +55,7 @@ export default function (request: FastifyRequest<{
 						}
 
 						if(typeof(request['body']['categoryId']) === 'number') {
-							validations.push(prisma['category'].findUnique({
+							validationPromises.push(prisma['category'].findUnique({
 								select: {
 									id: true
 								},
@@ -72,7 +72,7 @@ export default function (request: FastifyRequest<{
 							}));
 						}
 
-						return Promise.all(validations);
+						return Promise.all(validationPromises);
 					} else {
 						throw new Unauthorized('User must be same');
 					}

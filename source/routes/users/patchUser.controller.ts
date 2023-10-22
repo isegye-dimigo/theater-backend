@@ -44,11 +44,11 @@ export default function (request: FastifyRequest<{
 		})
 		.then(function (encryptedCurrentPassword: string): Promise<void[]> {
 			if(encryptedCurrentPassword === user['password']) {
-				const validations: Promise<void>[] = [];
+				const validationPromises: Promise<void>[] = [];
 				const isNewPassword: boolean = typeof(request['body']['password']) === 'string';
 
 				if(typeof(request['body']['email']) === 'string' && !isNewPassword) {
-					validations.push(getEncryptedPassword(request['body']['currentPassword'], user['email'])
+					validationPromises.push(getEncryptedPassword(request['body']['currentPassword'], user['email'])
 					.then(function (encryptedPassword: string): void {
 						request['body']['password'] = encryptedPassword;
 
@@ -57,7 +57,7 @@ export default function (request: FastifyRequest<{
 				}
 
 				if(isNewPassword) {
-					validations.push(getEncryptedPassword(request['body']['password'] as string, user['email'])
+					validationPromises.push(getEncryptedPassword(request['body']['password'] as string, user['email'])
 					.then(function (encryptedPassword: string): void {
 						request['body']['password'] = encryptedPassword;
 
@@ -66,7 +66,7 @@ export default function (request: FastifyRequest<{
 				}
 
 				if(typeof(request['body']['handle']) === 'string') {
-					validations.push(prisma['user'].findUnique({
+					validationPromises.push(prisma['user'].findUnique({
 						select: {
 							id: true
 						},
@@ -84,7 +84,7 @@ export default function (request: FastifyRequest<{
 				}
 
 				if(typeof(request['body']['profileMediaId']) === 'number') {
-					validations.push(prisma['mediaVideo'].findUnique({
+					validationPromises.push(prisma['mediaVideo'].findUnique({
 						select: {
 							id: true
 						},
@@ -102,7 +102,7 @@ export default function (request: FastifyRequest<{
 				}
 
 				if(typeof(request['body']['bannerMediaId']) === 'number') {
-					validations.push(prisma['mediaVideo'].findUnique({
+					validationPromises.push(prisma['mediaVideo'].findUnique({
 						select: {
 							id: true
 						},
@@ -119,7 +119,7 @@ export default function (request: FastifyRequest<{
 					}));
 				}
 
-				return Promise.all(validations);
+				return Promise.all(validationPromises);
 			} else {
 				throw new Unauthorized('Body[\'currentPassword\'] must be valid');
 			}

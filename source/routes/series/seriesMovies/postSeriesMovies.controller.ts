@@ -25,9 +25,6 @@ export default function (request: FastifyRequest<{
 			seriesMovie: {
 				select: {
 					id: true
-				},
-				where: {
-					seriesId: request['params']['seriesId']
 				}
 			}
 		},
@@ -44,14 +41,7 @@ export default function (request: FastifyRequest<{
 				if(results[1] !== null) {
 					if(results[1]['userId'] === request['user']['id']) {
 						if(results[1]['seriesMovie'] === null) {
-							return prisma.$executeRaw`
-							INSERT INTO series_movie
-							(series_id, movie_id, \`index\`, subtitle)
-							SELECT 
-							${request['params']['seriesId']}, ${request['body']['movieId']}, MAX(\`index\`) + 1, ${request['body']['subtitle']} 
-							FROM series_movie 
-							WHERE series_id = ${request['params']['seriesId']}
-							`;
+							return prisma.$executeRaw`INSERT INTO series_movie (series_id, movie_id, \`index\`, subtitle) SELECT ${request['params']['seriesId']}, ${request['body']['movieId']}, COALESCE(MAX(\`index\`) + 1, 0), ${request['body']['subtitle']} FROM series_movie WHERE series_id = ${request['params']['seriesId']}`;
 						} else {
 							throw new Conflict('Body[\'movieId\'] must be unique');
 						}

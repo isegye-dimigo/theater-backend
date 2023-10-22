@@ -69,7 +69,7 @@ export default function (request: FastifyRequest<{
 					where: {
 						userId: user['id']
 					}
-				}), prisma.$executeRawUnsafe('UPDATE media SET is_deleted = 1 WHERE NOT EXISTS (SELECT id FROM used_media WHERE media.id = used_media.id) AND user_id = ' + user['id'])])
+				}), prisma.$executeRaw`UPDATE media LEFT JOIN used_media ON media.id = used_media.id SET media.is_deleted = 1 WHERE used_media.id IS NULL AND media.user_id = ${user['id']}`])
 				.then(function (results: [...Prisma.BatchPayload[], number]) {
 					if((results[0] as Prisma.BatchPayload)['count'] === 1) {
 						reply.status(204).send();

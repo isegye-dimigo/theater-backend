@@ -16,7 +16,7 @@ export default new Module({
 			},
 			body: {
 				movieId: seriesMovieSchema['movieId'].required(),
-				subtitle: seriesMovieSchema['subtitle'].required()
+				subtitle: seriesMovieSchema['subtitle'].default(null)
 			}
 		}
 	}, {
@@ -30,8 +30,8 @@ export default new Module({
 				movieId: seriesMovieSchema['movieId'].required()
 			},
 			body: {
-				index: seriesMovieSchema['index'].required(),
-				subtitle: seriesMovieSchema['subtitle'].required()
+				index: seriesMovieSchema['index'],
+				subtitle: seriesMovieSchema['subtitle']
 			}
 		}
 	}, {

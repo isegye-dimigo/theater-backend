@@ -21,17 +21,10 @@ export default function (request: FastifyRequest<{
 		})[]
 	});
 
-	prisma.$queryRawUnsafe<({
+	prisma.$queryRaw<({
 		created_at: Date;
 		user_is_verified: boolean;
-	} & Record<'id' | 'user_id' | 'media_id', BigInt> & Record<'title' | 'description' | 'user_handle' | 'user_name' | 'media_hash', string> & Record<'media_width' | 'media_height', number>)[]>(`
-	SELECT series.id, series.title, series.description, series.created_at,
-	user.id AS user_id, user.handle AS user_handle, user.name AS user_name, user.is_verified AS user_is_verified,
-	media.id AS media_id, media.hash AS media_hash, media.width AS media_width, media.height AS media_height
-	FROM series
-	INNER JOIN user ON series.user_id = user.id
-	INNER JOIN media ON series.media_id = media.id
-	WHERE series.id = ` + request['params']['seriesId'])
+	} & Record<'id' | 'user_id' | 'media_id', BigInt> & Record<'title' | 'description' | 'user_handle' | 'user_name' | 'media_hash', string> & Record<'media_width' | 'media_height', number>)[]>`SELECT series.id, series.title, series.description, series.created_at, user.id AS user_id, user.handle AS user_handle, user.name AS user_name, user.is_verified AS user_is_verified, media.id AS media_id, media.hash AS media_hash, media.width AS media_width, media.height AS media_height FROM series INNER JOIN user ON series.user_id = user.id INNER JOIN media ON series.media_id = media.id WHERE series.id = ${request['params']['seriesId']}`
 	.then(function (rawSeries: ({
 		created_at: Date;
 		user_is_verified: boolean;
@@ -60,21 +53,10 @@ export default function (request: FastifyRequest<{
 				seriesMovies: []
 			};
 		
-			return prisma.$queryRawUnsafe<({
+			return prisma.$queryRaw<({
 				movie_created_at: Date;
 				movie_user_is_verified: boolean;
-			} & Record<'id' | 'series_id' | 'movie_id' | 'movie_user_id' | 'movie_image_media_id', BigInt> & Record<'subtitle' | 'movie_title' | 'movie_description' | 'movie_user_handle' | 'movie_user_name' | 'movie_image_media_hash', string> & Record<'index' | 'movie_image_media_width' | 'movie_image_media_height', number>)[]>(`
-			SELECT series_movie.id, series_movie.series_id, series_movie.index, series_movie.subtitle,
-			movie.id AS movie_id, movie.title AS movie_title, LEFT(movie.description, 256) AS movie_description, movie.created_at AS movie_created_at,
-			movie_user.id AS movie_user_id, movie_user.handle AS movie_user_handle, movie_user.name AS movie_user_name, movie_user.is_verified AS movie_user_is_verified,
-			movie_image_media.id AS movie_image_media_id, movie_image_media.hash AS movie_image_media_hash, movie_image_media.width AS movie_image_media_width, movie_image_media.height AS movie_image_media_height
-			FROM series_movie
-			INNER JOIN movie ON series_movie.movie_id = movie.id AND movie.is_deleted = 0
-			INNER JOIN user AS movie_user ON movie.user_id = movie_user.id
-			INNER JOIN media AS movie_image_media ON movie.image_media_id = movie_image_media.id
-			WHERE series_movie.series_id = ` + request['params']['seriesId'] + `
-			ORDER BY series_movie.index
-			`);
+			} & Record<'id' | 'series_id' | 'movie_id' | 'movie_user_id' | 'movie_image_media_id', BigInt> & Record<'subtitle' | 'movie_title' | 'movie_description' | 'movie_user_handle' | 'movie_user_name' | 'movie_image_media_hash', string> & Record<'index' | 'movie_image_media_width' | 'movie_image_media_height', number>)[]>`SELECT series_movie.id, series_movie.series_id, series_movie.index, series_movie.subtitle, movie.id AS movie_id, movie.title AS movie_title, LEFT(movie.description, 256) AS movie_description, movie.created_at AS movie_created_at, movie_user.id AS movie_user_id, movie_user.handle AS movie_user_handle, movie_user.name AS movie_user_name, movie_user.is_verified AS movie_user_is_verified, movie_image_media.id AS movie_image_media_id, movie_image_media.hash AS movie_image_media_hash, movie_image_media.width AS movie_image_media_width, movie_image_media.height AS movie_image_media_height FROM series_movie INNER JOIN movie ON series_movie.movie_id = movie.id AND movie.is_deleted = 0 INNER JOIN user AS movie_user ON movie.user_id = movie_user.id INNER JOIN media AS movie_image_media ON movie.image_media_id = movie_image_media.id WHERE series_movie.series_id = ${request['params']['seriesId']} ORDER BY series_movie.index`;
 		} else {
 			throw new NotFound('Parameter[\'seriesId\'] must be valid');
 		}
