@@ -1,5 +1,5 @@
 import { prisma } from '@library/database';
-import { NotFound } from '@library/httpError';
+import { NotFound, Unauthorized } from '@library/httpError';
 import { Series, SeriesMovie } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
@@ -11,7 +11,7 @@ export default function (request: FastifyRequest<{
 }>, reply: FastifyReply): void {
 	Promise.all([prisma['series'].findUnique({
 		select: {
-			id: true
+			userId: true
 		},
 		where: {
 			id: request['params']['seriesId']
@@ -25,18 +25,22 @@ export default function (request: FastifyRequest<{
 			movieId: request['params']['movieId']
 		}
 	})])
-	.then(function (results: [Pick<Series, 'id'> | null, Pick<SeriesMovie, 'index'> | null]): Promise<[number, number]> {
+	.then(function (results: [Pick<Series, 'userId'> | null, Pick<SeriesMovie, 'index'> | null]): Promise<[number, number]> {
 		if(results[0] !== null) {
-			if(results[1] !== null) {
-				return prisma.$transaction([prisma.$executeRawUnsafe(`
-					DELETE FROM series_movie
-					WHERE series_id = ` + request['params']['seriesId'] + ` AND movie_id = ` + request['params']['movieId']
-				), prisma.$executeRawUnsafe(`
-					UPDATE series_movie 
-					SET \`index\` = \`index\` - 1 
-					WHERE series_id = ` + request['params']['seriesId'] + ` AND \'index\' > ` + results[1]['index'])]);
+			if(results[0]['userId'] === request['user']['id']) {
+				if(results[1] !== null) {
+					return prisma.$transaction([prisma.$executeRawUnsafe(`
+						DELETE FROM series_movie
+						WHERE series_id = ` + request['params']['seriesId'] + ` AND movie_id = ` + request['params']['movieId']
+					), prisma.$executeRawUnsafe(`
+						UPDATE series_movie 
+						SET \`index\` = \`index\` - 1 
+						WHERE series_id = ` + request['params']['seriesId'] + ` AND \'index\' > ` + results[1]['index'])]);
+				} else {
+					throw new NotFound('Parameter[\'movieId\'] must be valid');
+				}
 			} else {
-				throw new NotFound('Parameter[\'movieId\'] must be valid');
+				throw new Unauthorized('User must be same');
 			}
 		} else {
 			throw new NotFound('Parameter[\'seriesId\'] must be valid');

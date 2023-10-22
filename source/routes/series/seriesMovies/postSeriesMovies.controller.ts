@@ -1,6 +1,6 @@
 import { prisma } from '@library/database';
-import { BadRequest, Conflict, NotFound } from '@library/httpError';
-import { Series, SeriesMovie } from '@prisma/client';
+import { BadRequest, Conflict, NotFound, Unauthorized } from '@library/httpError';
+import { Movie, Series, SeriesMovie } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 export default function (request: FastifyRequest<{
@@ -14,13 +14,14 @@ export default function (request: FastifyRequest<{
 }>, reply: FastifyReply): void {
 	Promise.all([prisma['series'].findUnique({
 		select: {
-			id: true
+			userId: true
 		},
 		where: {
 			id: request['params']['seriesId']
 		}
 	}), prisma['movie'].findUnique({
 		select: {
+			userId: true,
 			seriesMovie: {
 				select: {
 					id: true
@@ -35,25 +36,33 @@ export default function (request: FastifyRequest<{
 			isDeleted: false
 		}
 	})])
-	.then(function (results: [Pick<Series, 'id'> | null, {
+	.then(function (results: [Pick<Series, 'userId'> | null, Pick<Movie, 'userId'> & {
 		seriesMovie: Pick<SeriesMovie, 'id'> | null;
 	} | null]): Promise<number> {
 		if(results[0] !== null) {
-			if(results[1] !== null) {
-				if(results[1]['seriesMovie'] === null) {
-					return prisma.$executeRaw`
-					INSERT INTO series_movie
-					(series_id, movie_id, \`index\`, subtitle)
-					SELECT 
-					${request['params']['seriesId']}, ${request['body']['movieId']}, MAX(\`index\`) + 1, ${request['body']['subtitle']} 
-					FROM series_movie 
-					WHERE series_id = ${request['params']['seriesId']}
-					`;
+			if(results[0]['userId'] === request['user']['id']) {
+				if(results[1] !== null) {
+					if(results[1]['userId'] === request['user']['id']) {
+						if(results[1]['seriesMovie'] === null) {
+							return prisma.$executeRaw`
+							INSERT INTO series_movie
+							(series_id, movie_id, \`index\`, subtitle)
+							SELECT 
+							${request['params']['seriesId']}, ${request['body']['movieId']}, MAX(\`index\`) + 1, ${request['body']['subtitle']} 
+							FROM series_movie 
+							WHERE series_id = ${request['params']['seriesId']}
+							`;
+						} else {
+							throw new Conflict('Body[\'movieId\'] must be unique');
+						}
+					} else {
+						throw new Unauthorized('User must be same');
+					}
 				} else {
-					throw new Conflict('Body[\'movieId\'] must be unique');
+					throw new BadRequest('Body[\'movieId\'] must be valid');
 				}
 			} else {
-				throw new BadRequest('Body[\'movieId\'] must be valid');
+				throw new Unauthorized('User must be same');
 			}
 		} else {
 			throw new NotFound('Parameter[\'seriesId\'] must be valid');

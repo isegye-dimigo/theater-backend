@@ -1,5 +1,5 @@
 import { prisma } from '@library/database';
-import { BadRequest, NotFound } from '@library/httpError';
+import { BadRequest, NotFound, Unauthorized } from '@library/httpError';
 import { Prisma, Series, SeriesMovie } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
@@ -24,9 +24,9 @@ export default function (request: FastifyRequest<{
 		}
 
 		// @ts-expect-error :: stupid typescript
-		const promises: [Promise<Pick<Series, 'id'> | null>, Promise<Pick<SeriesMovie, 'id' | 'index' | 'subtitle'> | null>, Promise<{ index: number; }[] | undefined>] = [prisma['series'].findUnique({
+		const promises: [Promise<Pick<Series, 'userId'> | null>, Promise<Pick<SeriesMovie, 'id' | 'index' | 'subtitle'> | null>, Promise<{ index: number; }[] | undefined>] = [prisma['series'].findUnique({
 			select: {
-				id: true
+				userId: true
 			},
 			where: {
 				id: request['params']['seriesId']
@@ -49,50 +49,54 @@ export default function (request: FastifyRequest<{
 		}
 
 		Promise.all(promises)
-		.then(function (results: [Pick<Series, 'id'> | null, Pick<SeriesMovie, 'id' | 'index' | 'subtitle'> | null, { index: number; }[] | undefined]): Promise<(number | Prisma.BatchPayload)[]> {
+		.then(function (results: [Pick<Series, 'userId'> | null, Pick<SeriesMovie, 'id' | 'index' | 'subtitle'> | null, { index: number; }[] | undefined]): Promise<(number | Prisma.BatchPayload)[]> {
 			if(results[0] !== null) {
-				if(results[1] !== null) {
-					const promises: Prisma.PrismaPromise<number | Prisma.BatchPayload>[] = [];
-
-					if(isIndexDefined) {
-						if((results[2] as NonNullable<typeof results[2]>)['length'] === 1) {
-							if(0 <= (request['body']['index'] as number) && (request['body']['index'] as number) <= (results[2] as NonNullable<typeof results[2]>)[0]['index']) {
-								if(results[1]['index'] !== (request['body']['index'] as number)) {
-									promises.push(prisma.$executeRawUnsafe(`
-									DELETE FROM series_movie 
-									WHERE series_id = ` + request['params']['seriesId'] + ` AND movie_id = ` + request['params']['movieId']), prisma.$executeRawUnsafe(`
-									UPDATE series_movie SET \`index\` = \`index\` ` + (results[1]['index'] < (request['body']['index'] as number) ?
-									`+ 1 WHERE series_id = ` + request['params']['seriesId'] + ` AND \'index\' >= ` + request['body']['index'] + ` AND \'index\' < ` : 
-									`- 1 WHERE series_id = ` + request['params']['seriesId'] + ` AND \'index\' <= ` + request['body']['index'] + ` AND \'index\' > `)
-									+ results[1]['index']), prisma.$executeRaw`
-									INSERT INTO series_movie 
-									(id, series_id, movie_id, \`index\`, subtitle) 
-									VALUES (${results[1]['id']}, ${request['params']['seriesId']}, ${request['params']['movieId']}, ${request['body']['index']}, ${results[1]['subtitle']})
-									`);
+				if(results[0]['userId'] === request['user']['id']) {
+					if(results[1] !== null) {
+						const promises: Prisma.PrismaPromise<number | Prisma.BatchPayload>[] = [];
+	
+						if(isIndexDefined) {
+							if((results[2] as NonNullable<typeof results[2]>)['length'] === 1) {
+								if(0 <= (request['body']['index'] as number) && (request['body']['index'] as number) <= (results[2] as NonNullable<typeof results[2]>)[0]['index']) {
+									if(results[1]['index'] !== (request['body']['index'] as number)) {
+										promises.push(prisma.$executeRawUnsafe(`
+										DELETE FROM series_movie 
+										WHERE series_id = ` + request['params']['seriesId'] + ` AND movie_id = ` + request['params']['movieId']), prisma.$executeRawUnsafe(`
+										UPDATE series_movie SET \`index\` = \`index\` ` + (results[1]['index'] < (request['body']['index'] as number) ?
+										`+ 1 WHERE series_id = ` + request['params']['seriesId'] + ` AND \'index\' >= ` + request['body']['index'] + ` AND \'index\' < ` : 
+										`- 1 WHERE series_id = ` + request['params']['seriesId'] + ` AND \'index\' <= ` + request['body']['index'] + ` AND \'index\' > `)
+										+ results[1]['index']), prisma.$executeRaw`
+										INSERT INTO series_movie 
+										(id, series_id, movie_id, \`index\`, subtitle) 
+										VALUES (${results[1]['id']}, ${request['params']['seriesId']}, ${request['params']['movieId']}, ${request['body']['index']}, ${results[1]['subtitle']})
+										`);
+									}
+								} else {
+									throw new BadRequest('Body[\'index\'] must be valid');
 								}
 							} else {
-								throw new BadRequest('Body[\'index\'] must be valid');
+								throw new NotFound('Parameter[\'seriesId\'] must be valid');
 							}
-						} else {
-							throw new NotFound('Parameter[\'seriesId\'] must be valid');
 						}
+						
+						if(typeof(request['body']['subtitle']) === 'string') {
+							promises.push(prisma['seriesMovie'].updateMany({
+								data: {
+									subtitle: request['body']['subtitle']
+								},
+								where: {
+									seriesId: request['params']['seriesId'],
+									movieId: request['params']['movieId']
+								}
+							}));
+						}
+	
+						return prisma.$transaction(promises);
+					} else {
+						throw new NotFound('Parameter[\'movieId\'] must be valid');
 					}
-					
-					if(typeof(request['body']['subtitle']) === 'string') {
-						promises.push(prisma['seriesMovie'].updateMany({
-							data: {
-								subtitle: request['body']['subtitle']
-							},
-							where: {
-								seriesId: request['params']['seriesId'],
-								movieId: request['params']['movieId']
-							}
-						}));
-					}
-
-					return prisma.$transaction(promises);
 				} else {
-					throw new NotFound('Parameter[\'movieId\'] must be valid');
+					throw new Unauthorized('User must be same');
 				}
 			} else {
 				throw new NotFound('Parameter[\'seriesId\'] must be valid');

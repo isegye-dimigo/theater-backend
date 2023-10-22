@@ -4,7 +4,9 @@ import { logger } from './logger';
 import { randomBytes } from 'crypto';
 import { Client } from '@elastic/elasticsearch';
 
-export const prisma: PrismaClient = new PrismaClient();
+export const prisma: PrismaClient = new PrismaClient({
+	log: ['query']
+});
 
 export const redis: Redis = new Redis(process['env']['CACHE_DATABASE_URL']);
 

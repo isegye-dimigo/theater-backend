@@ -1,5 +1,5 @@
 import { prisma } from '@library/database';
-import { NotFound } from '@library/httpError';
+import { NotFound, Unauthorized } from '@library/httpError';
 import { Prisma, Series } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
@@ -10,19 +10,23 @@ export default function (request: FastifyRequest<{
 }>, reply: FastifyReply): void {
 	prisma['series'].findUnique({
 		select: {
-			id: true
+			userId: true
 		},
 		where: {
 			id: request['params']['seriesId']
 		}
 	})
-	.then(function (series: Pick<Series, 'id'> | null): Promise<Prisma.BatchPayload> {
+	.then(function (series: Pick<Series, 'userId'> | null): Promise<Prisma.BatchPayload> {
 		if(series !== null) {
-			return prisma['series'].deleteMany({
-				where: {
-					id: request['params']['seriesId']
-				}
-			});
+			if(series['userId'] === request['user']['id']) {
+				return prisma['series'].deleteMany({
+					where: {
+						id: request['params']['seriesId']
+					}
+				});
+			} else {
+				throw new Unauthorized('User must be same');
+			}
 		} else {
 			throw new NotFound('Parameter[\'seriesId\'] must be valid');
 		}
