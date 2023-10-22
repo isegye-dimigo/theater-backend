@@ -2,7 +2,7 @@ import { SearchResponse } from '@elastic/elasticsearch/lib/api/types';
 import { elasticsearch, prisma } from '@library/database';
 import { BadRequest } from '@library/httpError';
 import { PageQuery, RejectFunction, ResolveFunction } from '@library/type';
-import { Category, Media, Movie, MovieStatistic, User } from '@prisma/client';
+import { Category, Media, Movie, MovieStatistic, SeriesMovie, User } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 export default function (request: FastifyRequest<{
@@ -99,21 +99,23 @@ export default function (request: FastifyRequest<{
 	.then(function (condition: string): Promise<({
 		created_at: Date;
 		user_is_verified: boolean;
-	} & Record<'id' | 'user_id' | 'image_media_id' | 'image_media_width' | 'image_media_height' | 'movie_statistic_like_count', BigInt> & Record<'title' | 'description' | 'user_handle' | 'user_name' | 'image_media_hash' | 'category_title', string> & Record<'category_id' | 'movie_statistic_star_average', number>)[]> | [] {
+	} & Record<'id' | 'user_id' | 'image_media_id' | 'category_id' | 'series_movie_id' | 'series_movie_series_id' | 'movie_statistic_like_count', BigInt> & Record<'title' | 'description' | 'user_handle' | 'user_name' | 'image_media_hash' | 'category_title', string> & Record<'image_media_width' | 'image_media_height' | 'series_movie_index' | 'movie_statistic_star_average', number>)[]> | [] {
 		return condition['length'] !== 0 ? prisma.$queryRawUnsafe<({
 			created_at: Date;
 			user_is_verified: boolean;
-		} & Record<'id' | 'user_id' | 'image_media_id' | 'image_media_width' | 'image_media_height' | 'movie_statistic_like_count', BigInt> & Record<'title' | 'description' | 'user_handle' | 'user_name' | 'image_media_hash' | 'category_title', string> & Record<'category_id' | 'movie_statistic_star_average', number>)[]>(`
+		} & Record<'id' | 'user_id' | 'image_media_id' | 'category_id' | 'series_movie_id' | 'series_movie_series_id' | 'movie_statistic_like_count', BigInt> & Record<'title' | 'description' | 'user_handle' | 'user_name' | 'image_media_hash' | 'category_title', string> & Record<'image_media_width' | 'image_media_height' | 'series_movie_index' | 'movie_statistic_star_average', number>)[]>(`
 		SELECT
 		movie.id, movie.title, LEFT(movie.description, 256) AS description, movie.created_at,
 		user.id AS user_id, user.handle AS user_handle, user.name AS user_name, user.is_verified AS user_is_verified,
 		image_media.id AS image_media_id, image_media.hash AS image_media_hash, image_media.width AS image_media_width, image_media.height AS image_media_height,
 		category.id AS category_id, category.title AS category_title,
+		series_movie.id AS series_movie_id, series_movie.series_id AS series_movie_series_id, series_movie.index AS series_movie_index,
 		movie_statistic.like_count AS movie_statistic_like_count, movie_statistic.star_average AS movie_statistic_star_average
 		FROM movie 
 		INNER JOIN user ON movie.user_id = user.id 
 		INNER JOIN media AS image_media ON movie.image_media_id = image_media.id 
 		INNER JOIN category ON movie.category_id = category.id
+		LEFT JOIN series_movie ON movie.id = series_movie.movie_id 
 		INNER JOIN movie_statistic ON movie.id = movie_statistic.movie_id 
 		INNER JOIN (SELECT max(id) AS id FROM movie_statistic GROUP BY movie_id) AS _movie_statistics ON movie_statistic.id = _movie_statistics.id
 		WHERE movie.is_deleted = 0
@@ -122,17 +124,18 @@ export default function (request: FastifyRequest<{
 	.then(function (rawMovies: ({
 		created_at: Date;
 		user_is_verified: boolean;
-	} & Record<'id' | 'user_id' | 'image_media_id' | 'image_media_width' | 'image_media_height' | 'movie_statistic_like_count', BigInt> & Record<'title' | 'description' | 'user_handle' | 'user_name' | 'image_media_hash' | 'category_title', string> & Record<'category_id' | 'movie_statistic_star_average', number>)[]) {
+	} & Record<'id' | 'user_id' | 'image_media_id' | 'category_id' | 'series_movie_id' | 'series_movie_series_id' | 'movie_statistic_like_count', BigInt> & Record<'title' | 'description' | 'user_handle' | 'user_name' | 'image_media_hash' | 'category_title', string> & Record<'image_media_width' | 'image_media_height' | 'series_movie_index' | 'movie_statistic_star_average', number>)[]) {
 		const movies: (Pick<Movie, 'id' | 'title' | 'description' | 'createdAt'> & {
 			user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'>;
 			imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'>;
 			category: Category;
+			seriesMovie: Pick<SeriesMovie, 'id' | 'seriesId' | 'index'> | null;
 			movieStatistic: Pick<MovieStatistic, 'likeCount' | 'starAverage'>;
 		})[] = [];
 
 		for(let i: number = 0; i < rawMovies['length']; i++) {
 			const plainDescription: string = rawMovies[i]['description'].replace(/(\n|\s)+/g, ' ').trim();
-
+			
 			movies.push({
 				id: Number(rawMovies[i]['id']),
 				user: {
@@ -146,13 +149,18 @@ export default function (request: FastifyRequest<{
 				imageMedia: {
 					id: Number(rawMovies[i]['image_media_id']),
 					hash: rawMovies[i]['image_media_hash'],
-					width: Number(rawMovies[i]['image_media_width']),
-					height: Number(rawMovies[i]['image_media_height'])
+					width: rawMovies[i]['image_media_width'],
+					height: rawMovies[i]['image_media_height']
 				},
 				category: {
 					id: Number(rawMovies[i]['category_id']),
 					title: rawMovies[i]['category_title']
 				},
+				seriesMovie: rawMovies[i]['series_movie_id'] !== null ? {
+					id: Number(rawMovies[i]['series_movie_id']),
+					seriesId: Number(rawMovies[i]['series_movie_series_id']),
+					index: rawMovies[i]['series_movie_index']
+				} : null,
 				movieStatistic: {
 					likeCount: Number(rawMovies[i]['movie_statistic_like_count']),
 					starAverage: rawMovies[i]['movie_statistic_star_average']
