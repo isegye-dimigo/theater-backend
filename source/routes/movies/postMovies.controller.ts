@@ -44,44 +44,6 @@ export default function (request: FastifyRequest<{
 				id: request['body']['categoryId']
 			}
 		})])
-
-		Promise.all([prisma['media'].findUnique({
-			select: {
-				videoMovie: {
-					select: {
-						id: true
-					}
-				},
-				mediaVideo: {
-					select: {
-						id: true
-					}
-				}
-			},
-			where: {
-				id: request['body']['videoMediaId'],
-				isDeleted: false
-			}
-		}), prisma['media'].findUnique({
-			select: {
-				mediaVideo: {
-					select: {
-						id: true
-					}
-				}
-			},
-			where: {
-				id: request['body']['imageMediaId'],
-				isDeleted: false
-			}
-		}), prisma['category'].findUnique({
-			select: {
-				id: true
-			},
-			where: {
-				id: request['body']['categoryId']
-			}
-		})])
 		.then(function (results: [{
 			videoMovie: Pick<Movie, 'id'> | null;
 			mediaVideo: Pick<MediaVideo, 'id'> | null;
