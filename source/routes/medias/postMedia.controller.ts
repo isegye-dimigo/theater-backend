@@ -109,7 +109,7 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 									isHeaderChecked = true;
 								} else {
 									reply.send(new UnsupportedMediaType('File must be valid type'))
-									.then(function (): void {console.log('-a')
+									.then(function (): void {
 										writeStream.close(function (): void {
 											request['raw'].destroy();
 
@@ -387,7 +387,6 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 
 		return;
 	});
-
 
 	return;
 }
