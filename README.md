@@ -28,5 +28,5 @@ Backend of Isegye Theater
 |STORAGE_ACCESS_KEY_ID|{accessKeyId}|
 |STORAGE_SECRET_ACCESS_KEY|{secretAccessKey}|
 |STORAGE_BUCKET_NAME|{bukkitName}|
-|STORAGE_URL|https://{hostname}/|
+|STORAGE_URL|https://{hostname}|
 |LOG_LEVEL|debug|
