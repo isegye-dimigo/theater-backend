@@ -6,7 +6,7 @@ Backend of Isegye Theater
 
 ### Program
 
-- Node.js >= 18.16.0
+- Node.js >= 18.12.0
 - MariaDB >= 10.5.4
 - FFmpeg(h264_qsv, libwebp) >= 6.0
 
