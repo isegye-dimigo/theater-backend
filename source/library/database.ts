@@ -1,6 +1,6 @@
 import { PrismaClient, User } from '@prisma/client';
 import { Redis } from 'ioredis';
-import { logger } from './logger';
+import { logger } from '@library/logger';
 import { randomBytes } from 'crypto';
 import { Client } from '@elastic/elasticsearch';
 
