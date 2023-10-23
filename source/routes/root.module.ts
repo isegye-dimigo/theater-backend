@@ -1,5 +1,6 @@
 import Module from '@library/module';
 import getRootController from './getRoot.controller';
+import getFaviconIcoController from './getFaviconIco.controller';
 import getRobotsTxtController from './getRobotsTxt.controller';
 import postAndGetCoffeeController from './postAndGetCoffee.controller';
 import wellKnownModule from './.well-known/wellKnown.module';
@@ -17,6 +18,10 @@ export default new Module({
 		method: 'GET',
 		url: '',
 		handler: getRootController
+	}, {
+		method: 'GET',
+		url: 'favicon.ico',
+		handler: getFaviconIcoController
 	}, {
 		method: 'GET',
 		url: 'robots.txt',
