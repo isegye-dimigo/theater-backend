@@ -8,6 +8,8 @@ Backend of Isegye Theater
 
 - Node.js >= 18.12.0
 - MariaDB >= 10.5.4
+- Redis >= 7.0.10
+- Elasticsearch >= 8.10.0
 - FFmpeg(h264_qsv, libwebp) >= 6.0
 
 ### Environment
