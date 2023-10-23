@@ -2,7 +2,7 @@
 
 Backend of Isegye Theater
 
-## Requirements
+## Requirement
 
 ### Program
 
