@@ -1,6 +1,6 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { PayloadTooLarge, Unauthorized, UnsupportedMediaType } from '@library/httpError';
-import { execute, getMetadata, isValidType } from '@library/utility';
+import { execute, getMetadata, isValidType, resolveInSequence } from '@library/utility';
 import { join } from 'path/posix';
 import { WriteStream, createReadStream, createWriteStream } from 'fs';
 import { prisma } from '@library/database';
@@ -290,11 +290,7 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 					(media['mediaVideo'] as Required<Prisma.MediaVideoUncheckedCreateNestedOneWithoutMediaInput>)['create']['frameRate'] /= metadatas['length'];
 					(media['mediaVideo'] as Required<Prisma.MediaVideoUncheckedCreateNestedOneWithoutMediaInput>)['create']['bitRate'] /= metadatas['length'];
 
-					return putObjectPromises.reduce(function (previousPromise, currentPromise): Promise<ServiceOutputTypes> {
-						return previousPromise.then(function (): Promise<ServiceOutputTypes> {
-							return currentPromise;
-						});
-					});
+					return resolveInSequence(putObjectPromises);
 				});
 			}
 		})

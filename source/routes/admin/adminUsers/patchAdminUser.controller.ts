@@ -35,7 +35,10 @@ export default function (request: FastifyRequest<{
 	})
 	.then(function (result: Prisma.BatchPayload): void {
 		if(result['count'] === 1) {
-			reply.send(null);
+			reply.send({
+				id: request['params']['userId'],
+				isVerified: request['body']['isVerified']
+			} satisfies Pick<User, 'id' | 'isVerified'>);
 
 			return;
 		} else {

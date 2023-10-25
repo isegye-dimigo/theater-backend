@@ -14,11 +14,11 @@ export default function (request: FastifyRequest<{
 		user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'>;
 		media: Pick<Media, 'id' | 'hash' | 'width' | 'height'>;
 		seriesMovies: (Pick<SeriesMovie, 'id' | 'index' | 'subtitle'> & {
-			movie: Pick<Movie, 'id' | 'title' | 'createdAt'> & {
+			movie: Pick<Movie, 'id' | 'title'> & {
 				user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'>;
 				imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'>;
 			};
-		})[]
+		})[];
 	});
 
 	prisma.$queryRaw<RawSeries[]>`SELECT series.id, series.title, series.description, series.created_at, user.id AS user_id, user.handle AS user_handle, user.name AS user_name, user.is_verified AS user_is_verified, media.id AS media_id, media.hash AS media_hash, media.width AS media_width, media.height AS media_height FROM series INNER JOIN user ON series.user_id = user.id INNER JOIN media ON series.media_id = media.id WHERE series.id = ${request['params']['seriesId']}`
@@ -44,7 +44,7 @@ export default function (request: FastifyRequest<{
 				seriesMovies: []
 			};
 		
-			return prisma.$queryRaw<RawSeriesMovie[]>`SELECT series_movie.id, series_movie.series_id, series_movie.index, series_movie.subtitle, movie.id AS movie_id, movie.title AS movie_title, movie.created_at AS movie_created_at, movie_user.id AS movie_user_id, movie_user.handle AS movie_user_handle, movie_user.name AS movie_user_name, movie_user.is_verified AS movie_user_is_verified, movie_image_media.id AS movie_image_media_id, movie_image_media.hash AS movie_image_media_hash, movie_image_media.width AS movie_image_media_width, movie_image_media.height AS movie_image_media_height FROM series_movie INNER JOIN movie ON series_movie.movie_id = movie.id AND movie.is_deleted = 0 INNER JOIN user AS movie_user ON movie.user_id = movie_user.id INNER JOIN media AS movie_image_media ON movie.image_media_id = movie_image_media.id WHERE series_movie.series_id = ${request['params']['seriesId']} ORDER BY series_movie.index`;
+			return prisma.$queryRaw<RawSeriesMovie[]>`SELECT series_movie.id, series_movie.series_id, series_movie.index, series_movie.subtitle, movie.id AS movie_id, movie.title AS movie_title, movie_user.id AS movie_user_id, movie_user.handle AS movie_user_handle, movie_user.name AS movie_user_name, movie_user.is_verified AS movie_user_is_verified, movie_image_media.id AS movie_image_media_id, movie_image_media.hash AS movie_image_media_hash, movie_image_media.width AS movie_image_media_width, movie_image_media.height AS movie_image_media_height FROM series_movie INNER JOIN movie ON series_movie.movie_id = movie.id AND movie.is_deleted = 0 INNER JOIN user AS movie_user ON movie.user_id = movie_user.id INNER JOIN media AS movie_image_media ON movie.image_media_id = movie_image_media.id WHERE series_movie.series_id = ${request['params']['seriesId']} ORDER BY series_movie.index`;
 		} else {
 			throw new NotFound('Parameter[\'seriesId\'] must be valid');
 		}
@@ -69,8 +69,7 @@ export default function (request: FastifyRequest<{
 						hash: rawSeriesMovies[i]['movie_image_media_hash'],
 						width: rawSeriesMovies[i]['movie_image_media_width'],
 						height: rawSeriesMovies[i]['movie_image_media_height']
-					},
-					createdAt: rawSeriesMovies[i]['movie_created_at']
+					}
 				}
 			});
 		}

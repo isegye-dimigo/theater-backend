@@ -80,9 +80,15 @@ export default function (request: FastifyRequest<{
 
 	if(typeof(validation) === 'object') {
 		validation
-		.then(function (target: unknown): Promise<Prisma.BatchPayload> {
+		.then(function (target: unknown): Promise<Pick<Report, 'id' | 'type' | 'targetId' | 'createdAt'>> {
 			if(target !== null) {
-				return prisma['report'].createMany({
+				return prisma['report'].create({
+					select: {
+						id: true,
+						type: true,
+						targetId: true,
+						createdAt: true
+					},
 					data: {
 						userId: request['user']['id'],
 						type: request['body']['type'],
@@ -93,15 +99,7 @@ export default function (request: FastifyRequest<{
 				throw new BadRequest('Body[\'targetId\'] must be valid');
 			}
 		})
-		.then(function (result: Prisma.BatchPayload): void {
-			if(result['count'] === 1) {
-				reply.status(201).send(null);
-
-				return;
-			} else {
-				throw new BadRequest('Body[\'targetId\'] must be valid');
-			}
-		})
+		.then(reply.status(201).send.bind(reply))
 		.catch(reply.send.bind(reply));
 	} else {
 		reply.send(new BadRequest('Body[\'targetId\'] must be valid'));

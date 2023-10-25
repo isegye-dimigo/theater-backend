@@ -1,6 +1,6 @@
 import { prisma } from '@library/database';
 import { Conflict } from '@library/httpError';
-import { Category, Prisma } from '@prisma/client';
+import { Category } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 export default function (request: FastifyRequest<{
@@ -14,9 +14,9 @@ export default function (request: FastifyRequest<{
 			title: request['body']['title']
 		}
 	})
-	.then(function (category: Pick<Category, 'id'> | null): Promise<Prisma.BatchPayload> {
+	.then(function (category: Pick<Category, 'id'> | null): Promise<Category> {
 		if(category === null) {
-			return prisma['category'].createMany({
+			return prisma['category'].create({
 				data: {
 					title: request['body']['title']
 				}
@@ -25,15 +25,7 @@ export default function (request: FastifyRequest<{
 			throw new Conflict('Body[\'title\'] must be unique');
 		}
 	})
-	.then(function (result: Prisma.BatchPayload): void {
-		if(result['count'] === 1) {
-			reply.status(201).send(null);
-
-			return;
-		} else {
-			throw new Conflict('Body[\'title\'] must be unique');
-		}
-	})
+	.then(reply.status(201).send.bind(reply))
 	.catch(reply.send.bind(reply));
 
 	return;

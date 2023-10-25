@@ -20,12 +20,9 @@ export default function (request: FastifyRequest<{
 		if(userVerification !== null) {
 			return getUniqueRandomHandle()
 			.then(function (handle: string): Pick<User, 'email' | 'password' | 'handle' | 'name'> {
-				return {
-					email: userVerification['email'],
-					password: userVerification['password'],
-					handle: handle,
-					name: userVerification['name']
-				};
+				return Object.assign(userVerification, {
+					handle: handle
+				});
 			});
 		} else {
 			throw new BadRequest('Query[\'token\'] must be valid');
@@ -41,7 +38,6 @@ export default function (request: FastifyRequest<{
 		})]);
 	})
 	.then(function (): void {
-		// TODO: Chnage below url to real one
 		reply.redirect(307, 'https://theater.isegye.kr/login');
 
 		return;

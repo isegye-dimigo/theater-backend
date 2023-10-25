@@ -1,6 +1,6 @@
 import { prisma } from '@library/database';
 import { Conflict, NotFound } from '@library/httpError';
-import { MovieLike, Prisma } from '@prisma/client';
+import { MovieLike } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 export default function (request: FastifyRequest<{
@@ -27,10 +27,14 @@ export default function (request: FastifyRequest<{
 	})
 	.then(function (movie: {
 		movieLikes: Pick<MovieLike, 'id'>[];
-	} | null): Promise<Prisma.BatchPayload> {
+	} | null): Promise<Pick<MovieLike, 'id' | 'createdAt'>> {
 		if(movie !== null) {
 			if(movie['movieLikes']['length'] === 0) {
-				return prisma['movieLike'].createMany({
+				return prisma['movieLike'].create({
+					select: {
+						id: true,
+						createdAt: true
+					},
 					data: {
 						movieId: request['params']['movieId'],
 						userId: request['user']['id']
@@ -43,15 +47,7 @@ export default function (request: FastifyRequest<{
 			throw new NotFound('Parameter[\'movieId\'] must be valid');
 		}
 	})
-	.then(function (result: Prisma.BatchPayload): void {
-		if(result['count'] === 0) {
-			reply.status(201).send(null);
-
-			return;
-		} else {
-			throw new NotFound('Parameter[\'movieId\'] must be valid');
-		}
-	})
+	.then(reply.status(201).send.bind(reply))
 	.catch(reply.send.bind(reply));
 
 	return;

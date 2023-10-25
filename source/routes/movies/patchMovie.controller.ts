@@ -1,6 +1,7 @@
 import { prisma, redis } from '@library/database';
 import { BadRequest, NotFound, Unauthorized } from '@library/httpError';
-import { Category, Media, MediaVideo, Movie, User } from '@prisma/client';
+import { resolveInSequence } from '@library/utility';
+import { Category, Media, MediaVideo, Movie, Prisma, PrismaClient } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 export default function (request: FastifyRequest<{
@@ -11,6 +12,9 @@ export default function (request: FastifyRequest<{
 }>, reply: FastifyReply): void {
 	if(request['user']['isVerified']) {
 		if(Object.keys(request['body'])['length'] !== 0) {
+			let imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'> | undefined;
+			let category: Category | undefined;
+			
 			prisma['movie'].findUnique({
 				select: {
 					userId: true
@@ -20,59 +24,75 @@ export default function (request: FastifyRequest<{
 					isDeleted: true
 				}
 			})
-			.then(function (movie: Pick<Movie, 'userId'> | null): Promise<void[]> {
+			.then(function (movie: Pick<Movie, 'userId'> | null): Promise<void> {
 				if(movie !== null) {
 					if(movie['userId'] === request['user']['id']) {
-						const validationPromises: Promise<void>[] = [];
+						return prisma.$transaction(function (prisma: Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">): Promise<void> {
+							const validationPromises: Promise<void>[] = [];
 
-						if(typeof(request['body']['imageMediaId']) === 'number') {
-							validationPromises.push(prisma['media'].findUnique({
-								select: {
-									mediaVideo: {
-										select: {
-											id: true
+							if(typeof(request['body']['imageMediaId']) === 'number') {
+								validationPromises.push(prisma['media'].findUnique({
+									select: {
+										id: true,
+										hash: true,
+										width: true,
+										height: true,
+										mediaVideo: {
+											select: {
+												id: true
+											}
 										}
+									},
+									where: {
+										id: request['body']['imageMediaId'],
+										isDeleted: false
 									}
-								},
-								where: {
-									id: request['body']['imageMediaId'],
-									isDeleted: false
-								}
-							})
-							.then(function (media: {
-								mediaVideo: Pick<MediaVideo, 'id'> | null;
-							} | null): void {
-								if(media !== null) {
-									if(media['mediaVideo'] !== null) {
+								})
+								.then(function (media: Pick<Media, 'id' | 'hash' | 'width' | 'height'> & {
+									mediaVideo: Pick<MediaVideo, 'id'> | null;
+								} | null): void {
+									if(media !== null) {
+										if(media['mediaVideo'] !== null) {
+											imageMedia = {
+												id: media['id'],
+												hash: media['hash'],
+												width: media['width'],
+												height: media['height']
+											};
+
+											return;
+										} else {
+											throw new BadRequest('Body[\'imageMediaId\'] must not be video');
+										}
+									} else {
+										throw new BadRequest('Body[\'imageMediaId\'] must be valid');
+									}
+								}));
+							}
+
+							if(typeof(request['body']['categoryId']) === 'number') {
+								validationPromises.push(prisma['category'].findUnique({
+									select: {
+										id: true,
+										title: true
+									},
+									where: {
+										id: request['body']['categoryId']
+									}
+								})
+								.then(function (_category: Category | null): void {
+									if(_category !== null) {
+										category = _category;
+
 										return;
 									} else {
-										throw new BadRequest('Body[\'imageMediaId\'] must not be video');
+										throw new BadRequest('Body[\'categoryId\'] must be valid');
 									}
-								} else {
-									throw new BadRequest('Body[\'imageMediaId\'] must be valid');
-								}
-							}));
-						}
+								}));
+							}
 
-						if(typeof(request['body']['categoryId']) === 'number') {
-							validationPromises.push(prisma['category'].findUnique({
-								select: {
-									id: true
-								},
-								where: {
-									id: request['body']['categoryId']
-								}
-							})
-							.then(function (category: Pick<Category, 'id'> | null): void {
-								if(category !== null) {
-									return;
-								} else {
-									throw new BadRequest('Body[\'categoryId\'] must be valid');
-								}
-							}));
-						}
-
-						return Promise.all(validationPromises);
+							return resolveInSequence(validationPromises);
+						});
 					} else {
 						throw new Unauthorized('User must be same');
 					}
@@ -80,54 +100,13 @@ export default function (request: FastifyRequest<{
 					throw new NotFound('Parameter[\'movieId\'] must be valid');
 				}
 			})
-			.then(function (): Promise<Pick<Movie, 'id' | 'title' | 'description'> & {
-				user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'>;
-				imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'>;
-				videoMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'> & {
-					mediaVideo: Pick<MediaVideo, 'id' | 'duration' | 'frameRate'> | null;
-				};
-			}> {
-				return prisma['movie'].update({
-					select: {
-						id: true,
-						user: {
-							select: {
-								id: true,
-								handle: true,
-								name: true,
-								isVerified: true
-							}
-						},
-						title: true,
-						description: true,
-						imageMedia: {
-							select: {
-								id: true,
-								hash: true,
-								width: true,
-								height: true
-							}
-						},
-						videoMedia: {
-							select: {
-								id: true,
-								hash: true,
-								width: true,
-								height: true,
-								mediaVideo: {
-									select: {
-										id: true,
-										duration: true,
-										frameRate: true
-									}
-								}
-							}
-						}
-					},
+			.then(function (): Promise<Prisma.BatchPayload> {
+				return prisma['movie'].updateMany({
 					data: {
 						title: request['body']['title'],
 						description: request['body']['description'],
-						imageMediaId: request['body']['imageMediaId']
+						imageMediaId: request['body']['imageMediaId'],
+						categoryId: request['body']['categoryId']
 					},
 					where: {
 						id: request['params']['movieId'],
@@ -135,21 +114,28 @@ export default function (request: FastifyRequest<{
 					}
 				});
 			})
-			.then(function (movie: Pick<Movie, 'id' | 'title' | 'description'> & {
-				user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'>;
-				imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'>;
-				videoMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'> & {
-					mediaVideo: Pick<MediaVideo, 'id' | 'duration' | 'frameRate'> | null;
-				};
-			}): void {
-				reply.send(movie);
-
-				if(typeof(request['body']['title']) === 'string' || typeof(request['body']['description']) === 'string') {
-					redis.set('movieIndex:update:' + request['params']['movieId'], JSON.stringify({
+			.then(function (result: Prisma.BatchPayload): void {
+				if(result['count'] === 1) {
+					reply.send({
+						id: request['params']['movieId'],
 						title: request['body']['title'],
-						description: request['body']['description']
-					}))
-					.catch(request['log'].error);
+						description: request['body']['description'],
+						imageMedia: imageMedia,
+						category: category
+					} satisfies Pick<Movie, 'id'> & Partial<Pick<Movie, 'title' | 'description'> & {
+						imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'>,
+						category: Category
+					}>);
+	
+					if(typeof(request['body']['title']) === 'string' || typeof(request['body']['description']) === 'string') {
+						redis.set('movieIndex:update:' + request['params']['movieId'], JSON.stringify({
+							title: request['body']['title'],
+							description: request['body']['description']
+						}))
+						.catch(request['log'].error);
+					}
+				} else {
+					throw new NotFound('Parameter[\'movieId\'] must be valid');
 				}
 
 				return;

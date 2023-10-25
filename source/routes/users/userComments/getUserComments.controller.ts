@@ -1,7 +1,7 @@
 import { prisma } from '@library/database';
 import { NotFound, Unauthorized } from '@library/httpError';
 import { PageQuery } from '@library/type';
-import { Media, MediaVideo, Movie, MovieComment, User } from '@prisma/client';
+import { Media, Movie, MovieComment, User } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 export default function (request: FastifyRequest<{
@@ -22,9 +22,6 @@ export default function (request: FastifyRequest<{
 	.then(function (user: Pick<User, 'id'> | null): Promise<(Pick<MovieComment, 'id' | 'time' | 'content' | 'createdAt'> & {
 		movie: Pick<Movie, 'id' | 'title'> & {
 			user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'>;
-			videoMedia: {
-				mediaVideo: Pick<MediaVideo, 'duration'> | null;
-			};
 			imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'>;
 		};
 	})[]> {
@@ -45,15 +42,6 @@ export default function (request: FastifyRequest<{
 									}
 								},
 								title: true,
-								videoMedia: {
-									select: {
-										mediaVideo: {
-											select: {
-												duration: true
-											}
-										}
-									}
-								},
 								imageMedia: {
 									select: {
 										id: true,
@@ -70,13 +58,13 @@ export default function (request: FastifyRequest<{
 					},
 					where: {
 						user: {
-							handle: request['params']['userHandle'],
+							id: user['id'],
 							isDeleted: false
 						},
-						isDeleted: false,
 						movie: {
 							isDeleted: false
-						}
+						},
+						isDeleted: false
 					},
 					skip: request['query']['page[size]'] * request['query']['page[index]'],
 					take: request['query']['page[size]'],

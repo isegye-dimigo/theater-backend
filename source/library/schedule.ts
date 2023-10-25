@@ -49,7 +49,7 @@ global.setInterval(function (): void {
 		return [0, 0];
 	})
 	.then(function (results: [number, number]): void {
-		logger.debug(results[0] + ' views have been unlinked, and ' + results[1] / 2 + ' rows have been updated (' + (Date.now() - startTime) + 'ms)');
+		logger.debug(results[0] + ' views have been unlinked, and ' + results[1] + ' rows have been updated (' + (Date.now() - startTime) + 'ms)');
 
 		return;
 	})

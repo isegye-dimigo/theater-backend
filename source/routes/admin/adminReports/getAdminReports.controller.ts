@@ -110,7 +110,7 @@ export default function (request: FastifyRequest<{
 			}
 		}
 
-		return Promise.all(targetPromises)
+		return prisma.$transaction(targetPromises)
 		.then(function (results: unknown[]): (Pick<Report, 'id' | 'type'> & Partial<Pick<Report, 'targetId'>> & {
 			user: Pick<User, 'email' | 'handle' | 'name'>;
 			target?: unknown;

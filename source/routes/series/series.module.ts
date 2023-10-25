@@ -5,6 +5,7 @@ import seriesSchema from '@schemas/series';
 import pageSchema from '@schemas/page';
 import deleteSeriesController from './deleteSeries.controller';
 import seriesMoviesModule from './seriesMovies/seriesMovies.module';
+import patchSeriesController from './patchSeries.controller';
 
 export default new Module({
 	routers: [{
@@ -33,6 +34,21 @@ export default new Module({
 				'page[order]': pageSchema['page[order]']
 			}
 		}
+	}, {
+		method: 'PATCH',
+		url: '',
+		handler: patchSeriesController,
+		schema: {
+			params: {
+				seriesId: seriesSchema['id'].required()
+			},
+			body: {
+				mediaId: seriesSchema['mediaId'],
+				title: seriesSchema['title'],
+				description: seriesSchema['description']
+			}
+		},
+		isAuthNeeded: true
 	}, {
 		method: 'DELETE',
 		url: ':seriesId',

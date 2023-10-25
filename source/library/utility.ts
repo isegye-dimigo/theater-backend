@@ -2,7 +2,7 @@
 import { RejectFunction, ResolveFunction, Metadata, File, RouteOptions, SchemaKey } from '@library/type';
 import { fileSignatures } from '@library/constant';
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
-import { pbkdf2 } from 'crypto';
+import { createHash, pbkdf2 } from 'crypto';
 import schema, { NullSchema, ObjectSchema } from 'fluent-json-schema';
 
 export function getEpoch(): number {
@@ -11,7 +11,7 @@ export function getEpoch(): number {
 
 export function getEncryptedPassword(password: string, salt: string): Promise<string> {
 	return new Promise<string>(function (resolve: ResolveFunction<string>, reject: RejectFunction): void {
-		pbkdf2(password, salt, Number.parseInt(process['env']['PBKDF2_ITERATION'], 10), 64, 'sha512', function (error: Error | null, encryptedPassword: Buffer) {
+		pbkdf2(password, createHash('sha256').update(salt).digest(), Number.parseInt(process['env']['PBKDF2_ITERATION'], 10), 64, 'sha512', function (error: Error | null, encryptedPassword: Buffer) {
 			if(error === null) {
 				resolve(encryptedPassword.toString('hex'));
 			} else {
@@ -219,4 +219,12 @@ export function getGreatestCommonDivisor(a: number, b: number): number {
 
 export function getMailContent(name: string, token: string): string {
 	return '<body style="margin:100px auto;width:540px;border-top:4px solid #5d63bd;padding:0 4px"><header style="margin:32px 0"><h1 style="margin:0;font-size:28px;color:#141c2f">이세계</h1><h2 style="margin:0;font-size:16px;font-weight:400;padding:0 2px">메일 인증 안내</h2></header><main style="margin:64px 0;font-size:16px"><p style="line-height:30px"><b>' + name + '</b>님, 이세계에 오신 것을 환영합니다.<br>아래 버튼을 눌러 회원가입을 완료해주세요.</p><a href="https://api.isegye.kr/auth/email?token=' + token + '" style="margin:48px 0;display:block;width:210px;height:48px;text-align:center;line-height:48px;text-decoration:none;color:#fff;background:#5d63bd">메일 인증</a></main><footer style="margin:64px 0;border-top:1px solid #ddd;color:#555;font-size:12px;padding:16px 2px 0"><p style="margin:0">만약 버튼이 정상적으로 클릭되지 않는다면, 아래 링크로 접속해 주세요.</p><a href="https://api.isegye.kr/auth/email?token=' + token + '">https://api.isegye.kr/auth/email?token=' + token + '</a></footer></body>';
+}
+
+export function resolveInSequence<T>(promises: Promise<T>[]) {
+	return promises.reduce(function (previousPromise: Promise<T>, currentPromise: Promise<T>): Promise<T> {
+		return previousPromise.then(function (): Promise<T> {
+			return currentPromise;
+		});
+	});
 }

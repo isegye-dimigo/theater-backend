@@ -109,7 +109,15 @@ export default function (request: FastifyRequest<{
 		})[] = [];
 
 		for(let i: number = 0; i < rawMovies['length']; i++) {
-			const plainDescription: string = rawMovies[i]['description'].replace(/(\n|\s)+/g, ' ').trim();
+			let slicedDescription: string | null = null;
+
+			if(typeof(rawMovies[i]['description']) === 'string') {
+				slicedDescription = (rawMovies[i]['description'] as string).replace(/(\n|\s)+/g, ' ');
+
+				if(slicedDescription['length'] > 128) {
+					slicedDescription = slicedDescription.slice(0, 128).trim() + '...';
+				}
+			}
 			
 			movies.push({
 				id: Number(rawMovies[i]['id']),
@@ -120,7 +128,7 @@ export default function (request: FastifyRequest<{
 					isVerified: rawMovies[i]['user_is_verified']
 				},
 				title: rawMovies[i]['title'],
-				description: plainDescription['length'] > 128 ? plainDescription.slice(0, 128) + '...' : plainDescription,
+				description: slicedDescription,
 				imageMedia: {
 					id: Number(rawMovies[i]['image_media_id']),
 					hash: rawMovies[i]['image_media_hash'],

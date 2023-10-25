@@ -9,9 +9,10 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 export default function (request: FastifyRequest<{
 	Body: Pick<User, 'email' | 'password' | 'name'>;
 }>, reply: FastifyReply): void {
+	const createdAt: Date = new Date();
 	let token: string;
 
-	Promise.all([prisma['user'].findUnique({
+	prisma.$transaction([prisma['user'].findUnique({
 		select: {
 			id: true
 		},
@@ -29,7 +30,7 @@ export default function (request: FastifyRequest<{
 	.then(function (results: [Pick<User, 'id'> | null, Pick<UserVerification, 'token'> | null]): Promise<string> {
 		if(results[0] === null) {
 			if(results[1] === null) {
-				return getEncryptedPassword(request['body']['password'], request['body']['email']);
+				return getEncryptedPassword(request['body']['password'], createdAt.getTime().toString(10));
 			} else {
 				return sendMail(request['body']['email'], '이세계 이메일 인증', getMailContent(request['body']['name'], results[1]['token']))
 				.then(function (): string {
@@ -48,7 +49,8 @@ export default function (request: FastifyRequest<{
 				email: request['body']['email'],
 				password: encryptedPassword,
 				name: request['body']['name'],
-				token: token
+				token: token,
+				createdAt: createdAt
 			}
 		});
 	})

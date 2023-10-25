@@ -7,7 +7,7 @@ export default function (request: FastifyRequest<{
 	Body: Pick<Movie, 'title' | 'description' | 'videoMediaId' | 'imageMediaId' | 'categoryId'>;
 }>, reply: FastifyReply): void {
 	if(request['user']['isVerified']) {
-		Promise.all([prisma['media'].findUnique({
+		prisma.$transaction([prisma['media'].findUnique({
 			select: {
 				videoMovie: {
 					select: {
@@ -49,7 +49,7 @@ export default function (request: FastifyRequest<{
 			mediaVideo: Pick<MediaVideo, 'id'> | null;
 		} | null, {
 			mediaVideo: Pick<MediaVideo, 'id'> | null;
-		} | null, Pick<Category, 'id'> | null]): Promise<Pick<Movie, 'id' | 'title' | 'description'> & {
+		} | null, Pick<Category, 'id'> | null]): Promise<Pick<Movie, 'id' | 'title' | 'description' | 'createdAt'> & {
 			user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'>;
 			imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'>;
 			videoMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'> & {
@@ -103,7 +103,8 @@ export default function (request: FastifyRequest<{
 												id: true,
 												title: true
 											}
-										}
+										},
+										createdAt: true
 									},
 									data: {
 										userId: request['user']['id'],
@@ -140,7 +141,7 @@ export default function (request: FastifyRequest<{
 				throw new BadRequest('Body[\'videoMediaId\'] must be valid');
 			}
 		})
-		.then(function (movie: Pick<Movie, 'id' | 'title' | 'description'> & {
+		.then(function (movie: Pick<Movie, 'id' | 'title' | 'description' | 'createdAt'> & {
 			user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'>;
 			imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'>;
 			videoMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'> & {

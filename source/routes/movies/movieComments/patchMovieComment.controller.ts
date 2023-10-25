@@ -1,6 +1,6 @@
 import { prisma } from '@library/database';
 import { BadRequest, NotFound, Unauthorized } from '@library/httpError';
-import { Media, MovieComment, User } from '@prisma/client';
+import { MovieComment, Prisma } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 export default function (request: FastifyRequest<{
@@ -23,7 +23,7 @@ export default function (request: FastifyRequest<{
 							}
 						}
 					}
-				} : undefined,
+				} : false,
 				movieComments: {
 					select: {
 						userId: true
@@ -39,46 +39,20 @@ export default function (request: FastifyRequest<{
 				isDeleted: false
 			}
 		})
-		// @ts-expect-error :: stupid typescript
+		// @ts-expect-error
 		.then(function (movie: {
 			videoMedia?: {
-				mediaVideoMetadata: {
+				mediaVideo: {
 					duration: number;
 				} | null;
 			} | null;
 			movieComments: Pick<MovieComment, 'userId'>[];
-		} | null): Promise<Pick<MovieComment, 'id' | 'time' | 'content' | 'createdAt'> & {
-			user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'> & {
-				profileMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'> | null;
-			};
-		}> {
+		} | null): Promise<Prisma.BatchPayload> {
 			if(movie !== null) {
 				if(movie['movieComments']['length'] === 1) {
 					if(movie['movieComments'][0]['userId'] === request['user']['id']) {
-						if(!isTimeDefined || typeof(movie['videoMedia']) !== 'undefined' && movie['videoMedia'] !== null && movie['videoMedia']['mediaVideoMetadata'] !== null && request['body']['time'] as number < movie['videoMedia']['mediaVideoMetadata']['duration']) {
-							return prisma['movieComment'].update({
-								select: {
-									id: true,
-									user: {
-										select: {
-											id: true,
-											handle: true,
-											name: true,
-											isVerified: true,
-											profileMedia: {
-												select: {
-													hash: true,
-													id: true,
-													width: true,
-													height: true
-												}
-											}
-										}
-									},
-									time: true,
-									content: true,
-									createdAt: true
-								},
+						if(!isTimeDefined || typeof(movie['videoMedia']) !== 'undefined' && movie['videoMedia'] !== null && movie['videoMedia']['mediaVideo'] !== null && request['body']['time'] as number < movie['videoMedia']['mediaVideo']['duration']) {
+							return prisma['movieComment'].updateMany({
 								data: {
 									content: request['body']['content'],
 									time: request['body']['time']
@@ -105,7 +79,20 @@ export default function (request: FastifyRequest<{
 				throw new NotFound('Parameter[\'movieId\'] must be valid');
 			}
 		})
-		.then(reply.send.bind(reply))
+		// @ts-expect-error
+		.then(function (result: Prisma.BatchPayload): void {
+			if(result['count'] === 1) {
+				reply.send({
+					id: request['params']['movieCommentId'],
+					time: request['body']['time'],
+					content: request['body']['content']
+				} satisfies Pick<MovieComment, 'id'> & Partial<Pick<MovieComment, 'time' | 'content'>>);
+
+				return;
+			} else {
+				throw new NotFound('Parameter[\'movie~Id\'] must be valid')
+			}
+		})
 		.catch(reply.send.bind(reply));
 	} else {
 		reply.send(new BadRequest('Body must have more than one key'));

@@ -13,19 +13,25 @@ export default function (request: FastifyRequest<{
 			id: true,
 			password: true,
 			handle: true,
-			isVerified: true
+			isVerified: true,
+			createdAt: true
 		},
 		where: {
 			email: request['body']['email'],
 			isDeleted: false
 		}
 	})
-	.then(function (user: Pick<User, 'id' | 'password' | 'handle' | 'isVerified'> | null): Promise<Pick<User, 'id' | 'password' | 'handle' | 'isVerified'>> {
+	.then(function (user: Pick<User, 'id' | 'password' | 'handle' | 'isVerified' | 'createdAt'> | null): Promise<Pick<User, 'id' | 'password' | 'handle' | 'isVerified'>> {
 		if(user !== null) {
-			return getEncryptedPassword(request['body']['password'], request['body']['email'])
+			return getEncryptedPassword(request['body']['password'], user['createdAt'].getTime().toString(10))
 			.then(function (encryptedPassword: string): Pick<User, 'id' | 'password' | 'handle' | 'isVerified'> {
 				if(user['password'] === encryptedPassword) {
-					return user;
+					return {
+						id: user['id'],
+						password: user['password'],
+						handle: user['handle'],
+						isVerified: user['isVerified']
+					};
 				} else {
 					throw new Unauthorized('Body[\'password\'] must be valid');
 				}

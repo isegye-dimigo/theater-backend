@@ -3,8 +3,9 @@ import { createHmac } from 'crypto';
 
 export default class JsonWebToken {
 	private token: string;
+	private tokenSpliterIndex: number;
 	public secretKey: string;
-	public payload: unknown;
+	public payload: Record<string, any>;
 
 	public static create(payload: Record<string, any>, secretKey: string): string {
 		const headerAndPayload: string = 'eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.' + Buffer.from(JSON.stringify(payload)).toString('base64url');
@@ -31,27 +32,29 @@ export default class JsonWebToken {
 	}
 
 	constructor(token: string, secretKey: string) {
-		this['token'] = token;
+		this['tokenSpliterIndex'] = token.indexOf('.', 37);
 
-		try {
-			const tokenWithoutHeader: string = token.slice(token.indexOf('.') + 1);
-			this['payload'] = JSON.parse(Buffer.from(tokenWithoutHeader.slice(0, tokenWithoutHeader.indexOf('.')), 'base64url').toString('utf-8'));
-			
-			JsonWebToken.deepFreeze(this['payload']);
-		} catch {
-			throw new Error('Payload must be valid');
+		if(this['tokenSpliterIndex'] !== -1) {
+			try {
+				this['payload'] = JSON.parse(Buffer.from(token.slice(37, this['tokenSpliterIndex']), 'base64url').toString('utf-8'));
+				
+				if(typeof(this['payload']) === 'object' && this['payload'] !== null) {
+					JsonWebToken.deepFreeze(this['payload']);
+				} else {
+					throw null;
+				}
+			} catch {
+				throw new Error('Payload must be valid');
+			}
+	
+			this['token'] = token;
+			this['secretKey'] = secretKey;
+		} else {
+			throw new Error('Token must be valid');
 		}
-
-		this['secretKey'] = secretKey;
-
-		return;
 	}
 
 	public isValid(): boolean {
-		const splitTokens: string[] = this['token'].split('.');
-		// @ts-expect-error :: Already checked
-		const expireAt: number = this['payload']['exp'] || Infinity;
-
-		return createHmac('sha512', this['secretKey']).update(splitTokens.slice(0, 2).join('.')).digest('base64url') === splitTokens[2] && expireAt > getEpoch();
+		return createHmac('sha512', this['secretKey']).update(this['token'].slice(0, this['tokenSpliterIndex'])).digest('base64url') === this['token'].slice(this['tokenSpliterIndex'] + 1) && (typeof(this['payload']['exp']) === 'number' ? this['payload']['exp'] : Infinity) > getEpoch();
 	}
 }

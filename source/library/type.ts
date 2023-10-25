@@ -86,20 +86,22 @@ export type Metadata<T extends 'video' | 'image'> = T extends 'video' ? {
 };
 
 export type RawSeries = {
+	description: string | null;
 	created_at: Date;
 	user_is_verified: boolean;
-} & Record<'id' | 'user_id' | 'media_id', BigInt> & Record<'title' | 'description' | 'user_handle' | 'user_name' | 'media_hash', string> & Record<'media_width' | 'media_height', number>;
+} & Record<'id' | 'user_id' | 'media_id', BigInt> & Record<'title' | 'user_handle' | 'user_name' | 'media_hash', string> & Record<'media_width' | 'media_height', number>;
 
 export type RawSeriesMovie = {
-	movie_created_at: Date;
 	movie_user_is_verified: boolean;
 } & Record<'id' | 'series_id' | 'movie_id' | 'movie_user_id' | 'movie_image_media_id', BigInt> & Record<'subtitle' | 'movie_title' | 'movie_user_handle' | 'movie_user_name' | 'movie_image_media_hash', string> & Record<'index' | 'movie_image_media_width' | 'movie_image_media_height', number>;
 
 export type RawMovie = {
+	description: string | null;
 	created_at: Date;
 	user_is_verified: boolean;
-} & Record<'id' | 'user_id' | 'image_media_id' | 'category_id' | 'series_movie_id' | 'series_movie_series_id' | 'movie_statistic_like_count', BigInt> & Record<'title' | 'description' | 'user_handle' | 'user_name' | 'image_media_hash' | 'category_title', string> & Record<'image_media_width' | 'image_media_height' | 'series_movie_index' | 'movie_statistic_star_average', number>;
+} & Record<'id' | 'user_id' | 'image_media_id' | 'category_id' | 'series_movie_id' | 'series_movie_series_id' | 'movie_statistic_like_count', BigInt> & Record<'title' | 'user_handle' | 'user_name' | 'image_media_hash' | 'category_title', string> & Record<'image_media_width' | 'image_media_height' | 'series_movie_index' | 'movie_statistic_star_average', number>;
 
 export type _RawMovie = {
+	description: string | null;
 	user_is_verified: boolean;
-} & Record<'created_at' | 'movie_like_created_at' | 'movie_star_created_at', Date> & Record<'id' | 'user_id' | 'image_media_id' | 'video_media_id' | 'category_id' | 'video_media_media_video_id' | 'movie_statistic_view_count' | 'movie_statistic_comment_count' | 'movie_statistic_like_count' | 'movie_like_id' | 'movie_star_id', BigInt> & Record<'title' | 'description' | 'user_handle' | 'user_name' | 'image_media_hash' | 'video_media_hash' | 'category_title', string> & Record<'image_media_width' | 'image_media_height' | 'video_media_width' | 'video_media_height' | 'movie_statistic_star_average' | 'video_media_media_video_duration' | 'movie_star_value', number>;
+} & Record<'created_at' | 'movie_like_created_at' | 'movie_star_created_at', Date> & Record<'id' | 'user_id' | 'image_media_id' | 'video_media_id' | 'category_id' | 'video_media_media_video_id' | 'movie_statistic_view_count' | 'movie_statistic_comment_count' | 'movie_statistic_like_count' | 'movie_like_id' | 'movie_star_id', BigInt> & Record<'title' | 'user_handle' | 'user_name' | 'image_media_hash' | 'video_media_hash' | 'category_title', string> & Record<'image_media_width' | 'image_media_height' | 'video_media_width' | 'video_media_height' | 'movie_statistic_star_average' | 'video_media_media_video_duration' | 'movie_star_value', number>;

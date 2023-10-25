@@ -1,6 +1,6 @@
 import { prisma } from '@library/database';
 import { BadRequest, NotFound, Unauthorized } from '@library/httpError';
-import { MediaVideo, Prisma, User, UserHistory } from '@prisma/client';
+import { Media, MediaVideo, Movie, Prisma, User, UserHistory } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 export default function (request: FastifyRequest<{
@@ -9,7 +9,7 @@ export default function (request: FastifyRequest<{
 	};
 	Body: Pick<UserHistory, 'movieId' | 'duration'>;
 }>, reply: FastifyReply): void {
-	Promise.all([prisma['user'].findUnique({
+	prisma.$transaction([prisma['user'].findUnique({
 		select: {
 			id: true
 		},
@@ -38,12 +38,56 @@ export default function (request: FastifyRequest<{
 		videoMedia: {
 			mediaVideo: Pick<MediaVideo, 'duration'> | null;
 		}
-	} | null]): Promise<Prisma.BatchPayload> {
+	} | null]): Promise<Pick<UserHistory, 'id' | 'duration' | 'createdAt'> & {
+		movie: Pick<Movie, 'id' | 'title'> & {
+			user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'>;
+			videoMedia: {
+				mediaVideo: Pick<MediaVideo, 'duration'> | null;
+			};
+			imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'>;
+		};
+	}> {
 		if(results[0] !== null) {
 			if(request['user']['id'] === results[0]['id']) {
 				if(results[1] !== null) {
 					if(results[1]['videoMedia']['mediaVideo'] !== null && request['body']['duration'] <= results[1]['videoMedia']['mediaVideo']['duration']) {
-						return prisma['userHistory'].createMany({
+						return prisma['userHistory'].create({
+							select: {
+								id: true,
+								movie: {
+									select: {
+										id: true,
+										user: {
+											select: {
+												id: true,
+												handle: true,
+												name: true,
+												isVerified: true
+											}
+										},
+										title: true,
+										videoMedia: {
+											select: {
+												mediaVideo: {
+													select: {
+														duration: true
+													}
+												}
+											}
+										},
+										imageMedia: {
+											select: {
+												id: true,
+												hash: true,
+												width: true,
+												height: true
+											}
+										}
+									}
+								},
+								duration: true,
+								createdAt: true
+							},
 							data: {
 								userId: results[0]['id'],
 								movieId: request['body']['movieId'],
@@ -63,15 +107,7 @@ export default function (request: FastifyRequest<{
 			throw new NotFound('Parameter[\'userHandle\'] must be valid');
 		}
 	})
-	.then(function (result: Prisma.BatchPayload): void {
-		if(result['count'] === 1) {
-			reply.status(201).send(null);
-
-			return;
-		} else {
-			throw new NotFound('Parameter[\'userHandle\'] must be valid');
-		}
-	})
+	.then(reply.status(201).send.bind(reply))
 	.catch(reply.send.bind(reply));
 
 	return;
