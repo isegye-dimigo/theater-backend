@@ -27,7 +27,7 @@ export default function (request: FastifyRequest<{
 			.then(function (movie: Pick<Movie, 'userId'> | null): Promise<void> {
 				if(movie !== null) {
 					if(movie['userId'] === request['user']['id']) {
-						return prisma.$transaction(function (prisma: Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">): Promise<void> {
+						return prisma.$transaction(function (prisma: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>): Promise<void> {
 							const validationPromises: Promise<void>[] = [];
 
 							if(typeof(request['body']['imageMediaId']) === 'number') {

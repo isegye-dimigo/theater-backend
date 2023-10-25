@@ -43,7 +43,7 @@ export default function (request: FastifyRequest<{
 		})
 		.then(function (encryptedCurrentPassword: string): Promise<void> {
 			if(encryptedCurrentPassword === user['password']) {
-				return prisma.$transaction(function (prisma: Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">): Promise<void> {
+				return prisma.$transaction(function (prisma: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>): Promise<void> {
 					const validationPromises: Promise<void>[] = [];
 
 					if(typeof(request['body']['password']) === 'string') {
