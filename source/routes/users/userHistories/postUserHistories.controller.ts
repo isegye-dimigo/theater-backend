@@ -41,9 +41,6 @@ export default function (request: FastifyRequest<{
 	} | null]): Promise<Pick<UserHistory, 'id' | 'duration' | 'createdAt'> & {
 		movie: Pick<Movie, 'id' | 'title'> & {
 			user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'>;
-			videoMedia: {
-				mediaVideo: Pick<MediaVideo, 'duration'> | null;
-			};
 			imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'>;
 		};
 	}> {
@@ -66,15 +63,6 @@ export default function (request: FastifyRequest<{
 											}
 										},
 										title: true,
-										videoMedia: {
-											select: {
-												mediaVideo: {
-													select: {
-														duration: true
-													}
-												}
-											}
-										},
 										imageMedia: {
 											select: {
 												id: true,

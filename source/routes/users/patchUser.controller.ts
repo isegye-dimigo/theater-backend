@@ -14,8 +14,8 @@ export default function (request: FastifyRequest<{
 }>, reply: FastifyReply): void {
 	if(Object.keys(request['body'])['length'] !== 0) {
 		let user: Pick<User, 'id' | 'password' | 'createdAt'>;
-		let profileMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'> | undefined;
-		let bannerMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'> | undefined;
+		let profileMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'> | null | undefined;
+		let bannerMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'> | null | undefined;
 
 		prisma['user'].findUnique({
 			select: {
@@ -129,6 +129,8 @@ export default function (request: FastifyRequest<{
 								throw new BadRequest('Body[\'profileMediaId\'] must be valid');
 							}
 						}));
+					} else if(request['body']['profileMediaId'] === null) {
+						profileMedia = null;
 					}
 
 					if(typeof(request['body']['bannerMediaId']) === 'number') {
@@ -169,6 +171,8 @@ export default function (request: FastifyRequest<{
 								throw new BadRequest('Body[\'bannerMediaId\'] must be valid');
 							}
 						}));
+					} else if(request['body']['bannerMediaId'] === null) {
+						bannerMedia = null;
 					}
 
 					return resolveInSequence(validationPromises);
@@ -206,8 +210,8 @@ export default function (request: FastifyRequest<{
 					profileMedia: profileMedia,
 					bannerMedia: bannerMedia
 				} satisfies Pick<User, 'id'> & Partial<Pick<User, 'email' | 'password' | 'handle' | 'name' | 'description'> & {
-					profileMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'>;
-					bannerMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'>;
+					profileMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'> | null;
+					bannerMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'> | null;
 				}>);
 
 				return;

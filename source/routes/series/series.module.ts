@@ -36,7 +36,7 @@ export default new Module({
 		}
 	}, {
 		method: 'PATCH',
-		url: '',
+		url: ':seriesId',
 		handler: patchSeriesController,
 		schema: {
 			params: {

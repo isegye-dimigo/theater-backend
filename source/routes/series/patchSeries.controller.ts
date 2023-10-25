@@ -81,9 +81,9 @@ export default function (request: FastifyRequest<{
 			if(result['count'] === 1) {
 				reply.send({
 					id: request['params']['seriesId'],
+					media: media,
 					title: request['body']['title'],
-					description: request['body']['description'],
-					media: media
+					description: request['body']['description']
 				} satisfies Pick<Series, 'id'> & Partial<Pick<Series, 'title' | 'description'> & {
 					media: Pick<Media, 'id' | 'hash' | 'width' | 'height'>;
 				}>);

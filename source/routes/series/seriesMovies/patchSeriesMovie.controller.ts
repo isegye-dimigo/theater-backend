@@ -37,7 +37,7 @@ export default function (request: FastifyRequest<{
 			}
 	
 			prisma.$transaction(selectionPromises)
-			.then(function (results: [Pick<Series, 'userId'> | null, Pick<SeriesMovie, 'movieId'> & Partial<Pick<SeriesMovie, 'index' | 'subtitle'>> | null | null, ...(Pick<SeriesMovie, 'index'>[])[]]): Promise<(number | Prisma.BatchPayload)[]> {
+			.then(function (results: [Pick<Series, 'userId'> | null, Pick<SeriesMovie, 'movieId'> & Partial<Pick<SeriesMovie, 'index' | 'subtitle'>> | null, ...(Pick<SeriesMovie, 'index'>[])[]]): Promise<(number | Prisma.BatchPayload)[]> {
 				if(results[0] !== null) {
 					if(results[0]['userId'] === request['user']['id']) {
 						if(results[1] !== null) {
