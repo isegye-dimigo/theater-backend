@@ -196,8 +196,6 @@ export default function (request: FastifyRequest<{
 		})
 		.then(function (result: Prisma.BatchPayload): void {
 			if(result['count'] === 1) {
-				// Pick<User, 'email' | 'password' | 'handle' | 'name' | 'description' | 'profileMediaId' | 'bannerMediaId'>>
-				
 				reply.send({
 					id: user['id'],
 					email: request['body']['email'],

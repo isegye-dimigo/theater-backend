@@ -2,7 +2,7 @@ import { prisma } from '@library/database';
 import { Conflict } from '@library/httpError';
 import sendMail from '@library/mail';
 import { getEncryptedPassword, getMailContent } from '@library/utility';
-import { Prisma, User, UserVerification } from '@prisma/client';
+import { User, UserVerification } from '@prisma/client';
 import { createHash } from 'crypto';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
@@ -10,7 +10,6 @@ export default function (request: FastifyRequest<{
 	Body: Pick<User, 'email' | 'password' | 'name'>;
 }>, reply: FastifyReply): void {
 	const createdAt: Date = new Date();
-	let token: string;
 
 	prisma.$transaction([prisma['user'].findUnique({
 		select: {
@@ -41,30 +40,36 @@ export default function (request: FastifyRequest<{
 			throw new Conflict('Body[\'email\'] must be unique');
 		}
 	})
-	.then(function (encryptedPassword: string): Promise<Prisma.BatchPayload> {
-		token = createHash('sha1').update(request['body']['email']).digest('hex');
-
-		return prisma['userVerification'].createMany({
+	.then(function (encryptedPassword: string): Promise<Pick<UserVerification, 'id' | 'email' | 'name' | 'token' | 'createdAt'>> {
+		return prisma['userVerification'].create({
+			select: {
+				id: true,
+				email: true,
+				name: true,
+				token: true,
+				createdAt: true
+			},
 			data: {
 				email: request['body']['email'],
 				password: encryptedPassword,
 				name: request['body']['name'],
-				token: token,
+				token: createHash('sha1').update(request['body']['email']).digest('hex'),
 				createdAt: createdAt
 			}
 		});
 	})
-	.then(function () {
-		return sendMail(request['body']['email'], '이세계 이메일 인증', getMailContent(request['body']['name'], token));
-	})
-	.then(function () {
-		reply.status(201).send({
-			name: request['body']['name'],
-			email: request['body']['email']
+	.then(function (userVerification: Pick<UserVerification, 'id' | 'email' | 'name' | 'token' | 'createdAt'>): Promise<Pick<UserVerification, 'id' | 'email' | 'name' | 'createdAt'>> {
+		return sendMail(request['body']['email'], '이세계 이메일 인증', getMailContent(request['body']['name'], userVerification['token']))
+		.then(function (): Pick<UserVerification, 'id' | 'email' | 'name' | 'createdAt'> {
+			return {
+				id: userVerification['id'],
+				email: userVerification['email'],
+				name: userVerification['name'],
+				createdAt: userVerification['createdAt']
+			};
 		});
-
-		return;
 	})
+	.then(reply.status(201).send.bind(reply))
 	.catch(reply.send.bind(reply));
 
 	return;
