@@ -1,6 +1,6 @@
 {
 	"name": "theater-backend",
-	"version": "1.0.2",
+	"version": "1.0.3",
 	"description": "Backend of Isegye Theater",
 	"main": "distribution/application.js",
 	"scripts": {
