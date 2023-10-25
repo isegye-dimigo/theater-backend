@@ -1,6 +1,6 @@
 import { prisma } from '@library/database';
 import { BadRequest, NotFound, Unauthorized } from '@library/httpError';
-import { Media, MediaVideo, Movie, Prisma, User, UserHistory } from '@prisma/client';
+import { Media, MediaVideo, Movie, User, UserHistory } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 export default function (request: FastifyRequest<{
