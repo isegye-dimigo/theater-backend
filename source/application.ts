@@ -20,7 +20,7 @@ const fastifyInstance: FastifyInstance = fastify({
 });
 
 fastifyInstance['server']['requestTimeout'] = 0;
-fastifyInstance['server']['headersTimeout'] = 0;
+fastifyInstance['server']['timeout'] = 0;
 
 fastifyInstance.setNotFoundHandler(notFoundHandler);
 fastifyInstance.setErrorHandler(errorHandler);

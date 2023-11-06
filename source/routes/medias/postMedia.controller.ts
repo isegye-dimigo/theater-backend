@@ -191,7 +191,7 @@ export default function (request: FastifyRequest, reply: FastifyReply): void {
 			mediaVideo: Omit<MediaVideo, 'mediaId'> | null;
 		} | null): Promise<void> {
 			if(media === null) {
-				return execute('ffmpeg -v quiet -i input.' + file['type'] + ' -vf "scale=\'if(gte(iw,ih),min(1280,iw),-1)\':\'if(lt(iw,ih),min(1280,ih),-1)\'" -c:v ' + (file['isVideo'] ? 'h264_qsv -c:a libopus -map 0:v:0 -map 0:a:0 -r 30 -q 17 -preset veryslow -f ssegment -segment_list index.m3u8 %d.ts' : 'libwebp -quality 100 -preset photo ' + file['hash'] + '.webp'), {
+				return execute('ffmpeg -v quiet -i input.' + file['type'] + ' -vf "scale=\'if(gte(iw,ih),min(1280,iw),-1)\':\'if(lt(iw,ih),min(1280,ih),-1)\'" -c:v ' + (file['isVideo'] ? 'h264_qsv -c:a aac -map 0:v:0 -map 0:a:0 -r 30 -q 17 -preset veryslow -f ssegment -segment_list index.m3u8 %d.ts' : 'libwebp -quality 100 -preset photo ' + file['hash'] + '.webp'), {
 					basePath: file['path']
 				});
 			} else {
