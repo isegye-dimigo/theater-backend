@@ -37,7 +37,8 @@ export default new Module({
 				bannerMediaId: userSchema['bannerMediaId'],
 				currentPassword: userSchema['password'].required()
 			}
-		}
+		},
+		isAuthNeeded: true
 	}, {
 		method: 'GET',
 		url: ':userHandle',

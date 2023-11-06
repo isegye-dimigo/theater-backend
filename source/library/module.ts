@@ -8,7 +8,7 @@ import authHandler from '@handlers/auth';
 import optionsHandler from '@handlers/options';
 
 export default class Module {
-	public static registeredUrl: Set<string> = new Set<string>();
+	private static registeredUrl: Set<string> = new Set<string>();
 	private options: ModuleOptions;
 
 	constructor(options: ModuleOptions) {

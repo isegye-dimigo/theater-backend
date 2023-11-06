@@ -11,6 +11,7 @@ import rateLimitHandler from '@handlers/rateLimit';
 import multipartContentTypeParser from '@handlers/multipartContentTypeParser';
 import rootModule from './routes/root.module';
 import JsonWebToken from '@library/jsonWebToken';
+import Module from '@library/module';
 
 const fastifyInstance: FastifyInstance = fastify({
 	trustProxy: true,
