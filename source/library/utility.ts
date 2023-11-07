@@ -122,7 +122,6 @@ export function getMetadata(fileName: string, options: {
 				codec_type: 'video';
 				width: number;
 				height: number;
-				display_aspect_ratio: string;
 				avg_frame_rate: string;
 				bit_rate: string;
 			}, {
@@ -155,13 +154,14 @@ export function getMetadata(fileName: string, options: {
 					const videoBitRate: number = Number.parseInt(result['streams'][0]['bit_rate'], 10);
 					const audioBitRate: number = Number.parseInt(result['streams'][1]['bit_rate'], 10);
 					const totalBitRate: number = Number.parseInt(result['format']['bit_rate'], 10);
+					const greatestCommonDivisor: number = getGreatestCommonDivisor(result['streams'][0]['width'], result['streams'][0]['height']);
 
 					return {
 						video: {
 							width: result['streams'][0]['width'],
 							height: result['streams'][0]['height'],
 							frameRate: Number.parseInt(splitFramerate[0], 10) / Number.parseInt(splitFramerate[1], 10),
-							aspectRatio: result['streams'][0]['display_aspect_ratio'],
+							aspectRatio: result['streams'][0]['width'] / greatestCommonDivisor + ':' + result['streams'][0]['height'] / greatestCommonDivisor,
 							bitRate: Number.isNaN(videoBitRate) ? totalBitRate - audioBitRate : videoBitRate
 						},
 						audio: {
