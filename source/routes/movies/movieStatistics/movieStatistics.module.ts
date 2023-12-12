@@ -1,37 +1,37 @@
+import authHandler from '@handlers/auth';
 import Module from '@library/module';
 import getMovieStatisticsController from './getMovieStatistics.controller';
-import getMovieStatisticController from './getMovieStatistic.controller';
+import { SchemaType } from '@library/constant';
 import movieStatisticSchema from '@schemas/movieStatistic';
 import pageSchema from '@schemas/page';
 
-export default new Module({
-	routers: [{
-		method: 'GET',
-		url: '',
-		handler: getMovieStatisticsController,
-		schema: {
-			params: {
-				movieId: movieStatisticSchema['movieId'].required()
-			},
-			querystring: {
-				'page[index]': pageSchema['page[index]'],
-				'page[size]': pageSchema['page[size]'],
-				'page[order]': pageSchema['page[order]']
+export default new Module([{
+	method: 'GET',
+	path: '',
+	handlers: [authHandler, getMovieStatisticsController],
+	schema: {
+		parameter: {
+			type: SchemaType['OBJECT'],
+			properties: {
+				movieId: movieStatisticSchema['movieId']
 			}
 		},
-		isAuthNeeded: true
-	}, {
-		method: 'GET',
-		url: ':movieStatisticId',
-		handler: getMovieStatisticController,
-		schema: {
-			params: {
-				movieId: movieStatisticSchema['movieId'].required(),
-				movieStatisticId: movieStatisticSchema['id'].required()
+		query: {
+			type: SchemaType['OBJECT'],
+			properties: pageSchema
+		}
+	}
+}, {
+	method: 'GET',
+	path: ':movieStatisticId',
+	handlers: [authHandler, getMovieStatisticsController],
+	schema: {
+		parameter: {
+			type: SchemaType['OBJECT'],
+			properties: {
+				movieId: movieStatisticSchema['movieId'],
+				movieStatisticId: movieStatisticSchema['id']
 			}
-		},
-		isAuthNeeded: true
-	}],
-	prefix: ':movieId/statistics',
-	modules: []
-});
+		}
+	}
+}], ':movieId/statistics');

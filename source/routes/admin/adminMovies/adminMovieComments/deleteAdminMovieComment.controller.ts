@@ -1,60 +1,57 @@
-import { prisma } from '@library/database';
-import { NotFound } from '@library/httpError';
-import { Movie, MovieComment, Prisma } from '@prisma/client';
-import { FastifyReply, FastifyRequest } from 'fastify';
+import { kysely } from '@library/database';
+import { NotFound, Unauthorized } from '@library/error';
+import { Database, Movie, MovieComment, Request, Response } from '@library/type';
+import { JoinBuilder, Transaction, UpdateResult } from 'kysely';
 
-export default function (request: FastifyRequest<{
-	Params: {
-		movieId: Movie['id'];
+export default function (request: Request<{
+	parameter: {
+		movieId: MovieComment['movieId'];
 		movieCommentId: MovieComment['id'];
 	};
-}>, reply: FastifyReply): void {
-	prisma['movie'].findUnique({
-		select: {
-			movieComments: {
-				select: {
-					id: true
-				},
-				where: {
-					id: request['params']['movieCommentId']
+}>, response: Response): Promise<void> {
+	return kysely.transaction()
+	.setIsolationLevel('serializable')
+	.execute(function (transaction: Transaction<Database>): Promise<void> {
+		return transaction.selectFrom('movie')
+		.select('movie.id')
+		.where('movie.id', '=', request['parameter']['movieId'])
+		.where('movie.is_deleted', '=', false)
+		.leftJoin('movie_comment as comment', function (joinBuilder: JoinBuilder<Database & {
+			comment: Database['movie_comment'];
+		}, 'movie' | 'comment'>): JoinBuilder<Database & {
+			comment: Database['movie_comment'];
+		}, 'movie' | 'comment'> {
+			return joinBuilder.onRef('movie.id', '=', 'comment.movie_id')
+			.on('comment.id', '=', request['parameter']['movieCommentId'])
+			.on('comment.is_deleted', '=', false);
+		})
+		.select('comment.id as comment_id')
+		.executeTakeFirst()
+		.then(function (movie?: Pick<Movie, 'id'> & Nullable<PrefixPick<MovieComment, 'comment_', 'id'>>): Promise<UpdateResult> {
+			if(typeof(movie) !== 'undefined') {
+				if(movie['comment_id'] !== null) {
+					return transaction.updateTable('movie_comment')
+					.set({
+						is_deleted: true
+					})
+					.where('id', '=', request['parameter']['movieCommentId'])
+					.executeTakeFirst();
+				} else {
+					throw new NotFound('Parameter[\'movieCommentId\'] must be valid');
 				}
+			} else {
+				throw new NotFound('Parameter[\'movieId\'] must be valid');
 			}
-		},
-		where: {
-			id: request['params']['movieId']
-		}
-	})
-	.then(function (movie: {
-		movieComments: Pick<MovieComment, 'id'>[];
-	} | null): Promise<Prisma.BatchPayload> {
-		if(movie !== null) {
-			if(movie['movieComments']['length'] === 1) {
-				return prisma['movieComment'].updateMany({
-					data: {
-						isDeleted: true
-					},
-					where: {
-						id: request['params']['movieId'],
-						isDeleted: false
-					}
-				});
+		})
+		.then(function (result: UpdateResult): void {
+			if(result['numUpdatedRows'] === 1n) {
+				response.setStatus(204);
+				response.send();
+
+				return;
 			} else {
 				throw new NotFound('Parameter[\'movieCommentId\'] must be valid');
 			}
-		} else {
-			throw new NotFound('Parameter[\'movieId\'] must be valid');
-		}
-	})
-	.then(function (result: Prisma.BatchPayload): void {
-		if(result['count'] === 1) {
-			reply.status(204).send();
-
-			return;
-		} else {
-			throw new NotFound('Parameter[\'movieCommentId\'] must be valid');
-		}
-	})
-	.catch(reply.send.bind(reply));
-
-	return;
+		});
+	});
 }

@@ -1,13 +1,18 @@
-import { Schema } from '@library/type';
-import { MovieStar } from '@prisma/client';
+import { MovieStar, Schema } from '@library/type';
+import { SchemaType } from '@library/constant';
 import commonSchema from '@schemas/common';
-import userSchema from '@schemas/user';
 import movieSchema from '@schemas/movie';
+import userSchema from '@schemas/user';
 
 export default {
 	id: commonSchema['positiveInteger'],
 	movieId: movieSchema['id'],
 	userId: userSchema['id'],
-	value: commonSchema['default'].integer().minimum(0).maximum(10),
+	value: {
+		type: SchemaType['NUMBER'],
+		minimum: 0,
+		maximum: 10,
+		isInteger: true
+	},
 	createdAt: commonSchema['datetime']
-} satisfies Schema<MovieStar>;
+} satisfies Record<keyof MovieStar, Schema>;

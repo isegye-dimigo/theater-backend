@@ -1,75 +1,70 @@
-import { prisma } from '@library/database';
-import { NotFound } from '@library/httpError';
-import { PageQuery } from '@library/type';
-import { Media, MovieComment, User } from '@prisma/client';
-import { FastifyReply, FastifyRequest } from 'fastify';
+import { kysely } from '@library/database';
+import { NotFound } from '@library/error';
+import { Database, Media, Movie, MovieComment, PageQuery, Request, Response, User } from '@library/type';
+import { Transaction } from 'kysely';
 
-export default function (request: FastifyRequest<{
-	Params: {
+export default function (request: Request<{
+	parameter: {
 		movieId: MovieComment['movieId'];
 	};
-	Querystring: PageQuery;
-}>, reply: FastifyReply): void {
-	prisma['movie'].findUnique({
-		select: {
-			movieComments: {
-				select: {
-					id: true,
-					user: {
-						select: {
-							id: true,
-							handle: true,
-							name: true,
-							isVerified: true,
-							profileMedia: {
-								select: {
-									hash: true,
-									id: true,
-									width: true,
-									height: true
-								}
-							}
-						}
-					},
-					time: true,
-					content: true,
-					createdAt: true
-				},
-				where: {
-					movie: {
-						id: request['params']['movieId'],
-						isDeleted: false
-					},
-					isDeleted: false
-				},
-				skip: request['query']['page[size]'] * request['query']['page[index]'],
-				take: request['query']['page[size]'],
-				orderBy: {
-					id: request['query']['page[order]'] === 'asc' ? 'asc' : 'desc'
-				}
+	query: PageQuery;
+}>, response: Response): Promise<void> {
+	return kysely.transaction()
+	.execute(function (transaction: Transaction<Database>): Promise<void> {
+		return transaction.selectFrom('movie')
+		.select('id')
+		.where('id', '=', request['parameter']['movieId'])
+		.where('is_deleted', '=', false)
+		.executeTakeFirst()
+		.then(function (movie?: Pick<Movie, 'id'>): Promise<(Pick<MovieComment, 'id' | 'content' | 'createdAt'> & PrefixPick<User, 'user_', 'id' | 'handle' | 'name' | 'isVerified'> & Nullable<PrefixPick<Media, 'user_profileMedia_', 'id' | 'hash' | 'width' | 'height'>>)[]> {
+			if(typeof(movie) !== 'undefined') {
+				return transaction.selectFrom('movie_comment')
+				.select(['movie_comment.id', 'movie_comment.content', 'movie_comment.created_at as createdAt'])
+				.where('movie_comment.movie_id', '=', request['parameter']['movieId'])
+				.where('movie_comment.is_deleted', '=', false)
+				.orderBy('movie_comment.id', request['query']['page[order]'] === 'asc' ? 'asc' : 'desc')
+				.limit(request['query']['page[size]'])
+				.offset(request['query']['page[size]'] * request['query']['page[index]'])
+				.innerJoin('user', 'movie_comment.user_id', 'user.id')
+				.select(['user.id as user_id', 'user.handle as user_handle', 'user.name as user_name', 'user.is_verified as user_isVerified'])
+				.leftJoin('media as user_profileMedia', 'user.profile_media_id', 'user_profileMedia.id')
+				.select(['user_profileMedia.id as user_profileMedia_id', 'user_profileMedia.hash as user_profileMedia_hash', 'user_profileMedia.width as user_profileMedia_width', 'user_profileMedia.height as user_profileMedia_height'])
+				.execute();
+			} else {
+				throw new NotFound('Parameter[\'movieId\'] must be valid');
 			}
-		},
-		where: {
-			id: request['params']['movieId'],
-			isDeleted: false
-		}
-	})
-	.then(function (movie: {
-		movieComments: (Pick<MovieComment, 'id' | 'time' | 'content' | 'createdAt'> & {
-			user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'> & {
-				profileMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'> | null;
-			};
-		})[];
-	} | null): void {
-		if(movie !== null) {
-			reply.send(movie['movieComments']);
+		})
+		.then(function (rawComments: (Pick<MovieComment, 'id' | 'content' | 'createdAt'> & PrefixPick<User, 'user_', 'id' | 'handle' | 'name' | 'isVerified'> & Nullable<PrefixPick<Media, 'user_profileMedia_', 'id' | 'hash' | 'width' | 'height'>>)[]): void {
+			const comments: (Pick<MovieComment, 'id' | 'content' | 'createdAt'> & {
+				user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'> & {
+					profileMedia?: Pick<Media, 'id' | 'hash' | 'width' | 'height'>;
+				};
+			})[] = [];
 
+			for(let i: number = 0; i < rawComments['length']; i++) {
+				comments.push({
+					id: rawComments[i]['id'],
+					content: rawComments[i]['content'],
+					createdAt: rawComments[i]['createdAt'],
+					user: Object.assign({
+						id: rawComments[i]['user_id'],
+						handle: rawComments[i]['user_handle'],
+						name: rawComments[i]['user_name'],
+						isVerified: rawComments[i]['user_isVerified']
+					}, rawComments[i]['user_profileMedia_id'] !== null ? {
+						profileMedia: {
+							id: rawComments[i]['user_profileMedia_id']  as number,
+							hash: rawComments[i]['user_profileMedia_hash'] as string,
+							width: rawComments[i]['user_profileMedia_width'] as number,
+							height: rawComments[i]['user_profileMedia_height'] as number
+						}
+					} as const : undefined)
+				});
+			}
+
+			response.send(comments);
+			
 			return;
-		} else {
-			throw new NotFound('Parameter[\'movieId\'] must be valid');
-		}
-	})
-	.catch(reply.send.bind(reply));
-
-	return;
+		});
+	});
 }

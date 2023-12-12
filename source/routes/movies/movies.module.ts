@@ -1,82 +1,116 @@
 import Module from '@library/module';
-import movieCommentsModule from './movieComments/movieComments.module';
-import movieLikeModule from './movieLike/movieLike.module';
-import movieStarModule from './movieStar/movieStar.module';
-import movieStatisticsModule from './movieStatistics/movieStatistics.module';
-import postMoviesController from './postMovies.controller';
 import getMoviesController from './getMovies.controller';
-import patchMovieController from './patchMovie.controller';
+import { CATEGORYS, SchemaType } from '@library/constant';
+import pageSchema, { pageOrderAscSchema } from '@schemas/page';
+import movieSchema from '@schemas/movie';
+import authHandler from '@handlers/auth';
+import postMoviesController from './postMovies.controller';
 import getMovieController from './getMovie.controller';
 import deleteMovieController from './deleteMovie.controller';
-import movieSchema from '@schemas/movie';
-import pageSchema from '@schemas/page';
-import commonSchema from '@schemas/common';
+import patchMovieController from './patchMovie.controller';
+import movieCommentsModule from './movieComments/movieComments.module';
+import movieStarModule from './movieStar/movieStar.module';
+import movieStatisticsModule from './movieStatistics/movieStatistics.module';
+import episodesModule from './episodes/episodes.module';
 
-export default new Module({
-	routers: [{
-		method: 'POST',
-		url: '',
-		handler: postMoviesController,
-		schema: {
-			body: {
-				title: movieSchema['title'].required(),
-				description: movieSchema['description'].required(),
-				videoMediaId: movieSchema['videoMediaId'].required(),
-				imageMediaId: movieSchema['imageMediaId'].required(),
-				categoryId: movieSchema['categoryId'].required()
-			}
-		},
-		isAuthNeeded: true
-	}, {
-		method: 'GET',
-		url: '',
-		handler: getMoviesController,
-		schema: {
-			querystring: {
-				'page[index]': pageSchema['page[index]'],
-				'page[size]': pageSchema['page[size]'],
-				'page[order]': pageSchema['page[order]'],
-				'page[orderBy]': commonSchema['default'].string().enum(['likeCount', 'viewCount', 'starAverage', 'id']).default('id'),
-				query: movieSchema['title'],
-				categoryId: movieSchema['categoryId']
-			}
-		}
-	}, {
-		method: 'PATCH',
-		url: ':movieId',
-		handler: patchMovieController,
-		schema: {
-			params: {
-				movieId: movieSchema['id'].required()
-			},
-			body: {
+export default new Module([{
+	method: 'POST',
+	path: '',
+	handlers: [authHandler, postMoviesController],
+	schema: {
+		body: {
+			type: SchemaType['OBJECT'],
+			properties: {
 				title: movieSchema['title'],
 				description: movieSchema['description'],
-				imageMediaId: movieSchema['imageMediaId'],
+				mediaId: movieSchema['mediaId'],
 				categoryId: movieSchema['categoryId']
 			}
+		}
+	}
+}, {
+	method: 'GET',
+	path: '',
+	handlers: [getMoviesController],
+	schema: {
+		query: {
+			type: SchemaType['OBJECT'],
+			// @ts-expect-error
+			properties: Object.assign({
+				'page[orderBy]': {
+					type: SchemaType['STRING'],
+					enum: ['likeCount', 'viewCount', 'starAverage', 'id'],
+					isOptional: true,
+					default: 'id'
+				},
+				query: Object.assign({
+					isOptional: true
+				} as const, movieSchema['title']),
+				categoryId: {
+					type: SchemaType['NUMBER'],
+					enum: Object.keys(CATEGORYS).map(Number),
+					isOptional: true
+				}
+			} as const, pageSchema)
+		}
+	}
+}, {
+	method: 'GET',
+	path: ':movieId',
+	handlers: [getMovieController],
+	schema: {
+		parameter: {
+			type: SchemaType['OBJECT'],
+			properties: {
+				movieId: movieSchema['id']
+			}
 		},
-		isAuthNeeded: true
-	}, {
-		method: 'GET',
-		url: ':movieId',
-		handler: getMovieController,
-		schema: {
-			params: {
-				movieId: movieSchema['id'].required()
+		query: {
+			type: SchemaType['OBJECT'],
+			properties: Object.assign({}, pageSchema, {
+				'page[order]': pageOrderAscSchema
+			})
+		}
+	}
+}, {
+	method: 'PATCH',
+	path: ':movieId',
+	handlers: [authHandler, patchMovieController],
+	schema: {
+		parameter: {
+			type: SchemaType['OBJECT'],
+			properties: {
+				movieId: movieSchema['id']
+			}
+		},
+		body: {
+			type: SchemaType['OBJECT'],
+			properties: {
+				title: Object.assign({
+					isOptional: true
+				} as const, movieSchema['title']),
+				description: Object.assign({
+					isOptional: true
+				} as const, movieSchema['description']),
+				mediaId: Object.assign({
+					isOptional: true
+				} as const, movieSchema['mediaId']),
+				categoryId: Object.assign({
+					isOptional: true
+				} as const, movieSchema['categoryId'])
 			}
 		}
-	}, {
-		method: 'DELETE',
-		url: ':movieId',
-		handler: deleteMovieController,
-		schema: {
-			params: {
-				movieId: movieSchema['id'].required()
+	}
+}, {
+	method: 'DELETE',
+	path: ':movieId',
+	handlers: [authHandler, deleteMovieController],
+	schema: {
+		parameter: {
+			type: SchemaType['OBJECT'],
+			properties: {
+				movieId: movieSchema['id']
 			}
-		},
-		isAuthNeeded: true
-	}],
-	prefix: 'movies',
-	modules: [movieCommentsModule, movieLikeModule, movieStarModule, movieStatisticsModule]
-});
+		}
+	}
+}], 'movies', [episodesModule, movieCommentsModule, movieStarModule, movieStatisticsModule]);

@@ -1,111 +1,105 @@
+import { Media, Movie, MovieStatistic, PageQuery, Request, Response, User } from '@library/type';
+import { CATEGORYS } from '@library/constant';
+import { elasticsearch, kysely } from '@library/database';
 import { SearchResponse } from '@elastic/elasticsearch/lib/api/types';
-import { elasticsearch, prisma } from '@library/database';
-import { BadRequest } from '@library/httpError';
-import { PageQuery, RawMovie, RejectFunction, ResolveFunction } from '@library/type';
-import { Category, Media, Movie, MovieStatistic, SeriesMovie, User } from '@prisma/client';
-import { FastifyReply, FastifyRequest } from 'fastify';
+import { sql } from 'kysely';
 
-export default function (request: FastifyRequest<{
-	Querystring: PageQuery & {
+export default function (request: Request<{
+	query: PageQuery & {
 		'page[orderBy]': 'id' | 'viewCount' | 'commentCount' | 'starAverage';
-		categoryId?: Category['id'];
+		categoryId?: keyof typeof CATEGORYS;
 		query?: string;
 	};
-}>, reply: FastifyReply): void {
-	new Promise<string>(function (resolve: ResolveFunction<string>, reject: RejectFunction): void {
-		if(typeof(request['query']['query']) === 'string') {
-			elasticsearch.search({
-				index: 'movie',
-				size: request['query']['page[size]'],
-				from: request['query']['page[size]'] * request['query']['page[index]'],
-				_source: false,
-				min_score: 1,
-				query: {
-						multi_match: {
-								query: request['query']['query'],
-								fields: ['title', 'title.nori^0.9', 'title.ngram^0.7', 'description^0.5', 'description.nori^0.45', 'description.ngram^0.35']
-						}
+}>, response: Response): Promise<void> {
+	let condition: Promise<string> | string;
+
+	if(typeof(request['query']['query']) === 'string') {
+		condition = elasticsearch.search({
+			index: 'movie',
+			size: request['query']['page[size]'],
+			from: request['query']['page[size]'] * request['query']['page[index]'],
+			_source: false,
+			min_score: 1,
+			query: {
+				multi_match: {
+					query: request['query']['query'],
+					fields: ['title', 'title.nori^0.9', 'title.ngram^0.7', 'description^0.5', 'description.nori^0.45', 'description.ngram^0.35']
 				}
-			})
-			.then(function (result: SearchResponse): void {
-				if(result['hits']['hits']['length'] !== 0) {
-					let condition: string = '';
+			}
+		})
+		.then(function (result: SearchResponse): string {
+			if(result['hits']['hits']['length'] !== 0) {
+				let condition: string = '';
 
-					for(let i: number = 0; i < result['hits']['hits']['length']; i++) {
-						condition += result['hits']['hits'][i]['_id'] + ',';
-					}
-
-					condition = condition.slice(0, -1);
-
-					resolve('AND movie.id IN (' + condition + ') ORDER BY FIELD(movie.id,' + condition + ')');
-				} else {
-					resolve('');
+				for(let i: number = 0; i < result['hits']['hits']['length']; i++) {
+					condition += result['hits']['hits'][i]['_id'] + ',';
 				}
 
-				return;
-			})
-			.catch(reject);
-		} else if(typeof(request['query']['categoryId']) === 'number') {
-			prisma['category'].findUnique({
-				select: {
-					id: true
-				},
-				where: {
-					id: request['query']['categoryId']
-				}
-			})
-			.then(function (category: Pick<Category, 'id'> | null): void {
-				if(category !== null) {
-					resolve(' LIMIT ' + request['query']['page[size]'] + ' OFFSET ' + request['query']['page[size]'] * request['query']['page[index]']);
-				} else {
-					reject(new BadRequest('Query[\'categoryId\'] must be valid'));
-				}
+				condition = condition.slice(0, -1);
 
-				return;
-			})
-			.catch(reject);
+				return ' AND movie.id IN (' + condition + ') ORDER BY FIELD(movie.id,' + condition + ')';
+			} else {
+				return '';
+			}
+
+		});
+	} else {
+		if(typeof(request['query']['categoryId']) === 'number') {
+			condition = ' movie.category_id = ' + request['query']['categoryId'];
 		} else {
-			let condition: string = 'ORDER BY ';
-
+			condition = ' ORDER BY ';
+	
 			if(request['query']['page[orderBy]'] === 'id') {
 				condition += 'movie.id ' + request['query']['page[order]'];
 			} else {
 				switch(request['query']['page[orderBy]']) {
 					case 'viewCount': {
-						condition = 'movie_statistic.view_count';
-
+						condition += 'statistic.view_count';
+	
 						break;
 					}
 					case 'commentCount': {
-						condition = 'movie_statistic.comment_count';
-
+						condition += 'statistic.comment_count';
+	
 						break;
 					}
 					case 'starAverage': {
-						condition = 'movie_statistic.star_average';
-
+						condition += 'statistic.star_average';
+	
 						break;
 					}
 				}
-
+	
 				condition +=  ' ' + request['query']['page[order]'] + ', movie.id DESC';
 			}
-
-			resolve(condition + ' LIMIT ' + request['query']['page[size]'] + ' OFFSET ' + request['query']['page[size]'] * request['query']['page[index]']);
 		}
 
-		return;
+		condition += ' LIMIT ' + request['query']['page[size]'] + ' OFFSET ' + request['query']['page[size]'] * request['query']['page[index]'];
+	}
+
+	return Promise.resolve(condition)
+	.then(function (condition: string): Promise<(Pick<Movie, 'id' | 'title' | 'description' | 'categoryId' | 'createdAt'> & PrefixPick<User, 'user_', 'id' | 'handle' | 'name' | 'isVerified'> & PrefixPick<Media, 'media_', 'id' | 'hash' | 'width' | 'height'> & PrefixPick<MovieStatistic, 'statistic_', 'id' | 'viewCount' | 'starAverage'>)[]> {
+		return kysely.selectFrom('movie')
+		.select(['movie.id', 'movie.title', sql<string | null>`LEFT(movie.description, 256)`.as('description'), 'movie.category_id as categoryId', 'movie.created_at as createdAt'])
+		.innerJoin('user', 'movie.user_id', 'user.id')
+		.select(['user.id as user_id', 'user.handle as user_handle', 'user.name as user_name', 'user.is_verified as user_isVerified'])
+		.innerJoin('media', 'movie.media_id', 'media.id')
+		.select(['media.id as media_id', 'media.hash as media_hash', 'media.width as media_width', 'media.height as media_height'])
+		.innerJoin('movie_statistic as statistic', 'movie.id', 'statistic.movie_id')
+		.select(['statistic.id as statistic_id', 'statistic.view_count as statistic_viewCount', 'statistic.star_average as statistic_starAverage'])
+		.innerJoin('current_movie_statistic as currentStatistic', 'statistic.id', 'currentStatistic.id')
+		.where(sql`movie.is_deleted = 0${sql.raw(condition)}`)
+		.execute();
 	})
-	.then(function (condition: string): Promise<RawMovie[]> | [] {
-		return condition['length'] !== 0 ? prisma.$queryRawUnsafe<RawMovie[]>('SELECT movie.id, movie.title, LEFT(movie.description, 256) AS description, movie.created_at, user.id AS user_id, user.handle AS user_handle, user.name AS user_name, user.is_verified AS user_is_verified, image_media.id AS image_media_id, image_media.hash AS image_media_hash, image_media.width AS image_media_width, image_media.height AS image_media_height, category.id AS category_id, category.title AS category_title, series_movie.id AS series_movie_id, series_movie.series_id AS series_movie_series_id, series_movie.index AS series_movie_index, movie_statistic.like_count AS movie_statistic_like_count, movie_statistic.star_average AS movie_statistic_star_average FROM movie INNER JOIN user ON movie.user_id = user.id INNER JOIN media AS image_media ON movie.image_media_id = image_media.id INNER JOIN category ON movie.category_id = category.id LEFT JOIN series_movie ON movie.id = series_movie.movie_id INNER JOIN movie_statistic ON movie.id = movie_statistic.movie_id INNER JOIN (SELECT max(id) AS id FROM movie_statistic GROUP BY movie_id) AS _movie_statistics ON movie_statistic.id = _movie_statistics.id WHERE movie.is_deleted = 0 ' + condition) : [];
-	})
-	.then(function (rawMovies: RawMovie[]) {
+	.then(function (rawMovies: (Pick<Movie, 'id' | 'title' | 'description' | 'categoryId' | 'createdAt'> & PrefixPick<User, 'user_', 'id' | 'handle' | 'name' | 'isVerified'> & PrefixPick<Media, 'media_', 'id' | 'hash' | 'width' | 'height'> & PrefixPick<MovieStatistic, 'statistic_', 'id' | 'viewCount' | 'starAverage'>)[]): void {
 		const movies: (Pick<Movie, 'id' | 'title' | 'description' | 'createdAt'> & {
 			user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'>;
-			imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'>;
-			category: Category;
-			seriesMovie: Pick<SeriesMovie, 'id' | 'seriesId' | 'index'> | null;
-			movieStatistic: Pick<MovieStatistic, 'likeCount' | 'starAverage'>;
+			media: Pick<Media, 'id' | 'hash' | 'width' | 'height'>;
+			category: {
+				id: number;
+				title: string;
+			};
+			statistic: Pick<MovieStatistic, 'id' | 'viewCount' | 'starAverage'>;
 		})[] = [];
 
 		for(let i: number = 0; i < rawMovies['length']; i++) {
@@ -120,43 +114,36 @@ export default function (request: FastifyRequest<{
 			}
 			
 			movies.push({
-				id: Number(rawMovies[i]['id']),
-				user: {
-					id: Number(rawMovies[i]['user_id']),
-					handle: rawMovies[i]['user_handle'],
-					name: rawMovies[i]['user_name'],
-					isVerified: rawMovies[i]['user_is_verified']
-				},
+				id: rawMovies[i]['id'],
 				title: rawMovies[i]['title'],
 				description: slicedDescription,
-				imageMedia: {
-					id: Number(rawMovies[i]['image_media_id']),
-					hash: rawMovies[i]['image_media_hash'],
-					width: rawMovies[i]['image_media_width'],
-					height: rawMovies[i]['image_media_height']
+				createdAt: rawMovies[i]['createdAt'],
+				user: {
+					id: rawMovies[i]['user_id'],
+					handle: rawMovies[i]['user_handle'],
+					name: rawMovies[i]['user_name'],
+					isVerified: rawMovies[i]['user_isVerified']
+				},
+				media: {
+					id: rawMovies[i]['media_id'],
+					hash: rawMovies[i]['media_hash'],
+					width: rawMovies[i]['media_width'],
+					height: rawMovies[i]['media_height']
 				},
 				category: {
-					id: Number(rawMovies[i]['category_id']),
-					title: rawMovies[i]['category_title']
+					id: rawMovies[i]['categoryId'],
+					title: CATEGORYS[rawMovies[i]['categoryId']]
 				},
-				seriesMovie: rawMovies[i]['series_movie_id'] !== null ? {
-					id: Number(rawMovies[i]['series_movie_id']),
-					seriesId: Number(rawMovies[i]['series_movie_series_id']),
-					index: rawMovies[i]['series_movie_index']
-				} : null,
-				movieStatistic: {
-					likeCount: Number(rawMovies[i]['movie_statistic_like_count']),
-					starAverage: rawMovies[i]['movie_statistic_star_average']
-				},
-				createdAt: rawMovies[i]['created_at']
+				statistic: {
+					id: rawMovies[i]['statistic_id'],
+					viewCount: rawMovies[i]['statistic_viewCount'],
+					starAverage: rawMovies[i]['statistic_starAverage']
+				}
 			});
 		}
 
-		reply.send(movies);
+		response.send(movies);
 
 		return;
-	})
-	.catch(reply.send.bind(reply));
-
-	return;
+	});
 }

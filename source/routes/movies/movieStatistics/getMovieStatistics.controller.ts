@@ -1,58 +1,38 @@
-import { prisma } from '@library/database';
-import { NotFound, Unauthorized } from '@library/httpError';
-import { PageQuery } from '@library/type';
-import { Movie, MovieStar, MovieStatistic } from '@prisma/client';
-import { FastifyReply, FastifyRequest } from 'fastify';
+import { kysely } from '@library/database';
+import { NotFound, Unauthorized } from '@library/error';
+import { Database, Movie, MovieStatistic, PageQuery, Request, Response } from '@library/type';
+import { Transaction } from 'kysely';
 
-export default function (request: FastifyRequest<{
-	Params: {
-		movieId: MovieStar['movieId'];
+export default function (request: Request<{
+	parameter: {
+		movieId: MovieStatistic['movieId'];
 	};
-	Querystring: PageQuery;
-}>, reply: FastifyReply): void {
-	prisma['movie'].findUnique({
-		select: {
-			userId: true,
-			movieStatistics: {
-				select: {
-					id: true,
-					viewCount: true,
-					commentCount: true,
-					likeCount: true,
-					starAverage: true,
-					createdAt: true
-				},
-				where: {
-					movieId: request['params']['movieId']
-				},
-				skip: request['query']['page[size]'] * request['query']['page[index]'],
-				take: request['query']['page[size]'],
-				orderBy: {
-					id: request['query']['page[order]'] === 'asc' ? 'asc' : 'desc'
+	query: PageQuery;
+}>, response: Response): Promise<void> {
+	return kysely.transaction()
+	.execute(function (transaction: Transaction<Database>): Promise<void> {
+		return transaction.selectFrom('movie')
+		.select('movie.user_id as userId')
+		.where('movie.id', '=', request['parameter']['movieId'])
+		.where('movie.is_deleted', '=', false)
+		.executeTakeFirst()
+		.then(function (movie?: Pick<Movie, 'userId'>): Promise<Pick<MovieStatistic, 'id' | 'viewCount' | 'commentCount' | 'starAverage' | 'createdAt'>[]> {
+			if(typeof(movie) !== 'undefined') {
+				if(request['user']['id'] === movie['userId']) {
+					return transaction.selectFrom('movie_statistic')
+					.select(['id', 'view_count as viewCount', 'comment_count as commentCount', 'star_average as starAverage', 'created_at as createdAt'])
+					.where('movie_id', '=', request['parameter']['movieId'])
+					.orderBy('id', request['query']['page[order]'] === 'asc' ? 'asc' : 'desc')
+					.limit(request['query']['page[size]'])
+					.offset(request['query']['page[size]'] * request['query']['page[index]'])
+					.execute();
+				} else {
+					throw new Unauthorized('User must be same');
 				}
-			}
-		},
-		where: {
-			id: request['params']['movieId'],
-			isDeleted: false
-		}
-	})
-	.then(function (movie: Pick<Movie, 'userId'> & {
-		movieStatistics: Omit<MovieStatistic, 'movieId'>[];
-	} | null): void {
-		if(movie !== null) {
-			if(request['user']['id'] === movie['userId']) {
-				reply.send(movie['movieStatistics']);
-
-				return;
 			} else {
-				throw new Unauthorized('User must be same');
+				throw new NotFound('Parameter[\'movieId\'] must be valid');
 			}
-		} else {
-			throw new NotFound('Parameter[\'movieId\'] must be valid');
-		}
-	})
-	.catch(reply.send.bind(reply));
-
-	return;
+		})
+		.then(response.send.bind(response));
+	});
 }

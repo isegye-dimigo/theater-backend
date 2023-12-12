@@ -1,76 +1,59 @@
-import { prisma } from '@library/database';
-import { Conflict } from '@library/httpError';
-import sendMail from '@library/mail';
-import { getEncryptedPassword, getMailContent } from '@library/utility';
-import { User, UserVerification } from '@prisma/client';
+import { kysely } from '@library/database';
+import { Conflict } from '@library/error';
+import { sendMail, getVerificationContent } from '@library/mail';
+import { Database, Request, Response, User, UserVerification } from '@library/type';
+import { getEncryptedPassword } from '@library/utility';
 import { createHash } from 'crypto';
-import { FastifyReply, FastifyRequest } from 'fastify';
+import { Transaction } from 'kysely';
 
-export default function (request: FastifyRequest<{
-	Body: Pick<User, 'email' | 'password' | 'name'>;
-}>, reply: FastifyReply): void {
+export default function (request: Request<{
+	body: Pick<User, 'email' | 'password' | 'name'>;
+}>, response: Response): Promise<void> {
 	const createdAt: Date = new Date();
+	const token: string = createHash('sha1').update(request['body']['email']).digest('hex');
 
-	prisma.$transaction([prisma['user'].findUnique({
-		select: {
-			id: true
-		},
-		where: {
-			email: request['body']['email']
-		}
-	}), prisma['userVerification'].findUnique({
-		select: {
-			token: true
-		},
-		where: {
-			email: request['body']['email']
-		}
-	})])
-	.then(function (results: [Pick<User, 'id'> | null, Pick<UserVerification, 'token'> | null]): Promise<string> {
-		if(results[0] === null) {
-			if(results[1] === null) {
-				return getEncryptedPassword(request['body']['password'], createdAt.getTime().toString(10));
+	return kysely.transaction()
+	.setIsolationLevel('serializable')
+	.execute(function (transaction: Transaction<Database>): Promise<void> {
+		return transaction.selectFrom('user')
+		.select('id')
+		.where('user.email', '=', request['body']['email'])
+		.unionAll(transaction.selectFrom('user_verification')
+		.select('id')
+		.where('user_verification.email', '=', request['body']['email']))
+		.executeTakeFirst()
+		.then(function (result?: Pick<User, 'id'>): Promise<string> {
+			if(typeof(result) === 'undefined') {
+				return getEncryptedPassword(request['body']['password'], Math.trunc(createdAt.getTime() / 1000).toString(10) + '000');
 			} else {
-				return sendMail(request['body']['email'], '이세계 이메일 인증', getMailContent(request['body']['name'], results[1]['token']))
-				.then(function (): string {
-					throw null;
-				});
+				throw new Conflict('Body[\'email\'] must be unique');
 			}
-		} else {
-			throw new Conflict('Body[\'email\'] must be unique');
-		}
-	})
-	.then(function (encryptedPassword: string): Promise<Pick<UserVerification, 'id' | 'email' | 'name' | 'token' | 'createdAt'>> {
-		return prisma['userVerification'].create({
-			select: {
-				id: true,
-				email: true,
-				name: true,
-				token: true,
-				createdAt: true
-			},
-			data: {
+		})
+		.then(function (encryptedPassword: string): Promise<Pick<UserVerification, 'id'>> {
+			return transaction.insertInto('user_verification')
+			.values({
 				email: request['body']['email'],
 				password: encryptedPassword,
 				name: request['body']['name'],
-				token: createHash('sha1').update(request['body']['email']).digest('hex'),
-				createdAt: createdAt
-			}
-		});
-	})
-	.then(function (userVerification: Pick<UserVerification, 'id' | 'email' | 'name' | 'token' | 'createdAt'>): Promise<Pick<UserVerification, 'id' | 'email' | 'name' | 'createdAt'>> {
-		return sendMail(request['body']['email'], '이세계 이메일 인증', getMailContent(request['body']['name'], userVerification['token']))
-		.then(function (): Pick<UserVerification, 'id' | 'email' | 'name' | 'createdAt'> {
-			return {
-				id: userVerification['id'],
-				email: userVerification['email'],
-				name: userVerification['name'],
-				createdAt: userVerification['createdAt']
-			};
-		});
-	})
-	.then(reply.status(201).send.bind(reply))
-	.catch(reply.send.bind(reply));
+				token: token,
+				created_at: createdAt
+			})
+			.returning('id')
+			.executeTakeFirstOrThrow();
+		})
+		.then(function (userVerification: Pick<UserVerification, 'id'>): Promise<void> {
+			return sendMail(request['body']['email'], '이세계 이메일 인증', getVerificationContent(request['body']['name'], token))
+			.then(function (): void {
+				response.setStatus(201);
+				response.send({
+					id: userVerification['id'],
+					email: request['body']['email'],
+					name: request['body']['name'],
+					createdAt: createdAt
+				});
 
-	return;
+				return;
+			});
+		});
+	});
 }

@@ -1,41 +1,45 @@
 import Module from '@library/module';
-import pageSchema from '@schemas/page';
-import userSchema from '@schemas/user';
-import userHistorySchema from '@schemas/userHistory';
-import postUserHistoriesController from './postUserHistories.controller';
+import authHandler from '@handlers/auth';
 import getUserHistoriesController from './getUserHistories.controller';
+import { SchemaType } from '@library/constant';
+import userSchema from '@schemas/user';
+import pageSchema from '@schemas/page';
+import postUserHistoriesController from './postUserHistories.controller';
+import userHistorySchema from '@schemas/userHistory';
 
-export default new Module({
-	routers: [{
-		method: 'POST',
-		url: '',
-		handler: postUserHistoriesController,
-		schema: {
-			params: {
-				userHandle: userSchema['handle'].required()
-			},
-			body: {
-				movieId: userHistorySchema['id'].required(),
-				duration: userHistorySchema['duration'].required()
+export default new Module([{
+	method: 'GET',
+	path: '',
+	handlers: [authHandler, getUserHistoriesController],
+	schema: {
+		parameter: {
+			type: SchemaType['OBJECT'],
+			properties: {
+				userHandle: userSchema['handle']
 			}
 		},
-		isAuthNeeded: true
-	}, {
-		method: 'GET',
-		url: '',
-		handler: getUserHistoriesController,
-		schema: {
-			params: {
-				userHandle: userSchema['handle'].required()
-			},
-			querystring: {
-				'page[index]': pageSchema['page[index]'],
-				'page[size]': pageSchema['page[size]'],
-				'page[order]': pageSchema['page[order]']
+		query: {
+			type: SchemaType['OBJECT'],
+			properties: pageSchema
+		}
+	}
+}, {
+	method: 'POST',
+	path: '',
+	handlers: [authHandler, postUserHistoriesController],
+	schema: {
+		parameter: {
+			type: SchemaType['OBJECT'],
+			properties: {
+				userHandle: userSchema['handle']
 			}
 		},
-		isAuthNeeded: true
-	}],
-	prefix: ':userHandle/histories',
-	modules: []
-});
+		body: {
+			type: SchemaType['OBJECT'],
+			properties: {
+				episodeId: userHistorySchema['episodeId'],
+				time: userHistorySchema['time']
+			}
+		}
+	}
+}], ':userHandle/histories');

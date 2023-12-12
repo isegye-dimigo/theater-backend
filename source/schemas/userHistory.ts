@@ -1,12 +1,12 @@
-import { Schema } from '@library/type';
-import { UserHistory } from '@prisma/client';
+import { Schema, UserHistory } from '@library/type';
 import commonSchema from '@schemas/common';
-import mediaVideoSchema from '@schemas/mediaVideo';
+import userSchema from '@schemas/user';
+import episodeSchema from '@schemas/episode';
 
 export default {
 	id: commonSchema['positiveInteger'],
-	userId: commonSchema['positiveInteger'],
-	movieId: commonSchema['positiveInteger'],
-	duration: mediaVideoSchema['duration'],
+	userId: userSchema['id'],
+	episodeId: episodeSchema['id'],
+	time: commonSchema['index'],
 	createdAt: commonSchema['datetime']
-} satisfies Schema<UserHistory>;
+} satisfies Record<keyof UserHistory, Schema>;

@@ -1,14 +1,17 @@
-import { Schema } from '@library/type';
-import { MovieStatistic } from '@prisma/client';
+import { MovieStatistic, Schema } from '@library/type';
+import { SchemaType } from '@library/constant';
 import commonSchema from '@schemas/common';
 import movieSchema from '@schemas/movie';
 
 export default {
 	id: commonSchema['positiveInteger'],
 	movieId: movieSchema['id'],
-	viewCount: commonSchema['positiveInteger'],
-	commentCount: commonSchema['positiveInteger'],
-	likeCount: commonSchema['positiveInteger'],
-	starAverage: commonSchema['default'].number().minimum(0).maximum(10),
+	viewCount: commonSchema['index'],
+	commentCount: commonSchema['index'],
+	starAverage: {
+		type: SchemaType['NUMBER'],
+		minimum: 0,
+		maximum: Number['MAX_VALUE']
+	},
 	createdAt: commonSchema['datetime']
-} satisfies Schema<MovieStatistic>;
+} satisfies Record<keyof MovieStatistic, Schema>;

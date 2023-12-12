@@ -1,47 +1,41 @@
-import { prisma } from '@library/database';
-import { NotFound } from '@library/httpError';
-import { Prisma, User } from '@prisma/client';
-import { FastifyReply, FastifyRequest } from 'fastify';
+import { kysely } from '@library/database';
+import { NotFound } from '@library/error';
+import { Database, Request, Response, User } from '@library/type';
+import { Transaction, UpdateResult } from 'kysely';
 
-export default function (request: FastifyRequest<{
-	Params: {
+export default function (request: Request<{
+	parameter: {
 		userId: User['id'];
 	};
-}>, reply: FastifyReply): void {
-	prisma['user'].findUnique({
-		select: {
-			id: true
-		},
-		where: {
-			id: request['params']['userId'],
-			isDeleted: false
-		}
-	})
-	.then(function (user: Pick<User, 'id'> | null): Promise<Prisma.BatchPayload> {
-		if(user !== null) {
-			return prisma['user'].updateMany({
-				data: {
-					isDeleted: true
-				},
-				where: {
-					id: request['params']['userId'],
-					isDeleted: false
-				}
-			})
-		} else {
-			throw new NotFound('Parameter[\'userHandle\'] must be valid');
-		}
-	})
-	.then(function (result: Prisma.BatchPayload): void {
-		if(result['count'] === 1) {
-			reply.status(204).send();
+}>, response: Response): Promise<void> {
+	return kysely.transaction()
+	.setIsolationLevel('serializable')
+	.execute(function (transaction: Transaction<Database>): Promise<void> {
+		return transaction.selectFrom('user')
+		.select('id')
+		.where('id', '=', request['parameter']['userId'])
+		.where('is_deleted', '=', false)
+		.executeTakeFirst()
+		.then(function (user?: Pick<User, 'id'>): Promise<UpdateResult> {
+			if(typeof(user) !== 'undefined') {
+				return transaction.updateTable('user')
+				.set({
+					is_deleted: true
+				})
+				.executeTakeFirst();
+			} else {
+				throw new NotFound('Parameter[\'userId\'] must be valid');
+			}
+		})
+		.then(function (result: UpdateResult): void {
+			if(result['numUpdatedRows'] === 1n) {
+				response.setStatus(204);
+				response.send();
 
-			return;
-		} else {
-			throw new NotFound('Parameter[\'userHandle\'] must be valid');
-		}
-	})
-	.catch(reply.send.bind(reply));
-
-	return;
+				return;
+			} else {
+				throw new NotFound('Parameter[\'userId\'] must be valid');
+			}
+		});
+	});
 }

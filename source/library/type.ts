@@ -1,60 +1,191 @@
-import { FastifyBaseLogger, FastifyInstance as _FastifyInstance, FastifySchema, FastifyTypeProvider, HTTPMethods, RouteHandlerMethod, RouteOptions as _RouteOptions } from 'fastify';
-import { IncomingMessage, Server, ServerResponse } from 'http';
-import Module from '@library/module';
-import { ArraySchema, BooleanSchema, IntegerSchema, JSONSchema, NullSchema, NumberSchema, ObjectSchema, StringSchema } from 'fluent-json-schema';
-import { fileSignatures } from '@library/constant';
+import { IncomingMessage, ServerResponse } from 'http';
+import Server from '@library/server';
+import { CATEGORYS, FILE_SIGNATURES, REPORT_TYPES, SchemaType } from '@library/constant';
+import { ColumnType } from 'kysely';
 
-type RecursiveRecord<T extends string | number | symbol, S> = {
-	[key in T]: S | RecursiveRecord<T, S>
+type Generated<T> = T extends ColumnType<infer S, infer I, infer U> ? ColumnType<S, I | undefined, U> : ColumnType<T, T | undefined, T>;
+
+export type NumberSchema = {
+	type: SchemaType.NUMBER;
+	enum?: undefined;
+	minimum?: number;
+	maximum?: number;
+	isInteger?: true;
+	isOptional?: undefined;
+} | {
+	type: SchemaType.NUMBER;
+	enum?: undefined;
+	minimum?: number;
+	maximum?: number;
+	isInteger?: true;
+	default?: number;
+	isOptional: true;
+} | {
+	type: SchemaType.NUMBER;
+	minimum?: undefined;
+	maximum?: undefined;
+	isInteger?: undefined;
+	enum: number[];
+	isOptional?: undefined;
+} | {
+	type: SchemaType.NUMBER;
+	minimum?: undefined;
+	maximum?: undefined;
+	isInteger?: undefined;
+	enum: number[];
+	default?: number;
+	isOptional: true;
 };
 
-export type FastifyInstance = _FastifyInstance<Server, IncomingMessage, ServerResponse, any, any>;
-
-export type Schema<T extends {}> = Record<keyof T, ObjectSchema | StringSchema | NumberSchema | ArraySchema | IntegerSchema | BooleanSchema | NullSchema>;
-
-export type SchemaKey = 'body' | 'querystring' | 'params' | 'headers';
-
-export interface RouteOptions extends Omit<_RouteOptions, 'handler' | 'schema'> {
-	method: Uppercase<HTTPMethods>;
-	handler: RouteHandlerMethod<Server, IncomingMessage, ServerResponse, any, any, FastifySchema, FastifyTypeProvider, FastifyBaseLogger>;
-	schema?: Partial<Pick<RecursiveRecord<string, | Partial<Record<'$isRequired', boolean>> | Omit<Record<string, JSONSchema>, '$isRequired'>>, SchemaKey>>;
-	isAuthNeeded?: boolean;
+export type StringSchema = {
+	type: SchemaType.STRING;
+	pattern?: undefined;
+	enum?: undefined;
+	minimum?: number;
+	maximum?: number;
+	isOptional?: undefined;
+} | {
+	type: SchemaType.STRING;
+	pattern?: undefined;
+	enum?: undefined;
+	minimum?: number;
+	maximum?: number;
+	default?: string;
+	isOptional: true;
+} | {
+	type: SchemaType.STRING;
+	pattern: RegExp;
+	enum?: undefined;
+	minimum?: undefined;
+	maximum?: undefined;
+	isOptional?: undefined;
+} | {
+	type: SchemaType.STRING;
+	pattern: RegExp;
+	enum?: undefined;
+	minimum?: undefined;
+	maximum?: undefined;
+	default?: string;
+	isOptional: true;
+} | {
+	type: SchemaType.STRING,
+	enum: string[];
+	pattern?: undefined;
+	minimum?: undefined;
+	maximum?: undefined;
+	isOptional?: undefined;
+} | {
+	type: SchemaType.STRING,
+	enum: string[];
+	pattern?: undefined;
+	minimum?: undefined;
+	maximum?: undefined;
+	default?: string;
+	isOptional: true;
 }
 
-export interface ModuleOptions {
-	routers: RouteOptions[];
-	modules: Module[];
-	prefix: string;
-}
-
-export type JsendResponse = {
-	status: 'success';
-	data: RecursiveRecord<string, any> | null;
+export type BooleanSchema = {
+	type: SchemaType.BOOLEAN;
+	isOptional?: undefined;
 } | {
-	status: 'error';
-	code?: number;
-	message: string;
-} | {
-	status: 'fail';
-	data: {
-		title: string;
-		body?: string;
-	};
+	type: SchemaType.BOOLEAN;
+	default?: boolean;
+	isOptional: true;
 };
 
-export type ResolveFunction<T = void> = (value: T) => void;
+export type NullSchema = {
+	type: SchemaType.NULL;
+	isOptional?: undefined;
+} | {
+	type: SchemaType.NULL;
+	default?: null;
+	isOptional: true;
+};
 
-export type RejectFunction = (error: any) => void;
+export type ObjectSchema = {
+	type: SchemaType.OBJECT;
+	properties: Record<string, Schema>;
+	allowAdditionalProperties?: true;
+	isOptional?: undefined;
+} | {
+	type: SchemaType.OBJECT;
+	properties: Record<string, Schema>;
+	isOptional: true;
+	default?: {};
+	allowAdditionalProperties?: true;
+};
 
-export interface PageQuery {
-	'page[size]': number;
-	'page[index]': number;
-	'page[order]': 'desc' | 'asc';
+export type ArraySchema = {
+	type: SchemaType.ARRAY;
+	items: Schema | Schema[];
+	minimum?: number;
+	maximum?: number;
+	isOptional?: undefined;
+} | {
+	type: SchemaType.ARRAY;
+	items: Schema | Schema[];
+	minimum?: number;
+	maximum?: number;
+	isOptional: true;
+	default?: {}[];
+};
+
+export type NotSchema = {
+	type: SchemaType.NOT;
+	isOptional?: true;
+	schema: Schema;
+};
+
+export type AndSchema = {
+	type: SchemaType.AND;
+	isOptional?: true;
+	schemas: Schema[];
+};
+
+export type OrSchema = {
+	type: SchemaType.OR;
+	isOptional?: true;
+	schemas: Schema[];
+};
+
+export type Schema = NumberSchema | StringSchema | BooleanSchema | NullSchema | ObjectSchema | ArraySchema | AndSchema | OrSchema | NotSchema;
+
+export type GenericKey = 'parameter' | 'query' | 'header' | 'body';
+
+export type Method = 'GET' | 'POST' | 'PATCH' | 'DELETE' | 'OPTIONS';
+
+export type LogLevel = 'fatal' | 'error' | 'warn' | 'info' | 'debug' | 'trace';
+
+export type Handler = (request: Request<any>, response: Response) => Promise<unknown> | unknown;
+
+export interface Request<Generic extends Partial<Record<GenericKey, unknown>> = Partial<Record<GenericKey, unknown>>> extends Required<Omit<IncomingMessage, 'statusCode' | 'statusMessage'>> {
+	startTime: number;
+	ip: string;
+	server: Server;
+	parameter: Generic['parameter'];
+	query: Generic['query'];
+	header: Generic['header'];
+	body: Generic['body'];
+	file: File;
+	user: Pick<User, 'id' | 'isVerified'>;
+}
+
+export interface Response extends ServerResponse {
+	request: Request;
+	server: Server;
+	setStatus(code: number): void;
+	send(data?: unknown): void;
+	redirect(url: string, code?: number): void;
+}
+
+export interface Route {
+	handlers: Handler[];
+	schema?: Partial<Record<GenericKey, Schema>>;
 }
 
 export interface File {
 	path: string;
-	type: keyof typeof fileSignatures;
+	type: keyof typeof FILE_SIGNATURES;
 	isVideo: boolean;
 	hash: string;
 }
@@ -85,23 +216,332 @@ export type Metadata<T extends 'video' | 'image'> = T extends 'video' ? {
 	size: number;
 };
 
-export type RawSeries = {
-	description: string | null;
-	created_at: Date;
-	user_is_verified: boolean;
-} & Record<'id' | 'user_id' | 'media_id', BigInt> & Record<'title' | 'user_handle' | 'user_name' | 'media_hash', string> & Record<'media_width' | 'media_height', number>;
+export interface Database {
+	current_episode_statistic: {
+		id: Generated<number>;
+		episode_id: Generated<number>;
+	};
+  current_movie_statistic: {
+		id: Generated<number>;
+		movie_id: Generated<number>;
+	};
+  current_used_media: {
+		id: Generated<number>;
+	};
+  episode: {
+		id: Generated<number>;
+		movie_id: number;
+		user_id: number;
+		index: number;
+		title: string;
+		description: Generated<string | null>;
+		image_media_id: number;
+		video_media_id: number;
+		is_deleted: Generated<boolean>;
+		created_at: Generated<Date>;
+	};
+  episode_comment: {
+		id: Generated<number>;
+		episode_id: number;
+		user_id: number;
+		time: number;
+		content: string;
+		is_deleted: Generated<boolean>;
+		created_at: Generated<Date>;
+	};
+  episode_like: {
+		id: Generated<number>;
+		episode_id: number;
+		user_id: number;
+		created_at: Generated<Date>;
+	};
+  episode_statistic: {
+		id: Generated<number>;
+		episode_id: number;
+		view_count: Generated<number>;
+		comment_count: Generated<number>;
+		like_count: Generated<number>;
+		created_at: Generated<Date>;
+	};
+  media: {
+		id: Generated<number>;
+		hash: string;
+		user_id: number;
+		type: string;
+		size: number;
+		width: number;
+		height: number;
+		aspect_ratio: string;
+		is_deleted: Generated<boolean>;
+		created_at: Generated<Date>;
+	};
+  media_part: {
+		id: Generated<number>;
+		media_id: number;
+		index: number;
+		size: number;
+		duration: number;
+		video_bit_rate: number;
+		audio_bit_rate: number;
+	};
+  media_video: {
+		id: Generated<number>;
+		media_id: number;
+		duration: number;
+		frame_rate: number;
+		bit_rate: number;
+		sample_rate: number;
+		channel_count: number;
+	};
+  movie: {
+		id: Generated<number>;
+		user_id: number;
+		title: string;
+		description: Generated<string | null>;
+		media_id: number;
+		category_id: keyof typeof CATEGORYS;
+		is_deleted: Generated<boolean>;
+		created_at: Generated<Date>;
+	};
+  movie_comment: {
+		id: Generated<number>;
+		movie_id: number;
+		user_id: number;
+		content: string;
+		is_deleted: Generated<boolean>;
+		created_at: Generated<Date>;
+	};
+  movie_star: {
+		id: Generated<number>;
+		user_id: number;
+		movie_id: number;
+		value: number;
+		created_at: Generated<Date>;
+	};
+  movie_statistic: {
+		id: Generated<number>;
+		movie_id: number;
+		comment_count: Generated<number>;
+		view_count: Generated<number>;
+		star_average: Generated<number>;
+		created_at: Generated<Date>;
+	};
+  report: {
+		id: Generated<number>;
+		user_id: number;
+		type: keyof typeof REPORT_TYPES;
+		target_id: number;
+		is_deleted: Generated<boolean>;
+		created_at: Generated<Date>;
+	};
+  user: {
+		id: Generated<number>;
+		email: string;
+		password: string;
+		handle: string;
+		name: string;
+		description: Generated<string | null>;
+		profile_media_id: Generated<number | null>;
+		banner_media_id: Generated<number | null>;
+		is_verified: Generated<boolean>;
+		is_deleted: Generated<boolean>;
+		created_at: Generated<Date>;
+	};
+  user_history: {
+		id: Generated<number>;
+		episode_id: number;
+		user_id: number;
+		time: number;
+		created_at: Generated<Date>;
+	};
+  user_verification: {
+		id: Generated<number>;
+		token: string;
+		email: string;
+		password: string;
+		name: string;
+		created_at: Generated<Date>;
+	};
+}
 
-export type RawSeriesMovie = {
-	movie_user_is_verified: boolean;
-} & Record<'id' | 'series_id' | 'movie_id' | 'movie_user_id' | 'movie_image_media_id', BigInt> & Record<'subtitle' | 'movie_title' | 'movie_user_handle' | 'movie_user_name' | 'movie_image_media_hash', string> & Record<'index' | 'movie_image_media_width' | 'movie_image_media_height', number>;
+export interface currentEpisodeStatistic {
+	id: number;
+}
 
-export type RawMovie = {
-	description: string | null;
-	created_at: Date;
-	user_is_verified: boolean;
-} & Record<'id' | 'user_id' | 'image_media_id' | 'category_id' | 'series_movie_id' | 'series_movie_series_id' | 'movie_statistic_like_count', BigInt> & Record<'title' | 'user_handle' | 'user_name' | 'image_media_hash' | 'category_title', string> & Record<'image_media_width' | 'image_media_height' | 'series_movie_index' | 'movie_statistic_star_average', number>;
+export interface currentMovieStatistic {
+	id: number;
+}
 
-export type _RawMovie = {
-	description: string | null;
-	user_is_verified: boolean;
-} & Record<'created_at' | 'movie_like_created_at' | 'movie_star_created_at', Date> & Record<'id' | 'user_id' | 'image_media_id' | 'video_media_id' | 'category_id' | 'series_movie_id' | 'series_movie_series_id' | 'video_media_media_video_id' | 'series_movie_index' | 'movie_statistic_view_count' | 'movie_statistic_comment_count' | 'movie_statistic_like_count' | 'movie_like_id' | 'movie_star_id', BigInt> & Record<'title' | 'user_handle' | 'user_name' | 'image_media_hash' | 'video_media_hash' | 'category_title', string> & Record<'image_media_width' | 'image_media_height' | 'video_media_width' | 'video_media_height' | 'movie_statistic_star_average' | 'video_media_media_video_duration' | 'movie_star_value', number>;
+export interface currentUsedMedia {
+	id: number;
+}
+
+export interface Episode {
+  id: number;
+  movieId: number;
+  userId: number;
+  index: number;
+  title: string;
+  description: string | null;
+  imageMediaId: number;
+  videoMediaId: number;
+  isDeleted: boolean;
+  createdAt: Date;
+}
+
+export interface EpisodeComment {
+  id: number;
+  episodeId: number;
+  userId: number;
+  time: number;
+  content: string;
+  isDeleted: boolean;
+  createdAt: Date;
+}
+
+export interface EpisodeLike {
+  id: number;
+	episodeId: number;
+  userId: number;
+  createdAt: Date;
+}
+
+export interface EpisodeStatistic {
+  id: number;
+  episodeId: number;
+  viewCount: number;
+  commentCount: number;
+  likeCount: number;
+  createdAt: Date;
+}
+
+export interface Media {
+  id: number;
+  hash: string;
+  userId: number;
+  type: string;
+  size: number;
+  width: number;
+  height: number;
+  aspectRatio: string;
+  isDeleted: boolean;
+  createdAt: Date;
+}
+
+export interface MediaPart {
+  id: number;
+  mediaId: number;
+  index: number;
+  size: number;
+  duration: number;
+  videoBitRate: number;
+  audioBitRate: number;
+}
+
+export interface MediaVideo {
+  id: number;
+  mediaId: number;
+  duration: number;
+  frameRate: number;
+  bitRate: number;
+  sampleRate: number;
+  channelCount: number;
+}
+
+export interface Movie {
+  id: number;
+  userId: number;
+  title: string;
+  description: string | null;
+  mediaId: number;
+  categoryId: keyof typeof CATEGORYS;
+  isDeleted: boolean;
+  createdAt: Date;
+}
+
+export interface MovieComment {
+  id: number;
+  movieId: number;
+  userId: number;
+  content: string;
+  isDeleted: boolean;
+  createdAt: Date;
+}
+
+export interface MovieStar {
+  id: number;
+  userId: number;
+  movieId: number;
+  value: number;
+  createdAt: Date;
+}
+
+export interface MovieStatistic {
+  id: number;
+  movieId: number;
+  viewCount: number;
+  commentCount: number;
+  starAverage: number;
+  createdAt: Date;
+}
+
+export interface Report {
+  id: number;
+  userId: number;
+  type: keyof typeof REPORT_TYPES;
+  targetId: number;
+  isDeleted: boolean;
+  createdAt: Date;
+}
+
+export interface User {
+  id: number;
+  email: string;
+  password: string;
+  handle: string;
+  name: string;
+  description: string | null;
+  profileMediaId: number | null;
+  bannerMediaId: number | null;
+  isVerified: boolean;
+  isDeleted: boolean;
+  createdAt: Date;
+}
+
+export interface UserHistory {
+  id: number;
+  episodeId: number;
+  userId: number;
+  time: number;
+  createdAt: Date;
+}
+
+export interface UserVerification {
+  id: number;
+  token: string;
+  email: string;
+  password: string;
+  name: string;
+  createdAt: Date;
+}
+
+export interface CurrentEpisodeStatistic {
+	id: number;
+	episodeId: number;
+};
+
+export interface CurrentMovieStatistic {
+	id: number;
+	movieId: number;
+};
+
+export interface Category {
+	id: number;
+	title: string;
+}
+
+export interface PageQuery {
+	'page[size]': number;
+	'page[index]': number;
+	'page[order]': 'desc' | 'asc';
+}

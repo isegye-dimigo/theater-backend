@@ -1,8 +1,7 @@
-import { Schema } from '@library/type';
-import { Movie } from '@prisma/client';
+import { Movie, Schema } from '@library/type';
 import commonSchema from '@schemas/common';
-import mediaSchema from '@schemas/media';
 import userSchema from '@schemas/user';
+import mediaSchema from '@schemas/media';
 import categorySchema from '@schemas/category';
 
 export default {
@@ -10,9 +9,8 @@ export default {
 	userId: userSchema['id'],
 	title: commonSchema['title'],
 	description: commonSchema['description'],
-	videoMediaId: mediaSchema['id'],
-	imageMediaId: mediaSchema['id'],
+	mediaId: mediaSchema['id'],
 	categoryId: categorySchema['id'],
 	isDeleted: commonSchema['boolean'],
 	createdAt: commonSchema['datetime']
-} satisfies Schema<Movie>;
+} satisfies Record<keyof Movie, Schema>;

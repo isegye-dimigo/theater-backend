@@ -1,8 +1,5 @@
-import { ImATeapot } from '@library/httpError'
-import { FastifyRequest, FastifyReply } from 'fastify';
+import { ImATeapot } from '@library/error';
 
-export default function (request: FastifyRequest, reply: FastifyReply): void {
-  reply.send(new ImATeapot('I\'m sorry, but this server is powered by Teapot™'));
-
-  return;
+export default function (): void {
+  throw new ImATeapot('I\'m sorry, but this server is powered by Teapot™');
 }

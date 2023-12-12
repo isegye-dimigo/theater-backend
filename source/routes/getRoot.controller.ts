@@ -1,7 +1,7 @@
-import { FastifyReply, FastifyRequest } from 'fastify';
+import { Request, Response } from '@library/type';
 
-export default function (request: FastifyRequest, reply: FastifyReply): void {
-	reply.send({
+export default function (request: Request, response: Response): void {
+	response.send({
 		message: 'JiHoon Kim wants to go to the isegye'
 	});
 

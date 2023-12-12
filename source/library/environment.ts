@@ -1,14 +1,12 @@
 import 'dotenv/config';
 import { randomBytes } from 'crypto';
-import { REQUIRED_ENVIRONMENT_VARIABLE_NAMES } from '@library/constant';
+import { ENVIRONMENT_VARIABLE_NAMES } from '@library/constant';
 
-for(let i: number = 0; i < REQUIRED_ENVIRONMENT_VARIABLE_NAMES['length']; i++) {
-	if(typeof(process['env'][REQUIRED_ENVIRONMENT_VARIABLE_NAMES[i]]) === 'undefined') {
-		throw new Error(REQUIRED_ENVIRONMENT_VARIABLE_NAMES[i] + ' must be configured');
+for(let i: number = 0; i < ENVIRONMENT_VARIABLE_NAMES['length']; i++) {
+	if(typeof(process['env'][ENVIRONMENT_VARIABLE_NAMES[i]]) === 'undefined') {
+		throw new Error(ENVIRONMENT_VARIABLE_NAMES[i] + ' must be configured');
 	}
 }
-
-process['env']['LOG_LEVEL'] ||= 'silent';
 
 switch(process['env']['LOG_LEVEL']) {
 	case 'fatal':
@@ -16,8 +14,7 @@ switch(process['env']['LOG_LEVEL']) {
 	case 'warn':
 	case 'info':
 	case 'debug':
-	case 'trace':
-	case 'silent': {
+	case 'trace': {
 		break;
 	}
 

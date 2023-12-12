@@ -1,66 +1,77 @@
+import authHandler from '@handlers/auth';
 import Module from '@library/module';
-import getMovieCommentsController from './getMovieComments.controller';
 import postMovieCommentsController from './postMovieComments.controller';
+import { SchemaType } from '@library/constant';
+import movieComment from '@schemas/movieComment';
+import getMovieCommentsController from './getMovieComments.controller';
 import pageSchema from '@schemas/page';
-import movieCommentSchema from '@schemas/movieComment';
-import deleteMovieCommentController from './deleteMovieComment.controller';
 import patchMovieCommentController from './patchMovieComment.controller';
+import deleteMovieCommentController from './deleteMovieComment.controller';
 
-export default new Module({
-	routers: [{
-		method: 'POST',
-		url: '',
-		handler: postMovieCommentsController,
-		schema: {
-			params: {
-				movieId: movieCommentSchema['movieId'].required()
-			},
-			body: {
-				time: movieCommentSchema['time'].required(),
-				content: movieCommentSchema['content'].required()
+export default new Module([{
+	method: 'POST',
+	path: '',
+	handlers: [authHandler, postMovieCommentsController],
+	schema: {
+		parameter: {
+			type: SchemaType['OBJECT'],
+			properties: {
+				movieId: movieComment['movieId']
 			}
 		},
-		isAuthNeeded: true
-	}, {
-		method: 'GET',
-		url: '',
-		handler: getMovieCommentsController,
-		schema: {
-			params: {
-				movieId: movieCommentSchema['movieId'].required()
-			},
-			querystring: {
-				'page[index]': pageSchema['page[index]'],
-				'page[size]': pageSchema['page[size]'],
-				'page[order]': pageSchema['page[order]']
+		body: {
+			type: SchemaType['OBJECT'],
+			properties: {
+				content: movieComment['content']
 			}
 		}
-	}, {
-		method: 'PATCH',
-		url: ':movieCommentId',
-		handler: patchMovieCommentController,
-		schema: {
-			params: {
-				movieId: movieCommentSchema['movieId'].required(),
-				movieCommentId: movieCommentSchema['id'].required()
-			},
-			body: {
-				content: movieCommentSchema['content']
+	}
+}, {
+	method: 'GET',
+	path: '',
+	handlers: [getMovieCommentsController],
+	schema: {
+		parameter: {
+			type: SchemaType['OBJECT'],
+			properties: {
+				movieId: movieComment['movieId']
 			}
 		},
-		isAuthNeeded: true
-	}, {
-		method: 'DELETE',
-		url: ':movieCommentId',
-		handler: deleteMovieCommentController,
-		schema: {
-			params: {
-				movieId: movieCommentSchema['movieId'].required(),
-				movieCommentId: movieCommentSchema['id'].required()
+		query: {
+			type: SchemaType['OBJECT'],
+			properties: pageSchema
+		}
+	}
+}, {
+	method: 'PATCH',
+	path: ':movieCommentId',
+	handlers: [authHandler, patchMovieCommentController],
+	schema: {
+		parameter: {
+			type: SchemaType['OBJECT'],
+			properties: {
+				movieId: movieComment['movieId'],
+				movieCommentId: movieComment['id']
 			}
 		},
-		isAuthNeeded: true
-	}],
-	prefix: ':movieId/comments',
-	modules: []
-});
+		body: {
+			type: SchemaType['OBJECT'],
+			properties: {
+				content: movieComment['content']
+			}
+		}
+	}
+}, {
+	method: 'DELETE',
+	path: ':movieCommentId',
+	handlers: [authHandler, deleteMovieCommentController],
+	schema: {
+		parameter: {
+			type: SchemaType['OBJECT'],
+			properties: {
+				movieId: movieComment['movieId'],
+				movieCommentId: movieComment['id']
+			}
+		}
+	}
+}], ':movieId/comments');

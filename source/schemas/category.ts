@@ -1,8 +1,14 @@
-import { Schema } from '@library/type';
-import { Category } from '@prisma/client';
-import commonSchema from '@schemas/common';
+import { Category, Schema } from '@library/type';
+import { CATEGORYS, SchemaType } from '@library/constant';
 
 export default {
-	id: commonSchema['positiveInteger'],
-	title: commonSchema['default'].string().minLength(1).maxLength(32)
-} satisfies Schema<Category>;
+	id: {
+		type: SchemaType['NUMBER'],
+		enum: Object.keys(CATEGORYS).map(Number)
+	},
+	title: {
+		type: SchemaType['STRING'],
+		minimum: 1,
+		maximum: 32
+	}
+} satisfies Record<keyof Category, Schema>;

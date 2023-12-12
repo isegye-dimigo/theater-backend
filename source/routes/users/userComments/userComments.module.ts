@@ -1,25 +1,24 @@
 import Module from '@library/module';
+import authHandler from '@handlers/auth';
 import getUserCommentsController from './getUserComments.controller';
-import pageSchema from '@schemas/page';
+import { SchemaType } from '@library/constant';
 import userSchema from '@schemas/user';
+import pageSchema from '@schemas/page';
 
-export default new Module({
-	routers: [{
-		method: 'GET',
-		url: '',
-		handler: getUserCommentsController,
-		schema: {
-			params: {
-				userHandle: userSchema['handle'].required()
-			},
-			querystring: {
-				'page[index]': pageSchema['page[index]'],
-				'page[size]': pageSchema['page[size]'],
-				'page[order]': pageSchema['page[order]']
+export default new Module([{
+	method: 'GET',
+	path: '',
+	handlers: [authHandler, getUserCommentsController],
+	schema: {
+		parameter: {
+			type: SchemaType['OBJECT'],
+			properties: {
+				userHandle: userSchema['handle']
 			}
 		},
-		isAuthNeeded: true
-	}],
-	prefix: ':userHandle/comments',
-	modules: []
-});
+		query: {
+			type: SchemaType['OBJECT'],
+			properties: pageSchema
+		}
+	}
+}], ':userHandle/comments');

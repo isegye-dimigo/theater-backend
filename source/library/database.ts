@@ -1,64 +1,58 @@
-import { PrismaClient, User } from '@prisma/client';
-import { Redis } from 'ioredis';
-import { logger } from '@library/logger';
+
+import { HANDLE_CHARACTER, REPORT_TYPES } from '@library/constant';
 import { randomBytes } from 'crypto';
+import { Database, User } from '@library/type';
+import { createPool } from 'mariadb';
+import { Kysely } from 'kysely';
+import { Redis } from 'ioredis';
+import { MariadbDialect } from '@library/mariadbDialect';
 import { Client } from '@elastic/elasticsearch';
+import Logger from './logger';
 
-export const prisma: PrismaClient = new PrismaClient(process['env']['NODE_ENV'] !== 'production' ? {
-	log: ['query']
-} : undefined);
-
-export const redis: Redis = new Redis(process['env']['CACHE_DATABASE_URL']);
-
-export const elasticsearch: Client = new Client({
-	node: process['env']['SEARCH_DATABASE_URL']
+export const kysely: Kysely<Database> = new Kysely<Database>({
+	dialect: new MariadbDialect(createPool(process['env']['DATABASE_URL']))
 });
 
-redis.on('error', function (error: Error): void {
-	// @ts-expect-error
-	switch(error['code']) {
+export const redis: Redis = new Redis(process['env']['CACHE_DATABASE_URL'])
+.on('error', function (error: Error): void {
+	switch((error as Error & Record<'code', string>)['code']) {
 		case 'ECONNRESET':
 		case 'ECONNREFUSED': {
-			// @ts-expect-error
-			logger.trace('redis ' + error['code']);
-
 			break;
 		}
 
 		default: {
-			logger.error(error);
+			Logger['logger'].error(error);
 
-			return;
+			break;
 		}
 	}
 
 	return;
 });
 
-const handleCharacter = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.';
+export const elasticsearch: Client = new Client({
+	node: process['env']['SEARCH_DATABASE_URL']
+});
 
 export function getUniqueRandomHandle(): Promise<string> {
 	let handle: string = '';
 
 	for(const byte of randomBytes(30)) {
-		handle += handleCharacter[byte % 65];
+		handle += HANDLE_CHARACTER[byte % 65];
 	}
 
-	return prisma['user'].findUnique({
-		select: {
-			id: true
-		},
-		where: {
-			handle: handle
-		}
-	})
-	.then(function (user: Pick<User, 'id'> | null): Promise<string> | string {
-		if(user === null) {
+	return kysely.selectFrom('user')
+	.select('id')
+	.where('handle', '=', handle)
+	.executeTakeFirst()
+	.then(function (user?: Pick<User, 'id'>): Promise<string> | string {
+		if(typeof(user) === 'undefined') {
 			return handle;
 		} else {
 			return getUniqueRandomHandle();
 		}
-	})
+	});
 }
 
 export function getKeys(pattern: string, keys: Set<string> = new Set<string>(), cursor: string = '0'): Promise<Set<string>> {
@@ -73,5 +67,5 @@ export function getKeys(pattern: string, keys: Set<string> = new Set<string>(), 
 		} else {
 			return keys;
 		}
-	})
+	});
 }

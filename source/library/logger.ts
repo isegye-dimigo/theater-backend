@@ -1,130 +1,78 @@
-import { FastifyBaseLogger } from 'fastify';
-import { LogLevel } from 'fastify/types/logger';
 import { Socket } from 'net';
 import { inspect } from 'util';
+import { LogLevel } from '@library/type';
 
-export default class Logger implements FastifyBaseLogger {
-	public level: LogLevel;
-	private levelRanks: Record<LogLevel, number> = {
-		fatal: 0,
-		error: 1,
-		warn: 2,
-		info: 3,
-		debug: 4,
-		trace: 5,
-		silent: -1
-	};
+export default class Logger {
+	public static logger: Logger = new Logger();
 
-	constructor(level: LogLevel) {
-		this['level'] = level;
+	private static log(level: LogLevel, _arguments: unknown[]): void {
+		let print: Socket['write'];
+		let levelColor: number = 32;
 
-		return;
-	}
+		switch(level) {
+			case 'error':
+			case 'fatal': {
+				print = process['stderr'].write.bind(process['stderr']);
+				levelColor--;
 
-	private log(level: LogLevel, _arguments: Record<string, any>): void {
-		if(typeof(_arguments[0]['req']) === 'undefined') {
-			let print: Socket['write'];
-			let levelColor: number = 32;
-
-			switch(level) {
-				case 'error':
-				case 'fatal': {
-					print = process['stderr'].write.bind(process['stderr']);
-					levelColor--;
-
-					break;
-				}
-
-				case 'warn': {
-					levelColor++;
-				}
-
-				default: {
-					print = process['stdout'].write.bind(process['stdout']);
-				}
+				break;
 			}
 
-			print('[\x1b[36m' + (new Date()).toTimeString().slice(0, 8) + '\x1b[37m][\x1b[' + levelColor + 'm' + level.toUpperCase() + '\x1b[37m]' + ' '.repeat(6 - level['length']));
-
-			switch(typeof(_arguments[0])) {
-				case 'string': {
-					print(_arguments[0]);
-
-					break;
-				}
-
-				case 'object': {
-					if(typeof(_arguments[0]['res']) === 'object') {
-						print(_arguments[0]['res']['request']['ip'] + ' "' + _arguments[0]['res']['request']['method'] + ' ' + decodeURIComponent(_arguments[0]['res']['request']['url']) + ' HTTP/' + _arguments[0]['res']['raw']['req']['httpVersion'] + '" ' + _arguments[0]['res']['raw']['statusCode'] + ' "' + _arguments[0]['res']['request']['headers']['user-agent'] + '" (' + Math.trunc(_arguments[0]['responseTime']) + 'ms)');
-					} else {
-						print(inspect(_arguments[0], false, null));
-					}
-
-					break;
-				}
+			case 'warn': {
+				levelColor++;
 			}
 
-			print('\n');
+			default: {
+				print = process['stdout'].write.bind(process['stdout']);
+			}
 		}
+
+		const time: Date = new Date();
+
+		for(let i: number = 0; i < _arguments['length']; i++) {
+			if(typeof(_arguments[i]) === 'object') {
+				_arguments[i] = inspect(_arguments[i], false, null, true);
+			}
+		}
+
+		print('[\x1b[36m' + time.getHours().toString(10).padStart(2, '0') + ':' + time.getMinutes().toString(10).padStart(2, '0') + ':' + time.getSeconds().toString(10).padStart(2, '0') + '\x1b[37m][\x1b[' + levelColor + 'm' + level.toUpperCase() + '\x1b[37m]' + ' '.repeat(6 - level['length']) + _arguments.join(' ') + '\n');
 
 		return;
 	}
 
 	public fatal(..._arguments: unknown[]): void {
-		if(this['levelRanks']['fatal'] <= this['levelRanks'][this['level']]) {
-			this.log('fatal', _arguments);
-		}
+		Logger.log('fatal', _arguments);
 
 		return;
 	}
 
 	public error(..._arguments: unknown[]): void {
-		if(this['levelRanks']['error'] <= this['levelRanks'][this['level']]) {
-			this.log('error', _arguments);
-		}
+		Logger.log('error', _arguments);
 
 		return;
 	}
 
 	public warn(..._arguments: unknown[]): void {
-		if(this['levelRanks']['warn'] <= this['levelRanks'][this['level']]) {
-			this.log('warn', _arguments);
-		}
+		Logger.log('warn', _arguments);
 
 		return;
 	}
 
 	public info(..._arguments: unknown[]): void {
-		if(this['levelRanks']['info'] <= this['levelRanks'][this['level']]) {
-			this.log('info', _arguments);
-		}
+		Logger.log('info', _arguments);
 
 		return;
 	}
 
 	public debug(..._arguments: unknown[]): void {
-		if(this['levelRanks']['debug'] <= this['levelRanks'][this['level']]) {
-			this.log('debug', _arguments);
-		}
+		Logger.log('debug', _arguments);
 
 		return;
 	}
 
 	public trace(..._arguments: unknown[]): void {
-		if(this['levelRanks']['trace'] <= this['levelRanks'][this['level']]) {
-			this.log('trace', _arguments);
-		}
+		Logger.log('trace', _arguments);
 
 		return;
-	}
-
-	public silent(): void {
-		return;
-	}
-
-	public child(): FastifyBaseLogger {
-		return this;
 	}
 }
-
-export const logger: Logger = new Logger(process['env']['LOG_LEVEL']);

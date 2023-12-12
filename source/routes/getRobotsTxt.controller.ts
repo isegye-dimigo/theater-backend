@@ -1,7 +1,7 @@
-import { FastifyRequest, FastifyReply } from 'fastify';
+import { Request, Response } from '@library/type';
 
-export default function (request: FastifyRequest, reply: FastifyReply): void {
-	reply.send('User-agent: *\nDisallow: /');
+export default function (request: Request, response: Response): void {
+	response.send('User-agent: *\nDisallow: /');
 
 	return;
 }

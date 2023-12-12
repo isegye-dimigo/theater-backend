@@ -3,12 +3,12 @@ import { SMTPChannel } from 'smtp-channel';
 
 const smtp: SMTPChannel = new SMTPChannel({
 	host: process['env']['EMAIL_HOST'],
-	port: Number.parseInt(process['env']['EMAIL_PORT']),
+	port: Number(process['env']['EMAIL_PORT']),
 	// SSL/TLS instead of STARTTLS
 	secure: true
 });
 
-export default function sendMail(email: string, title: string, content: string): Promise<boolean> {
+export function sendMail(email: string, title: string, content: string): Promise<boolean> {
 	return smtp.connect()
 	.then(function (): Promise<void> {
 		return smtp.write('EHLO server\r\n');
@@ -35,4 +35,8 @@ export default function sendMail(email: string, title: string, content: string):
 	.then(function (): Promise<void> {
 		return smtp.close();
 	});
+}
+
+export function getVerificationContent(name: string, token: string): string {
+	return '<body style="margin:100px auto;width:540px;border-top:4px solid #5d63bd;padding:0 4px"><header style="margin:32px 0"><h1 style="margin:0;font-size:28px;color:#141c2f">이세계</h1><h2 style="margin:0;font-size:16px;font-weight:400;padding:0 2px">메일 인증 안내</h2></header><main style="margin:64px 0;font-size:16px"><p style="line-height:30px"><b>' + name + '</b>님, 이세계에 오신 것을 환영합니다.<br>아래 버튼을 눌러 회원가입을 완료해주세요.</p><a href="https://api.isegye.kr/auth/email?token=' + token + '" style="margin:48px 0;display:block;width:210px;height:48px;text-align:center;line-height:48px;text-decoration:none;color:#fff;background:#5d63bd">메일 인증</a></main><footer style="margin:64px 0;border-top:1px solid #ddd;color:#555;font-size:12px;padding:16px 2px 0"><p style="margin:0">만약 버튼이 정상적으로 클릭되지 않는다면, 아래 링크로 접속해 주세요.</p><a href="https://api.isegye.kr/auth/email?token=' + token + '">https://api.isegye.kr/auth/email?token=' + token + '</a></footer></body>';
 }

@@ -1,91 +1,153 @@
-import { prisma, redis } from '@library/database';
-import { NotFound } from '@library/httpError';
-import { Movie } from '@prisma/client';
-import { FastifyReply, FastifyRequest } from 'fastify';
 import authHandler from '@handlers/auth';
-import { _RawMovie } from '@library/type';
+import { CATEGORYS } from '@library/constant';
+import { kysely, redis } from '@library/database';
+import { NotFound } from '@library/error';
+import { Database, Media, Movie, Episode, MovieStar, MovieStatistic, Request, Response, User, Category, PageQuery } from '@library/type';
+import { JoinBuilder, SelectQueryBuilder, Transaction, sql } from 'kysely';
 
-export default function (request: FastifyRequest<{
-	Params: {
+export default function (request: Request<{
+	parameter: {
 		movieId: Movie['id'];
 	};
-}>, reply: FastifyReply): void {
-	let isLoggedIn: boolean = false;
-	
-	authHandler(request, reply, function (error?: Error | null): void {
-		if(typeof(error) === 'undefined') {
-			isLoggedIn = true;
+	query: PageQuery;
+}>, response: Response): Promise<void> {
+	return kysely.transaction()
+	.execute(function (transaction: Transaction<Database>): Promise<void> {
+		let hasLoggedIn: boolean = true;
+		
+		try {
+			authHandler(request);
+		} catch {
+			hasLoggedIn = false;
 		}
 
-		return;
-	});
+		let movie: Pick<Movie, 'id' | 'title' | 'description' | 'createdAt'> & {
+			user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'>;
+			media: Pick<Media, 'id' | 'hash' | 'width' | 'height'>;
+			category: Category;
+			statistic: Pick<MovieStatistic, 'id' | 'viewCount' | 'commentCount' | 'starAverage'>;
+			star?: Pick<MovieStar, 'id' | 'value'>;
+			episodes?: (Pick<Episode, 'id' | 'index' | 'title' | 'description' | 'createdAt'> & {
+				imageMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'>;
+			})[];
+		};
 
-	prisma.$queryRawUnsafe<_RawMovie[]>('SELECT movie.id, movie.title, movie.description, movie.created_at, user.id AS user_id, user.handle AS user_handle, user.name AS user_name, user.is_verified AS user_is_verified, image_media.id AS image_media_id, image_media.hash AS image_media_hash, image_media.width AS image_media_width, image_media.height AS image_media_height, video_media.id AS video_media_id, video_media.hash AS video_media_hash, video_media.width AS video_media_width, video_media.height AS video_media_height, media_video.id AS video_media_media_video_id, media_video.duration AS video_media_media_video_duration, category.id AS category_id, category.title AS category_title, series_movie.id AS series_movie_id, series_movie.series_id AS series_movie_series_id, series_movie.index AS series_movie_index, movie_statistic.view_count AS movie_statistic_view_count, movie_statistic.comment_count AS movie_statistic_comment_count, movie_statistic.like_count AS movie_statistic_like_count, movie_statistic.star_average AS movie_statistic_star_average' + (isLoggedIn ? ', movie_like.id AS movie_like_id, movie_like.created_at AS movie_like_created_at, movie_star.id AS movie_star_id, movie_star.value AS movie_star_value, movie_star.created_at AS movie_star_created_at' : '') + ' FROM movie INNER JOIN user ON movie.user_id = user.id INNER JOIN media AS image_media ON movie.image_media_id = image_media.id INNER JOIN media AS video_media ON movie.video_media_id = video_media.id INNER JOIN media_video ON movie.video_media_id = media_video.media_id INNER JOIN category ON movie.category_id = category.id LEFT JOIN series_movie ON movie.id = series_movie.movie_id INNER JOIN movie_statistic ON movie.id = movie_statistic.movie_id INNER JOIN (SELECT max(id) AS id FROM movie_statistic GROUP BY movie_id) AS _movie_statistics ON movie_statistic.id = _movie_statistics.id' + (isLoggedIn ? ' LEFT JOIN movie_like ON movie.id = movie_like.movie_id AND movie_like.user_id = ' + request['user']['id'] + ' LEFT JOIN movie_star ON movie.id = movie_star.movie_id AND movie_star.user_id = ' + request['user']['id'] : '') + ' WHERE movie.is_deleted = 0 AND movie.id = ' + request['params']['movieId'])
-	.then(function (rawMovies: _RawMovie[]) {
-		if(rawMovies['length'] === 1) {
-			reply.send(Object.assign({
-				id: Number(rawMovies[0]['id']),
-				user: {
-					id: Number(rawMovies[0]['user_id']),
-					handle: rawMovies[0]['user_handle'],
-					name: rawMovies[0]['user_name'],
-					isVerified: rawMovies[0]['user_is_verified']
-				},
-				title: rawMovies[0]['title'],
-				description: rawMovies[0]['description'],
-				imageMedia: {
-					id: Number(rawMovies[0]['image_media_id']),
-					hash: rawMovies[0]['image_media_hash'],
-					width: rawMovies[0]['image_media_width'],
-					height: rawMovies[0]['image_media_height']
-				},
-				videoMedia: {
-					id: Number(rawMovies[0]['video_media_id']),
-					hash: rawMovies[0]['video_media_hash'],
-					width: rawMovies[0]['video_media_width'],
-					height: rawMovies[0]['video_media_height'],
-					mediaVideo: {
-						id: Number(rawMovies[0]['video_media_media_video_id']),
-						duration: Number(rawMovies[0]['video_media_media_video_duration'])
+		return transaction.selectFrom('movie')
+		.select(['movie.id', 'movie.title', 'movie.description', 'movie.created_at as createdAt', 'movie.category_id as categoryId'])
+		.where('movie.id', '=', request['parameter']['movieId'])
+		.where('movie.is_deleted', '=', false)
+		.innerJoin('user', 'movie.user_id', 'user.id')
+		.select(['user.id as user_id', 'user.handle as user_handle', 'user.name as user_name', 'user.is_verified as user_isVerified'])
+		.innerJoin('media', 'movie.media_id', 'media.id')
+		.select(['media.id as media_id', 'media.hash as media_hash', 'media.width as media_width', 'media.height as media_height'])
+		.innerJoin('movie_statistic as statistic', 'movie.id', 'statistic.movie_id')
+		.select(['statistic.id as statistic_id', 'statistic.view_count as statistic_viewCount', 'statistic.comment_count as statistic_commentCount', 'statistic.star_average as statistic_starAverage'])
+		.innerJoin('current_movie_statistic as currentStatistic', 'statistic.id', 'currentStatistic.id')
+		.$if(hasLoggedIn, function (queryBuilder: SelectQueryBuilder<Database & {
+			statistic: Database['movie_statistic'];
+			currentStatistic: Database['current_movie_statistic'];
+		}, 'movie' | 'user' | 'media' | 'statistic' | 'currentStatistic', Pick<Movie, 'id' | 'title' | 'description' | 'createdAt' | 'categoryId'> & PrefixPick<User, 'user_', 'id' | 'handle' | 'name' | 'isVerified'> & PrefixPick<Media, 'media_', 'id' | 'hash' | 'width' | 'height'> & PrefixPick<MovieStatistic, 'statistic_', 'id' | 'viewCount' | 'commentCount' | 'starAverage'>>): SelectQueryBuilder<Database & {
+			statistic: Database['movie_statistic'];
+			currentStatistic: Database['current_movie_statistic'];
+			star: Nullable<Database['movie_star']>;
+		}, 'movie' | 'user' | 'media' | 'statistic' | 'currentStatistic' | 'star', Pick<Movie, 'id' | 'title' | 'description' | 'createdAt' | 'categoryId'> & PrefixPick<User, 'user_', 'id' | 'handle' | 'name' | 'isVerified'> & PrefixPick<Media, 'media_', 'id' | 'hash' | 'width' | 'height'> & PrefixPick<MovieStatistic, 'statistic_', 'id' | 'viewCount' | 'commentCount' | 'starAverage'> & Nullable<PrefixPick<MovieStar, 'star_', 'id' | 'value'>>> {
+			return queryBuilder.leftJoin('movie_star as star', function (joinBuilder: JoinBuilder<Database & {
+				star: Database['movie_star'];
+			}, 'movie' | 'star'>): JoinBuilder<Database & {
+				star: Database['movie_star'];
+			}, 'movie' | 'star'> {
+				return joinBuilder.onRef('movie.id', '=', 'star.movie_id')
+				.on('star.user_id', '=', request['user']['id']);
+			})
+			.select(['star.id as star_id', 'star.value as star_value']);
+		}).executeTakeFirst()
+		.then(function (rawMovie?: Pick<Movie, 'id' | 'title' | 'description' | 'createdAt' | 'categoryId'> & PrefixPick<User, 'user_', 'id' | 'handle' | 'name' | 'isVerified'> & PrefixPick<Media, 'media_', 'id' | 'hash' | 'width' | 'height'> & PrefixPick<MovieStatistic, 'statistic_', 'id' | 'viewCount' | 'commentCount' | 'starAverage'> & Partial<Nullable<PrefixPick<MovieStar, 'star_', 'id' | 'value'>>>): Promise<(Pick<Episode, 'id' | 'index' | 'title' | 'description' | 'createdAt'> & PrefixPick<Media, 'imageMedia_', 'id' | 'hash' | 'width' | 'height'>)[]> {
+			if(typeof(rawMovie) !== 'undefined') {
+				movie = {
+					id: rawMovie['id'],
+					title: rawMovie['title'],
+					description: rawMovie['description'],
+					createdAt: rawMovie['createdAt'],
+					user: {
+						id: rawMovie['user_id'],
+						handle: rawMovie['user_handle'],
+						name: rawMovie['user_name'],
+						isVerified: rawMovie['user_isVerified']
+					},
+					media: {
+						id: rawMovie['media_id'],
+						hash: rawMovie['media_hash'],
+						width: rawMovie['media_width'],
+						height: rawMovie['media_height']
+					},
+					category: {
+						id: rawMovie['categoryId'],
+						title: CATEGORYS[rawMovie['categoryId']]
+					},
+					statistic: {
+						id: rawMovie['statistic_id'],
+						viewCount: rawMovie['statistic_viewCount'],
+						commentCount: rawMovie['statistic_commentCount'],
+						starAverage: rawMovie['statistic_starAverage']
 					}
-				},
-				category: {
-					id: Number(rawMovies[0]['category_id']),
-					title: rawMovies[0]['category_title']
-				},
-				seriesMovie: rawMovies[0]['series_movie_id'] !== null ? {
-					id: Number(rawMovies[0]['series_movie_id']),
-					seriesId: Number(rawMovies[0]['series_movie_series_id']),
-					index: rawMovies[0]['series_movie_index']
-				} : null,
-				movieStatistic: {
-					viewCount: Number(rawMovies[0]['movie_statistic_view_count']),
-					commentCount: Number(rawMovies[0]['movie_statistic_comment_count']),
-					likeCount: Number(rawMovies[0]['movie_statistic_like_count']),
-					starAverage: rawMovies[0]['movie_statistic_star_average']
-				},
-				createdAt: rawMovies[0]['created_at']
-			}, isLoggedIn ? {
-				movieLike: rawMovies[0]['movie_like_id'] !== null ? {
-					id: Number(rawMovies[0]['movie_like_id']),
-					createdAt: rawMovies[0]['movie_like_created_at']
-				} : null,
-				movieStar: rawMovies[0]['movie_star_id'] !== null ? {
-					id: Number(rawMovies[0]['movie_star_id']),
-					value: rawMovies[0]['movie_star_value'],
-					created_at: rawMovies[0]['movie_star_created_at']
-				} : null
-			} : undefined));
+				};
 
-			redis.incr('movieView:' + rawMovies[0]['id'])
-			.catch(request['log'].error);
+				if(typeof(rawMovie['star_id']) === 'number') {
+					movie['star'] = {
+						id: rawMovie['star_id'],
+						value: rawMovie['star_value'] as number
+					}
+				}
+
+				return transaction.selectFrom('episode')
+				.select(['episode.id', 'episode.index', 'episode.title', sql<string | null>`LEFT(episode.description, 256)`.as('description'), 'episode.created_at as createdAt'])
+				.where('episode.movie_id', '=', request['parameter']['movieId'])
+				.where('episode.is_deleted', '=', false)
+				.orderBy('episode.index', request['query']['page[order]'] === 'desc' ? 'desc' : 'asc')
+				.limit(request['query']['page[size]'])
+				.offset(request['query']['page[size]'] * request['query']['page[index]'])
+				.innerJoin('media as imageMedia', 'episode.image_media_id', 'imageMedia.id')
+				.select(['imageMedia.id as imageMedia_id', 'imageMedia.hash as imageMedia_hash', 'imageMedia.width as imageMedia_width', 'imageMedia.height as imageMedia_height'])
+				.execute();
+			} else {
+				throw new NotFound('Parameter[\'movieId\'] must be valid');
+			}
+		})
+		.then(function (episodes: (Pick<Episode, 'id' | 'index' | 'title' | 'description' | 'createdAt'> & PrefixPick<Media, 'imageMedia_', 'id' | 'hash' | 'width' | 'height'>)[]): void {
+			movie['episodes'] = [];
+
+			for(let i: number = 0; i < episodes['length']; i++) {
+				let slicedDescription: string | null = null;
+	
+				if(typeof(episodes[i]['description']) === 'string') {
+					slicedDescription = (episodes[i]['description'] as string).replace(/(\n|\s)+/g, ' ');
+	
+					if(slicedDescription['length'] > 128) {
+						slicedDescription = slicedDescription.slice(0, 128).trim() + '...';
+					}
+				}
+				
+				movie['episodes'].push({
+					id: episodes[i]['id'],
+					index: episodes[i]['index'],
+					title: episodes[i]['title'],
+					description: slicedDescription,
+					createdAt: episodes[i]['createdAt'],
+					imageMedia: {
+						id: episodes[i]['imageMedia_id'],
+						hash: episodes[i]['imageMedia_hash'],
+						width: episodes[i]['imageMedia_width'],
+						height: episodes[i]['imageMedia_height']
+					}
+				});
+			}
+
+			response.send(movie);
+
+			redis.incr('movieView:' + request['parameter']['movieId'])
+			.catch(request['server']['logger'].error);
 
 			return;
-		} else {
-			throw new NotFound('Parameter[\'movieId\'] must be valid');
-		}
-	})
-	.catch(reply.send.bind(reply));
-
-	return;
+		});
+	});
 }

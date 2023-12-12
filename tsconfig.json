@@ -8,11 +8,12 @@
 		"esModuleInterop": true,
 		"forceConsistentCasingInFileNames": true,
 		"moduleResolution": "node",
-		"baseUrl": ".",
+		"rootDir": "source",
+		"baseUrl": "source",
 		"paths": {
-			"@library/*": ["source/library/*", "distribution/library/*"],
-			"@schemas/*": ["source/schemas/*", "distribution/schemas/*"],
-			"@handlers/*": ["source/handlers/*", "distribution/handlers/*"]
+			"@library/*": ["library/*"],
+			"@schemas/*": ["schemas/*"],
+			"@handlers/*": ["handlers/*"]
 		},
 		"typeRoots": ["source/types", "node_modules/@types"],
 		"removeComments": true

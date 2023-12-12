@@ -1,96 +1,80 @@
-import { FastifyInstance, ModuleOptions, RouteOptions, SchemaKey } from '@library/type';
-import { preHandlerHookHandler as PreHandlerHookHandler } from 'fastify';
-import { NullSchema, ObjectSchema } from 'fluent-json-schema';
 import { join } from 'path/posix';
-import { getObjectSchema } from '@library/utility';
-import schemaErrorFormatHandler from '@handlers/schemaErrorFormat';
-import authHandler from '@handlers/auth';
-import optionsHandler from '@handlers/options';
+import { Method, Request, Response, Route } from '@library/type';
+import Server from '@library/server';
+import rateLimit from '@handlers/rateLimit';
+import adminHandler from '@handlers/admin';
 
 export default class Module {
-	private static registeredUrl: Set<string> = new Set<string>();
-	private options: ModuleOptions;
+	public static paths: Set<string> = new Set<string>();
+	private routes: (Route & {
+		method: Method;
+		path: string;
+	})[];
+	private prefix: string;
+	private modules: Module[];
+	private static readonly methods: Method[] = ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'];
 
-	constructor(options: ModuleOptions) {
-		if(options['prefix']['length'] === 0) {
-			options['prefix'] = '/';
+	constructor(routes: Module['routes'], prefix: Module['prefix'] = '/', modules: Module['modules'] = []) {
+		this['routes'] = routes;
+		this['prefix'] = prefix;
+		this['modules'] = modules;
+	}
+
+	public static getRouteTree(server: Server): string {
+		let routeTree: string = '';
+
+		for(const path of Module['paths']) {
+			routeTree += '\n' + path;
+
+			const methods: Method[] = [];
+
+			for(let i: number = 0; i < Module['methods']['length']; i++) {
+				if(server['router'].find(Module['methods'][i], path) !== null) {
+					methods.push(Module['methods'][i]);
+				}
+			}
+
+			routeTree += ' (' + methods.join(', ') + ')';
 		}
 
-		this['options'] = options;
-
-		return;
+		return routeTree.slice(1);
 	}
 
 	public appendPrefix(prefix: string): void {
-		this['options']['prefix'] = join(prefix, this['options']['prefix']);
+		this['prefix'] = join(prefix, this['prefix']);
 
 		return;
 	}
 
-	public register(fastifyInstance: FastifyInstance): void {
-		for(let i: number = 0; i < this['options']['routers']['length']; i++) {
-			let _schema: Partial<Record<SchemaKey, ObjectSchema | NullSchema>> | undefined;
-
-			if(typeof(this['options']['routers'][i]['schema']) === 'object') {
-				_schema = {};
-
-				const keys: SchemaKey[] = Object.getOwnPropertyNames(this['options']['routers'][i]['schema']) as SchemaKey[];
-
-				for(let j: number = 0; j < keys['length']; j++) {
-					_schema[keys[j]] = getObjectSchema((this.options.routers[i].schema as Required<Required<RouteOptions>['schema']>)[keys[j]]);
-				}
-			}
-
-			if(Array.isArray(this['options']['routers'][i]['preHandler']) && this['options']['routers'][i]['isAuthNeeded'] === true) {
-				(this['options']['routers'][i]['preHandler'] as PreHandlerHookHandler[]).unshift(authHandler);
-			}
-
-			const url: string = join(fastifyInstance['prefix'], this['options']['prefix'], this['options']['routers'][i]['url']);
+	public register(server: Server): void {
+		for(let i: number = 0; i < this['routes']['length']; i++) {
+			const path: string = join(this['prefix'], this['routes'][i]['path']);
 			
-			if(!Module['registeredUrl'].has(url)) {
-				Module['registeredUrl'].add(url);
+			if(!Module['paths'].has(path)) {
+				Module['paths'].add(path);
 
-				fastifyInstance.route({
-					method: 'OPTIONS',
-					url: url,
-					handler: optionsHandler
+				server.register('OPTIONS', path, {
+					handlers: [function (request: Request, response: Response): void {
+						response.send(null);
+
+						return;
+					}]
 				});
 			}
 
-			if(this['options']['routers'][i]['isAuthNeeded'] === true) {
-				switch(typeof(this['options']['routers'][i]['preHandler'])) {
-					case 'function': {
-						this['options']['routers'][i]['preHandler'] = [authHandler, this['options']['routers'][i]['preHandler'] as PreHandlerHookHandler];
-
-						break;
-					}
-
-					case 'object': {
-						if(Array.isArray(this['options']['routers'][i]['preHandler'])) {
-							(this['options']['routers'][i]['preHandler'] as PreHandlerHookHandler[]).unshift(authHandler);
-
-							break;
-						}
-					}
-
-					default: {
-						this['options']['routers'][i]['preHandler'] = authHandler;
-
-						break;
-					}
-				}
+			if(this['routes'][i]['handlers'][0] !== adminHandler) {
+				this['routes'][i]['handlers'].unshift(rateLimit);
 			}
 
-			fastifyInstance.route(Object.assign(this['options']['routers'][i], {
-				url: url,
-				schema: _schema,
-				schemaErrorFormatter: schemaErrorFormatHandler
-			}));
+			server.register(this['routes'][i]['method'], path, {
+				handlers: this['routes'][i]['handlers'],
+				schema: this['routes'][i]['schema']
+			});
 		}
 
-		for(let i: number = 0; i < this['options']['modules']['length']; i++) {
-			this['options']['modules'][i].appendPrefix(this['options']['prefix']);
-			this['options']['modules'][i].register(fastifyInstance);
+		for(let i: number = 0; i < this['modules']['length']; i++) {
+			this['modules'][i].appendPrefix(this['prefix']);
+			this['modules'][i].register(server);
 		}
 
 		return;

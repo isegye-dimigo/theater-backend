@@ -1,22 +1,20 @@
 import Module from '@library/module';
 import adminHandler from '@handlers/admin';
 import deleteAdminMovieCommentController from './deleteAdminMovieComment.controller';
-import movieSchema from '@schemas/movie';
+import { SchemaType } from '@library/constant';
 import movieCommentSchema from '@schemas/movieComment';
 
-export default new Module({
-	routers: [{
-		method: 'DELETE',
-		url: ':movieCommentId',
-		handler: deleteAdminMovieCommentController,
-		preValidation: adminHandler,
-		schema: {
-			params: {
-				movieId: movieSchema['id'].required(),
-				movieCommentId: movieCommentSchema['id'].required()
+export default new Module([{
+	method: 'DELETE',
+	path: ':movieCommentId',
+	handlers: [adminHandler, deleteAdminMovieCommentController],
+	schema: {
+		parameter: {
+			type: SchemaType['OBJECT'],
+			properties: {
+				movieId: movieCommentSchema['movieId'],
+				movieCommentId: movieCommentSchema['id']
 			}
 		}
-	}],
-	prefix: ':movieId/comments',
-	modules: []
-});
+	}
+}], ':movieId/comments', []);

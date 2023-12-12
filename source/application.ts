@@ -1,54 +1,23 @@
 import '@library/environment';
 import '@library/schedule';
-import fastify from 'fastify';
-import { FastifyInstance } from '@library/type';
-import { logger } from '@library/logger';
-import errorHandler from '@handlers/error';
-import headerHandler from '@handlers/header';
-import notFoundHandler from '@handlers/notFound';
-import serializeHandler from '@handlers/serialize';
-import rateLimitHandler from '@handlers/rateLimit';
-import multipartContentTypeParser from '@handlers/multipartContentTypeParser';
+import Module from '@library/module';
+import Server from '@library/server';
 import rootModule from './routes/root.module';
 import JsonWebToken from '@library/jsonWebToken';
-import Module from '@library/module';
 
-const fastifyInstance: FastifyInstance = fastify({
-	trustProxy: true,
-	exposeHeadRoutes: false,
-	logger: logger
+const server: Server = new Server({
+	isProxied: true
 });
 
-fastifyInstance['server']['requestTimeout'] = 0;
-fastifyInstance['server']['timeout'] = 0;
+rootModule.register(server);
 
-fastifyInstance.setNotFoundHandler(notFoundHandler);
-fastifyInstance.setErrorHandler(errorHandler);
-fastifyInstance.setReplySerializer(serializeHandler);
-fastifyInstance.addHook('preHandler', headerHandler);
-fastifyInstance.addHook('onRequest', rateLimitHandler);
-fastifyInstance.addContentTypeParser('multipart/form-data', multipartContentTypeParser);
+server['logger'].info('Routes:\n' + Module.getRouteTree(server));
 
-rootModule.register(fastifyInstance);
-
-fastifyInstance.listen({
-	host: '0.0.0.0',
-	port: Number.parseInt(process['env']['PORT'], 10)
-})
+server.listen(3000)
 .then(function (): void {
-	fastifyInstance['log'].info('Route tree:');
+	server['logger'].info('http://127.0.0.1:3000');
 
-	const routeLines: string[] = fastifyInstance.printRoutes({
-		commonPrefix: false
-	}).split(/^(└──\s|\s{4})/gm).slice(2);
-
-	for(let i: number = 0; i < routeLines['length']; i++) {
-		if(i % 2 === 0) {
-			fastifyInstance['log'].info(routeLines[i].replace('\n', ''));
-		}
-	}
-
-	logger.info('accessToken: ' + JsonWebToken.create({
+	server['logger'].debug(JsonWebToken.create({
 		uid: 0,
 		hdl: '#',
 		vrf: true
@@ -56,4 +25,4 @@ fastifyInstance.listen({
 
 	return;
 })
-.catch(fastifyInstance['log'].fatal.bind(fastifyInstance['log']));
+.catch(server['logger'].fatal);

@@ -1,57 +1,57 @@
-import { prisma } from '@library/database';
-import { Conflict, NotFound } from '@library/httpError';
-import { MovieStar } from '@prisma/client';
-import { FastifyReply, FastifyRequest } from 'fastify';
+import { kysely } from '@library/database';
+import { Conflict, NotFound } from '@library/error';
+import { Database, Movie, MovieStar, Request, Response } from '@library/type';
+import { JoinBuilder, Transaction } from 'kysely';
 
-export default function (request: FastifyRequest<{
-	Params: {
+export default function (request: Request<{
+	parameter: {
 		movieId: MovieStar['movieId'];
 	};
-	Body: Pick<MovieStar, 'value'>;
-}>, reply: FastifyReply): void {
-	prisma['movie'].findUnique({
-		select: {
-			movieStars: {
-				select: {
-					id: true
-				},
-				where: {
-					movieId: request['params']['movieId'],
-					userId: request['user']['id']
-				}
-			}
-		},
-		where: {
-			id: request['params']['movieId'],
-			isDeleted: false
-		}
-	})
-	.then(function (movie: {
-		movieStars: Pick<MovieStar, 'id'>[];
-	} | null): Promise<Pick<MovieStar, 'id' | 'value' | 'createdAt'>> {
-		if(movie !== null) {
-			if(movie['movieStars']['length'] === 0) {
-				return prisma['movieStar'].create({
-					select: {
-						id: true,
-						value: true,
-						createdAt: true
-					},
-					data: {
-						movieId: request['params']['movieId'],
-						userId: request['user']['id'],
+	body: Pick<MovieStar, 'value'>;
+}>, response: Response): Promise<void> {
+	return kysely.transaction()
+	.setIsolationLevel('serializable')
+	.execute(function (transaction: Transaction<Database>): Promise<void> {
+		return transaction.selectFrom('movie')
+		.select('movie.id')
+		.where('movie.id', '=', request['parameter']['movieId'])
+		.where('movie.is_deleted', '=', false)
+		.leftJoin('movie_star as star', function (joinBuilder: JoinBuilder<Database & {
+			star: Database['movie_star'];
+		}, 'movie' | 'star'>): JoinBuilder<Database & {
+			star: Database['movie_star'];
+		}, 'movie' | 'star'> {
+			return joinBuilder.onRef('movie.id', '=', 'star.movie_id')
+			.on('star.user_id', '=', request['user']['id']);
+		})
+		.select('star.id as star_id')
+		.executeTakeFirst()
+		.then(function (movie?: Pick<Movie, 'id'> & Nullable<PrefixPick<MovieStar, 'star_', 'id'>>): Promise<Pick<MovieStar, 'id' | 'createdAt'>> {
+			if(typeof(movie) !== 'undefined') {
+				if(movie['star_id'] === null) {
+					return transaction.insertInto('movie_star')
+					.values({
+						movie_id: request['parameter']['movieId'],
+						user_id: request['user']['id'],
 						value: request['body']['value']
-					}
-				});
+					})
+					.returning(['id', 'created_at as createdAt'])
+					.executeTakeFirstOrThrow();
+				} else {
+					throw new Conflict('User must not starred');
+				}
 			} else {
-				throw new Conflict('User must not starred');
+				throw new NotFound('Parameter[\'movieId\'] must be valid');
 			}
-		} else {
-			throw new NotFound('Parameter[\'movieId\'] must be valid');
-		}
-	})
-	.then(reply.status(201).send.bind(reply))
-	.catch(reply.send.bind(reply));
+		})
+		.then(function (star: Pick<MovieStar, 'id' | 'createdAt'>): void {
+			response.send({
+				id: star['id'],
+				value: request['body']['value'],
+				createdAt: star['createdAt']
+			} satisfies Pick<MovieStar, 'id' | 'value' | 'createdAt'>);
 
-	return;
+			return;
+		});
+	});
 }

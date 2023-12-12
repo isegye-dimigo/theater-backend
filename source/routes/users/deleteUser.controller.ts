@@ -1,92 +1,73 @@
-import { prisma } from '@library/database';
-import { NotFound, Unauthorized } from '@library/httpError';
-import { Prisma, User } from '@prisma/client';
-import { FastifyReply, FastifyRequest } from 'fastify';
+import { kysely } from '@library/database';
+import { NotFound, Unauthorized } from '@library/error';
+import { Database, Request, Response, User } from '@library/type';
+import { resolveInSequence } from '@library/utility';
+import { DeleteResult, Transaction, UpdateResult } from 'kysely';
 
-export default function (request: FastifyRequest<{
-	Params: {
+export default function (request: Request<{
+	parameter: {
 		userHandle: User['handle'];
 	};
-}>, reply: FastifyReply): void {
-	prisma['user'].findUnique({
-		select: {
-			id: true
-		},
-		where: {
-			handle: request['params']['userHandle'],
-			isDeleted: false
-		}
-	})
-	.then(function (user: Pick<User, 'id'> | null): Promise<void> {
-		if(user !== null) {
-			if(request['user']['id'] === user['id']) {
-				return prisma.$transaction([prisma['user'].updateMany({
-					where: {
-						id: user['id'],
-						isDeleted: false
-					},
-					data: {
-						isDeleted: true,
-						bannerMediaId: null,
-						profileMediaId: null
-					}
-				}), prisma['movie'].updateMany({
-					data: {
-						isDeleted: true
-					},
-					where: {
-						userId: user['id']
-					}
-				}), prisma['movieComment'].updateMany({
-					data: {
-						isDeleted: true
-					},
-					where: {
-						userId: user['id']
-					}
-				}), prisma['movieLike'].deleteMany({
-					where: {
-						userId: user['id']
-					}
-				}), prisma['movieStar'].deleteMany({
-					where: {
-						userId: user['id']
-					}
-				}), prisma['movieStatistic'].deleteMany({
-					where: {
-						movie: {
-							userId: user['id']
+}>, response: Response): Promise<void> {
+	return kysely.transaction()
+	.setIsolationLevel('serializable')
+	.execute(function (transaction: Transaction<Database>): Promise<void> {
+		return transaction.selectFrom('user')
+		.select('id')
+		.where('handle', '=', request['parameter']['userHandle'])
+		.where('is_deleted', '=', false)
+		.executeTakeFirst()
+		.then(function (user?: Pick<User, 'id'>) {
+			if(typeof(user) !== 'undefined') {
+				if(request['user']['id'] === user['id']) {
+					return resolveInSequence<[UpdateResult, UpdateResult, UpdateResult, UpdateResult, DeleteResult, DeleteResult, DeleteResult, DeleteResult]>([transaction.updateTable('user')
+					.set({
+						is_deleted: true,
+						banner_media_id: null,
+						profile_media_id: null
+					})
+					.where('id', '=', request['user']['id'])
+					.executeTakeFirst(), transaction.updateTable('movie')
+					.set({
+						is_deleted: true
+					})
+					.where('user_id', '=', request['user']['id'])
+					.executeTakeFirst(), transaction.updateTable('movie_comment')
+					.set({
+						is_deleted: true
+					})
+					.where('user_id', '=', request['user']['id'])
+					.executeTakeFirst(), transaction.updateTable('report')
+					.set({
+						is_deleted: true
+					})
+					.where('user_id', '=', request['user']['id'])
+					.executeTakeFirst(), transaction.deleteFrom('episode_like')
+					.where('user_id', '=', request['user']['id'])
+					.executeTakeFirst(), transaction.deleteFrom('movie_star')
+					.where('user_id', '=', request['user']['id'])
+					.executeTakeFirst(), transaction.deleteFrom('movie_statistic')
+					.innerJoin('movie', 'movie_statistic.movie_id', 'movie.id')
+					.where('movie.user_id', '=', request['user']['id'])
+					.executeTakeFirst(), transaction.deleteFrom('user_history')
+					.where('user_id', '=', request['user']['id'])
+					.executeTakeFirst()])
+					.then(function (results: [UpdateResult, UpdateResult, UpdateResult, UpdateResult, DeleteResult, DeleteResult, DeleteResult, DeleteResult]): void {
+						if(results[0]['numUpdatedRows'] === 1n) {
+							response.setStatus(204);
+							response.send();
+
+							return;
+						} else {
+							throw new NotFound('Parameter[\'userHandle\'] must be valid');
 						}
-					}
-				}), prisma['report'].updateMany({
-					data: {
-						isDeleted: true
-					},
-					where: {
-						userId: user['id']
-					}
-				}), prisma['userHistory'].deleteMany({
-					where: {
-						userId: user['id']
-					}
-				}), prisma.$executeRaw`UPDATE media LEFT JOIN used_media ON media.id = used_media.id SET media.is_deleted = 1 WHERE used_media.id IS NULL AND media.user_id = ${user['id']}`])
-				.then(function (results: [...Prisma.BatchPayload[], number]) {
-					if((results[0] as Prisma.BatchPayload)['count'] === 1) {
-						reply.send(null);
-
-						return;
-					} else {
-						throw new NotFound('Parameter[\'userHandle\'] must be valid');
-					}
-				});
+					});
+				} else {
+					throw new Unauthorized('User must be same');
+				}
 			} else {
-				throw new Unauthorized('User must be same');
+				throw new NotFound('Parameter[\'userHandle\'] must be valid');
 			}
-		} else {
-			throw new NotFound('Parameter[\'userHandle\'] must be valid');
-		}
-	})
-	.catch(reply.send.bind(reply));
-
-	return;
+		})
+	});
 }

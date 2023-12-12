@@ -1,8 +1,8 @@
-import { reportTypes } from '@library/constant';
-import { FastifyReply, FastifyRequest } from 'fastify';
+import { REPORT_TYPES } from '@library/constant';
+import { Request, Response } from '@library/type';
 
-export default function (request: FastifyRequest, reply: FastifyReply): void {
-	reply.send(reportTypes);
+export default function (request: Request, response: Response): void {
+	response.send(REPORT_TYPES);
 
 	return;
 }

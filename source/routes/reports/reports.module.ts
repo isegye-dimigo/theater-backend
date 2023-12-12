@@ -1,33 +1,25 @@
+import authHandler from '@handlers/auth';
 import Module from '@library/module';
 import postReportsController from './postReports.controller';
+import { SchemaType } from '@library/constant';
 import reportSchema from '@schemas/report';
 import getReportsController from './getReports.controller';
-import pageSchema from '@schemas/page';
 
-export default new Module({
-	routers: [{
-		method: 'POST',
-		url: '',
-		handler: postReportsController,
-		schema: {
-			body: {
-				type: reportSchema['type'].required(),
-				targetId: reportSchema['targetId'].required()
-			}
-		},
-		isAuthNeeded: true
-	}, {
-		method: 'GET',
-		url: '',
-		handler: getReportsController,
-		schema: {
-			querystring: {
-				'page[index]': pageSchema['page[index]'],
-				'page[size]': pageSchema['page[size]'],
-				'page[order]': pageSchema['page[order]']
+export default new Module([{
+	method: 'POST',
+	path: '',
+	handlers: [authHandler, postReportsController],
+	schema: {
+		body: {
+			type: SchemaType['OBJECT'],
+			properties: {
+				type: reportSchema['type'],
+				targetId: reportSchema['targetId']
 			}
 		}
-	}],
-	prefix: 'reports',
-	modules: []
-});
+	}
+}, {
+	method: 'GET',
+	path: '',
+	handlers: [getReportsController]
+}], 'reports');

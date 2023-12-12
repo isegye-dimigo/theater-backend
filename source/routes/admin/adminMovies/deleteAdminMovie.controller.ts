@@ -1,46 +1,41 @@
-import { prisma } from '@library/database';
-import { NotFound } from '@library/httpError';
-import { Movie, Prisma } from '@prisma/client';
-import { FastifyReply, FastifyRequest } from 'fastify';
+import { kysely } from '@library/database';
+import { NotFound } from '@library/error';
+import { Database, Request, Response, Movie } from '@library/type';
+import { Transaction, UpdateResult } from 'kysely';
 
-export default function (request: FastifyRequest<{
-	Params: {
+export default function (request: Request<{
+	parameter: {
 		movieId: Movie['id'];
 	};
-}>, reply: FastifyReply): void {
-	prisma['movie'].findUnique({
-		select: {
-			id: true
-		},
-		where: {
-			id: request['params']['movieId']
-		}
-	})
-	.then(function (movie: Pick<Movie, 'id'> | null): Promise<Prisma.BatchPayload> {
-		if(movie !== null) {
-			return prisma['movie'].updateMany({
-				data: {
-					isDeleted: true
-				},
-				where: {
-					id: request['params']['movieId'],
-					isDeleted: false
-				}
-			});
-		} else {
-			throw new NotFound('Parameter[\'movieId\'] must be valid');
-		}
-	})
-	.then(function (result: Prisma.BatchPayload): void {
-		if(result['count'] === 1) {
-			reply.status(204).send();
+}>, response: Response): Promise<void> {
+	return kysely.transaction()
+	.setIsolationLevel('serializable')
+	.execute(function (transaction: Transaction<Database>): Promise<void> {
+		return transaction.selectFrom('movie')
+		.select('id')
+		.where('id', '=', request['parameter']['movieId'])
+		.where('is_deleted', '=', false)
+		.executeTakeFirst()
+		.then(function (movie?: Pick<Movie, 'id'>): Promise<UpdateResult> {
+			if(typeof(movie) !== 'undefined') {
+				return transaction.updateTable('movie')
+				.set({
+					is_deleted: true
+				})
+				.executeTakeFirst();
+			} else {
+				throw new NotFound('Parameter[\'movieId\'] must be valid');
+			}
+		})
+		.then(function (result: UpdateResult): void {
+			if(result['numUpdatedRows'] === 1n) {
+				response.setStatus(204);
+				response.send();
 
-			return;
-		} else {
-			throw new NotFound('Parameter[\'movieId\'] must be valid');
-		}
-	})
-	.catch(reply.send.bind(reply));
-
-	return;
+				return;
+			} else {
+				throw new NotFound('Parameter[\'movieId\'] must be valid');
+			}
+		});
+	});
 }

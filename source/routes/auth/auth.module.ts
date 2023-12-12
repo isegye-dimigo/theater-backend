@@ -1,46 +1,47 @@
 import Module from '@library/module';
 import getEmailController from './getEmail.controller';
 import postLoginController from './postLogin.controller';
-import postTokenController from './postToken.controller';
-import getAuthController from './getAuth.controller';
-import userSchema from '@schemas/user';
+import { SchemaType } from '@library/constant';
 import commonSchema from '@schemas/common';
+import userSchema from '@schemas/user';
 import userVerificationSchema from '@schemas/userVerification';
+import postTokenController from './postToken.controller';
 
-export default new Module({
-	routers: [{
-		method: 'GET',
-		url: '',
-		handler: getAuthController
-	}, {
-		method: 'GET',
-		url: 'email',
-		handler: getEmailController,
-		schema: {
-			querystring: {
-				token: userVerificationSchema['token'].required()
+export default new Module([{
+	method: 'GET',
+	path: 'email',
+	handlers: [getEmailController],
+	schema: {
+		query: {
+			type: SchemaType['OBJECT'],
+			properties: {
+				token: userVerificationSchema['token']
 			}
 		}
-	}, {
-		method: 'POST',
-		url: 'login',
-		handler: postLoginController,
-		schema: {
-			body: {
-				email: userSchema['email'].required(),
-				password: userSchema['password'].required()
+	}
+}, {
+	method: 'POST',
+	path: 'login',
+	handlers: [postLoginController],
+	schema: {
+		body: {
+			type: SchemaType['OBJECT'],
+			properties: {
+				email: commonSchema['email'],
+				password: userSchema['password']
 			}
 		}
-	}, {
-		method: 'POST',
-		url: 'token',
-		handler: postTokenController,
-		schema: {
-			body: {
-				refreshToken: commonSchema['jsonWebToken'].required()
+	}
+}, {
+	method: 'POST',
+	path: 'token',
+	handlers: [postTokenController],
+	schema: {
+		body: {
+			type: SchemaType['OBJECT'],
+			properties: {
+				refreshToken: commonSchema['jsonWebToken']
 			}
 		}
-	}],
-	modules: [],
-	prefix: 'auth'
-});
+	}
+}], 'auth');

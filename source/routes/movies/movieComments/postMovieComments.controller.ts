@@ -1,81 +1,44 @@
-import { prisma } from '@library/database';
-import { BadRequest, NotFound } from '@library/httpError';
-import { Media, MediaVideo, MovieComment, User } from '@prisma/client';
-import { FastifyReply, FastifyRequest } from 'fastify';
+import { kysely } from '@library/database';
+import { NotFound } from '@library/error';
+import { Database, Movie, MovieComment, Request, Response } from '@library/type';
+import { Transaction } from 'kysely';
 
-export default function (request: FastifyRequest<{
-	Params: {
+export default function (request: Request<{
+	parameter: {
 		movieId: MovieComment['movieId'];
 	};
-	Body: Pick<MovieComment, 'time' | 'content'>;
-}>, reply: FastifyReply): void {
-	prisma['movie'].findUnique({
-		select: {
-			videoMedia: {
-				select: {
-					mediaVideo: {
-						select: {
-							duration: true
-						}
-					}
-				}
-			}
-		}, 
-		where: {
-			id: request['params']['movieId'],
-			isDeleted: false
-		}
-	})
-	.then(function (movie: {
-		videoMedia: {
-			mediaVideo: Pick<MediaVideo, 'duration'> | null;
-		};
-	} | null): Promise<Pick<MovieComment, 'id' | 'time' | 'content' | 'createdAt'> & {
-		user: Pick<User, 'id' | 'handle' | 'name' | 'isVerified'> & {
-			profileMedia: Pick<Media, 'id' | 'hash' | 'width' | 'height'> | null;
-		};
-	}> {
-		if(movie !== null) {
-			if(movie['videoMedia']['mediaVideo'] !== null && request['body']['time'] <= movie['videoMedia']['mediaVideo']['duration']) {
-				return prisma['movieComment'].create({
-					data: {
-						movieId: request['params']['movieId'],
-						userId: request['user']['id'],
-						time: request['body']['time'],
-						content: request['body']['content']
-					},
-					select: {
-						id: true,
-						user: {
-							select: {
-								id: true,
-								handle: true,
-								name: true,
-								isVerified: true,
-								profileMedia: {
-									select: {
-										hash: true,
-										id: true,
-										width: true,
-										height: true
-									}
-								}
-							}
-						},
-						time: true,
-						content: true,
-						createdAt: true
-					}
-				});
+	body: Pick<MovieComment, 'content'>;
+}>, response: Response): Promise<void> {
+	return kysely.transaction()
+	.setIsolationLevel('serializable')
+	.execute(function (transaction: Transaction<Database>): Promise<void> {
+		return transaction.selectFrom('movie')
+		.select('id')
+		.where('id', '=', request['parameter']['movieId'])
+		.where('is_deleted', '=', false)
+		.executeTakeFirst()
+		.then(function (movie?: Pick<Movie, 'id'>): Promise<Pick<MovieComment, 'id' | 'createdAt'>> {
+			if(typeof(movie) !== 'undefined') {
+				return transaction.insertInto('movie_comment')
+				.values({
+					movie_id: request['parameter']['movieId'],
+					user_id: request['user']['id'],
+					content: request['body']['content']
+				})
+				.returning(['id', 'created_at as createdAt'])
+				.executeTakeFirstOrThrow();
 			} else {
-				throw new BadRequest('Body[\'time\'] must be valid');
+				throw new NotFound('Parameter[\'movieId\'] must be valid');
 			}
-		} else {
-			throw new NotFound('Parameter[\'movieId\'] must be valid');
-		}
-	})
-	.then(reply.status(201).send.bind(reply))
-	.catch(reply.send.bind(reply));
+		})
+		.then(function (comment: Pick<MovieComment, 'id' | 'createdAt'>): void {
+			response.send({
+				id: comment['id'],
+				content: request['body']['content'],
+				createdAt: comment['createdAt']
+			} satisfies Pick<MovieComment, 'id' | 'content' | 'createdAt'>);
 
-	return;
+			return;
+		});
+	});
 }
