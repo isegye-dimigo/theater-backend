@@ -223,8 +223,13 @@ export default function (request: Request, response: Response): Promise<void> {
 				} else {
 					return;
 				}
-			})
-
+			});
+		})
+		.then(function (): Promise<void> {
+			return rm(request['file']['path'], {
+				force: true,
+				recursive: true
+			});
 		})
 		.then(function (): void {
 			if(!request['destroyed']) {
