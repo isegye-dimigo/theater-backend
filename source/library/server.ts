@@ -512,7 +512,9 @@ export default class Server extends _Server {
 																	}
 				
 																	default: {
-																		throw new UnsupportedMediaType('File must be valid type');
+																		reject(new UnsupportedMediaType('File must be valid type'));
+
+																		return;
 																	}
 																}
 			
