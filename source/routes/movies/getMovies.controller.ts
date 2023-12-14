@@ -19,7 +19,7 @@ export default function (request: Request<{
 			size: request['query']['page[size]'],
 			from: request['query']['page[size]'] * request['query']['page[index]'],
 			_source: false,
-			min_score: 1,
+			min_score: 0.5,
 			query: {
 				multi_match: {
 					query: request['query']['query'],
